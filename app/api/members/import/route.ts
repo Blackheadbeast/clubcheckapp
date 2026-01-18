@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
 import { PLAN_LIMITS } from '@/lib/stripe'
-import { sendMemberWelcomeEmail } from '@/lib/email'
 import QRCode from 'qrcode'
+
+// Lazy load email to avoid build-time initialization
+const sendEmail = async (email: string, name: string, qr: string) => {
+  const { sendMemberWelcomeEmail } = await import('@/lib/email')
+  return sendMemberWelcomeEmail(email, name, qr)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
 
         // Try to send email (don't fail if email fails)
         try {
-          await sendMemberWelcomeEmail(member.email, member.name, qrCodeUrl)
+          await sendEmail(member.email, member.name, qrCodeUrl)
         } catch (emailError) {
           console.error(`Email failed for ${email}:`, emailError)
         }

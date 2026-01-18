@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Owner {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  password          String
+  createdAt         DateTime @default(now())
+  
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  subscriptionStatus     String?  // active, past_due, canceled, etc.
+  currentPeriodEnd       DateTime?
+  planType               String   @default("starter") // starter (75) or pro (150)
+  
+  members           Member[]
+  checkins          Checkin[]
+}
+
+model Member {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  phone       String?
+  status      String   @default("active") // active, inactive
+  qrCode      String   @unique
+  createdAt   DateTime @default(now())
+  
+  ownerId     String
+  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  subscriptionStatus     String?
+  cardLast4              String?
+  cardExpiryMonth        Int?
+  cardExpiryYear         Int?
+  
+  checkins    Checkin[]
+}
+
+model Checkin {
+  id          String   @id @default(uuid())
+  timestamp   DateTime @default(now())
+  
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  ownerId     String
+  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}

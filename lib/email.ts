@@ -1,6 +1,16 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+let resendInstance: Resend | null = null
+
+function getResend() {
+  if (!resendInstance) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not set')
+    }
+    resendInstance = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendInstance
+}
 
 export async function sendMemberWelcomeEmail(
   memberEmail: string,
@@ -8,6 +18,8 @@ export async function sendMemberWelcomeEmail(
   qrCodeDataUrl: string
 ) {
   try {
+    const resend = getResend()
+    
     // Convert data URL to buffer
     const base64Data = qrCodeDataUrl.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')

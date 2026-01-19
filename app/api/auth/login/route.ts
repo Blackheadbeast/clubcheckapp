@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
     }
 
     const owner = await prisma.owner.findUnique({ where: { email } });
-
     if (!owner) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
@@ -29,14 +28,14 @@ export async function POST(request: NextRequest) {
 
     const token = await createToken({ ownerId: owner.id });
 
-    // cookies() is synchronous — DO NOT await
+    // ✅ cookies() is sync — NO await
     const cookieStore = cookies();
     cookieStore.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
-      path: "/", // important
+      path: "/",
     });
 
     return NextResponse.json({

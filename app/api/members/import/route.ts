@@ -4,12 +4,6 @@ import { getOwnerFromCookie } from '@/lib/auth'
 import { PLAN_LIMITS } from '@/lib/stripe'
 import QRCode from 'qrcode'
 
-// Lazy load email to avoid build-time initialization
-const sendEmail = async (email: string, name: string, qr: string) => {
-  const { sendMemberWelcomeEmail } = await import('@/lib/email')
-  return sendMemberWelcomeEmail(email, name, qr)
-}
-
 export async function POST(request: NextRequest) {
   try {
     const owner = await getOwnerFromCookie()
@@ -112,9 +106,12 @@ export async function POST(request: NextRequest) {
 
         // Try to send email (don't fail if email fails)
         try {
-          await sendEmail(member.email, member.name, qrCodeUrl)
+          // Dynamically import email function only when actually sending
+          const { sendMemberWelcomeEmail } = await import('@/lib/email')
+          await sendMemberWelcomeEmail(member.email, member.name, qrCodeUrl)
         } catch (emailError) {
           console.error(`Email failed for ${email}:`, emailError)
+          // Continue processing even if email fails
         }
 
         results.success++
@@ -139,3 +136,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Add this to prevent Next.js from trying to statically optimize this route
+export const dynamic = 'force-dynamic'

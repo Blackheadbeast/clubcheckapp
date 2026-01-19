@@ -3,7 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
 import { PLAN_LIMITS } from '@/lib/stripe'
 import QRCode from 'qrcode'
-import { sendMemberWelcomeEmail } from '@/lib/email'
+
+// Prevent static optimization during build
+export const dynamic = 'force-dynamic'
 
 // GET all members
 export async function GET() {
@@ -102,24 +104,32 @@ export async function POST(request: NextRequest) {
         ownerId: owner.ownerId,
       },
     })
-    // Send welcome email with QR code
-    const emailResult = await sendMemberWelcomeEmail(
-      member.email,
-      member.name,
-      qrCodeUrl
-    )
 
-    if (!emailResult.success) {
-      console.error('Failed to send welcome email:', emailResult.error)
+    // Send welcome email with QR code (lazy load to avoid build-time initialization)
+    let emailSent = false
+    try {
+      const { sendMemberWelcomeEmail } = await import('@/lib/email')
+      const emailResult = await sendMemberWelcomeEmail(
+        member.email,
+        member.name,
+        qrCodeUrl
+      )
+      emailSent = emailResult.success
+      
+      if (!emailResult.success) {
+        console.error('Failed to send welcome email:', emailResult.error)
+      }
+    } catch (emailError) {
+      console.error('Email send exception:', emailError)
       // Don't fail the whole request if email fails
     }
 
-   return NextResponse.json({
+    return NextResponse.json({
       member: {
         ...member,
         qrCodeUrl,
       },
-      emailSent: emailResult.success,
+      emailSent,
     })
   } catch (error) {
     console.error('Create member error:', error)

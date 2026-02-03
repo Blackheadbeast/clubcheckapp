@@ -3,10 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
-
 
 model Owner {
   id                String   @id @default(uuid())
@@ -16,9 +16,9 @@ model Owner {
   
   stripeCustomerId       String?
   stripeSubscriptionId   String?
-  subscriptionStatus     String?  // active, past_due, canceled, etc.
+  subscriptionStatus     String?
   currentPeriodEnd       DateTime?
-  planType               String   @default("starter") // starter (75) or pro (150)
+  planType               String   @default("starter")
   
   members           Member[]
   checkins          Checkin[]
@@ -29,7 +29,7 @@ model Member {
   name        String
   email       String
   phone       String?
-  status      String   @default("active") // active, inactive
+  status      String   @default("active")
   qrCode      String   @unique
   createdAt   DateTime @default(now())
   

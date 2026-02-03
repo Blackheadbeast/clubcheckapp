@@ -3,56 +3,56 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("POSTGRES_PRISMA_URL")
-  directUrl = env("POSTGRES_URL_NON_POOLING")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+
 model Owner {
-  id                String   @id @default(uuid())
-  email             String   @unique
-  password          String
-  createdAt         DateTime @default(now())
-  
-  stripeCustomerId       String?
-  stripeSubscriptionId   String?
-  subscriptionStatus     String?
-  currentPeriodEnd       DateTime?
-  planType               String   @default("starter")
-  
-  members           Member[]
-  checkins          Checkin[]
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  password            String
+  createdAt           DateTime @default(now())
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String?
+  currentPeriodEnd     DateTime?
+  planType             String   @default("starter")
+
+  members             Member[]
+  checkins            Checkin[]
 }
 
 model Member {
-  id          String   @id @default(uuid())
-  name        String
-  email       String
-  phone       String?
-  status      String   @default("active")
-  qrCode      String   @unique
-  createdAt   DateTime @default(now())
-  
-  ownerId     String
-  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  
-  stripeCustomerId       String?
-  stripeSubscriptionId   String?
-  subscriptionStatus     String?
-  cardLast4              String?
-  cardExpiryMonth        Int?
-  cardExpiryYear         Int?
-  
-  checkins    Checkin[]
+  id                  String   @id @default(uuid())
+  name                String
+  email               String
+  phone               String?
+  status              String   @default("active")
+  qrCode              String   @unique
+  createdAt           DateTime @default(now())
+
+  ownerId             String
+  owner               Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String?
+  cardLast4            String?
+  cardExpiryMonth      Int?
+  cardExpiryYear       Int?
+
+  checkins            Checkin[]
 }
 
 model Checkin {
-  id          String   @id @default(uuid())
-  timestamp   DateTime @default(now())
-  
-  memberId    String
-  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  
-  ownerId     String
-  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  ownerId   String
+  owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }

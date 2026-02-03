@@ -1,4 +1,3 @@
-///Users/mahadghazipura/clubcheck/lib/auth.ts
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
@@ -27,8 +26,8 @@ export async function verifyToken(token: string) {
 }
 
 export async function getOwnerFromCookie() {
-  // ✅ cookies() is sync — NO await
-  const cookieStore = cookies();
+  // ✅ Next.js 15: cookies() is async and MUST be awaited
+  const cookieStore = await cookies();
   const token = cookieStore.get("auth-token")?.value;
   if (!token) return null;
   return verifyToken(token);

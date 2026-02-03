@@ -1,3 +1,5 @@
+//app/login/page.tsx
+
 'use client'
 
 import { useState } from 'react'
@@ -21,6 +23,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Important for cookies
       })
 
       const data = await res.json()
@@ -31,9 +34,11 @@ export default function LoginPage() {
         return
       }
 
+      // Force a hard navigation to ensure cookies are recognized
+      router.refresh()
       router.push('/dashboard')
     } catch (err) {
-      setError('Something went wrong')
+      setError('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
@@ -58,6 +63,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="you@gym.com"
               />
@@ -73,6 +79,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="••••••••"
               />
@@ -95,7 +102,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-gray-400 text-sm">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-primary hover:text-primary-light">
                 Sign up
               </Link>

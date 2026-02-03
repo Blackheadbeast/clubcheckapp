@@ -1,4 +1,3 @@
-///Users/mahadghazipura/clubcheck/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -10,31 +9,47 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password required" },
+        { status: 400 }
+      );
     }
 
-    const owner = await prisma.owner.findUnique({ where: { email } });
+    // Normalize email to match signup
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const owner = await prisma.owner.findUnique({
+      where: { email: normalizedEmail },
+    });
+
     if (!owner) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
     }
 
     const valid = await bcrypt.compare(password, owner.password);
     if (!valid) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
     }
 
     const token = await createToken({ ownerId: owner.id });
 
-    // ✅ cookies() is sync — NO await
-    const cookieStore = cookies();
+    // ✅ Next.js 15: cookies() is async and MUST be awaited
+    const cookieStore = await cookies();
     cookieStore.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     });
 
@@ -44,6 +59,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json({ error: "Login failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Login failed. Please try again." },
+      { status: 500 }
+    );
   }
 }

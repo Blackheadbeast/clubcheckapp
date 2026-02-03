@@ -1,3 +1,4 @@
+///Users/mahadghazipura/clubcheck/app/api/dashboard/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'

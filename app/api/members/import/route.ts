@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
 import { PLAN_LIMITS } from '@/lib/stripe'
-import QRCode from 'qrcode'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,13 +17,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get owner data
+    // Get owner data for plan limits
     const ownerData = await prisma.owner.findUnique({
       where: { id: owner.ownerId },
       select: { planType: true },
     })
 
-    // Check current member count
+    // Get current member count
     const currentCount = await prisma.member.count({
       where: {
         ownerId: owner.ownerId,
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const { members } = await request.json()
 
-    if (!members || !Array.isArray(members) || members.length === 0) {
+    if (!Array.isArray(members) || members.length === 0) {
       return NextResponse.json(
         { error: 'No members provided' },
         { status: 400 }
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (currentCount + members.length > limit) {
       return NextResponse.json(
         { 
-          error: `Import would exceed your limit. You have ${currentCount} members and can add ${limit - currentCount} more.`,
+          error: `Import would exceed member limit. You have ${currentCount} members and can add ${limit - currentCount} more.`,
           limitReached: true,
         },
         { status: 403 }
@@ -62,80 +64,59 @@ export async function POST(request: NextRequest) {
       try {
         const { name, email, phone } = memberData
 
+        // Validate required fields
         if (!name || !email) {
           results.failed++
-          results.errors.push(`Missing name or email for row`)
+          results.errors.push(`Missing name or email for entry: ${JSON.stringify(memberData)}`)
           continue
         }
 
-        // Check if member already exists
-        const existing = await prisma.member.findFirst({
+        // Check for duplicate email within this owner's members
+        const existingMember = await prisma.member.findFirst({
           where: {
-            email,
+            email: email.toLowerCase().trim(),
             ownerId: owner.ownerId,
           },
         })
 
-        if (existing) {
+        if (existingMember) {
           results.failed++
-          results.errors.push(`${email} already exists`)
+          results.errors.push(`Member with email ${email} already exists`)
           continue
         }
 
-        // Generate QR code
+        // Generate unique QR code
         const qrData = `clubcheck-member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        const qrCodeUrl = await QRCode.toDataURL(qrData, {
-          width: 300,
-          margin: 2,
-          color: {
-            dark: '#f59e0b',
-            light: '#0a0a0a',
-          },
-        })
 
         // Create member
-        const member = await prisma.member.create({
+        await prisma.member.create({
           data: {
-            name,
-            email,
-            phone: phone || null,
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
+            phone: phone?.trim() || null,
             qrCode: qrData,
             ownerId: owner.ownerId,
           },
         })
 
-        // Try to send email (don't fail if email fails)
-        try {
-          // Dynamically import email function only when actually sending
-          const { sendMemberWelcomeEmail } = await import('@/lib/email')
-          await sendMemberWelcomeEmail(member.email, member.name, qrCodeUrl)
-        } catch (emailError) {
-          console.error(`Email failed for ${email}:`, emailError)
-          // Continue processing even if email fails
-        }
-
         results.success++
-      } catch (error) {
+      } catch (err) {
         results.failed++
-        results.errors.push(`Failed to import ${memberData.email || 'unknown'}`)
-        console.error('Import error:', error)
+        results.errors.push(`Failed to create member: ${memberData.email || 'unknown'}`)
       }
     }
 
     return NextResponse.json({
-      message: `Imported ${results.success} members, ${results.failed} failed`,
+      message: `Imported ${results.success} members successfully${results.failed > 0 ? `, ${results.failed} failed` : ''}`,
       success: results.success,
       failed: results.failed,
-      errors: results.errors,
+      errors: results.errors.slice(0, 10), // Limit errors shown
     })
   } catch (error) {
-    console.error('Bulk import error:', error)
+    console.error('Import error:', error)
     return NextResponse.json(
       { error: 'Import failed' },
       { status: 500 }
     )
   }
 }
-
-// Add this to prevent Next.js from trying to statically optimize this route
-export const dynamic = 'force-dynamic'

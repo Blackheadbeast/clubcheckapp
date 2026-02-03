@@ -1,8 +1,10 @@
+//app/dashboard/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+
 
 interface DashboardData {
   activeMembers: number
@@ -23,7 +25,8 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const res = await fetch('/api/dashboard')
+        const res = await fetch("/api/dashboard", { cache: "no-store" })
+
         
         if (!res.ok) {
           router.push('/login')

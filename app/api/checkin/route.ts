@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 
 // POST - Check in a member
 export async function POST(request: NextRequest) {

@@ -1,3 +1,4 @@
+//app/signup/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -21,6 +22,7 @@ export default function SignupPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Important for cookies
       })
 
       const data = await res.json()
@@ -31,9 +33,11 @@ export default function SignupPage() {
         return
       }
 
+      // Force a hard navigation to ensure cookies are recognized
+      router.refresh()
       router.push('/dashboard')
     } catch (err) {
-      setError('Something went wrong')
+      setError('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
@@ -58,6 +62,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="you@gym.com"
               />
@@ -73,9 +78,12 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
+                autoComplete="new-password"
                 className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="••••••••"
               />
+              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
             </div>
 
             {error && (

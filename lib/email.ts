@@ -24,8 +24,11 @@ export async function sendMemberWelcomeEmail(
     const base64Data = qrCodeDataUrl.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
+    // Fix: Proper email format with angle brackets
+    const fromEmail = process.env.EMAIL_FROM || 'ClubCheck <no-reply@clubcheckapp.com>'
+
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'ClubCheck <onboarding@resend.dev>',
+      from: fromEmail,
       to: memberEmail,
       subject: `Welcome to the Gym - Your ClubCheck QR Code`,
       attachments: [
@@ -70,18 +73,18 @@ export async function sendMemberWelcomeEmail(
                             <li><strong>Download the QR code</strong> attached to this email</li>
                             <li><strong>Save it to your phone</strong> (photo gallery or favorites)</li>
                             <li><strong>Show it at the front desk</strong> when you arrive</li>
-                            <li>Get instant check-in - that's it!</li>
+                            <li>Get instant check-in - that&apos;s it!</li>
                           </ol>
                         </div>
                         
                         <div style="background-color: rgba(245, 158, 11, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
                           <p style="color: #f59e0b; font-size: 14px; margin: 0; font-weight: bold;">
-                            📎 Your QR code is attached as "qr-code.png"
+                            📎 Your QR code is attached as &quot;qr-code.png&quot;
                           </p>
                         </div>
                         
                         <p style="color: #737373; font-size: 14px; line-height: 1.6; margin: 0;">
-                          <strong>Tip:</strong> Add this QR code to your phone's home screen for quick access!
+                          <strong>Tip:</strong> Add this QR code to your phone&apos;s home screen for quick access!
                         </p>
                       </td>
                     </tr>

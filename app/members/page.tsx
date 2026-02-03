@@ -1,3 +1,4 @@
+//app/members/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -24,7 +25,11 @@ export default function MembersPage() {
   const [showImport, setShowImport] = useState(false)
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<any>(null)
+  const [importResult, setImportResult] = useState<{
+    error?: string
+    message?: string
+    errors?: string[]
+  } | null>(null)
   
   // Form state
   const [name, setName] = useState('')
@@ -39,7 +44,9 @@ export default function MembersPage() {
 
   async function loadMembers() {
     try {
-      const res = await fetch('/api/members')
+      const res = await fetch('/api/members', {
+        credentials: 'include',
+      })
       
       if (!res.ok) {
         router.push('/login')
@@ -65,6 +72,7 @@ export default function MembersPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone }),
+        credentials: 'include',
       })
 
       const data = await res.json()
@@ -104,15 +112,16 @@ export default function MembersPage() {
       // Skip header row
       const dataLines = lines.slice(1)
       
-      const members = dataLines.map(line => {
-        const [name, email, phone] = line.split(',').map(s => s.trim())
-        return { name, email, phone }
+      const membersToImport = dataLines.map(line => {
+        const [memberName, memberEmail, memberPhone] = line.split(',').map(s => s.trim())
+        return { name: memberName, email: memberEmail, phone: memberPhone }
       })
 
       const res = await fetch('/api/members/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ members }),
+        body: JSON.stringify({ members: membersToImport }),
+        credentials: 'include',
       })
 
       const data = await res.json()
@@ -122,7 +131,7 @@ export default function MembersPage() {
         setCsvFile(null)
         await loadMembers()
       }
-    } catch (error) {
+    } catch (err) {
       setImportResult({ error: 'Failed to parse CSV file' })
     } finally {
       setImporting(false)
@@ -131,11 +140,13 @@ export default function MembersPage() {
 
   async function viewMemberQR(memberId: string) {
     try {
-      const res = await fetch(`/api/members/${memberId}`)
+      const res = await fetch(`/api/members/${memberId}`, {
+        credentials: 'include',
+      })
       const data = await res.json()
       setSelectedMember(data.member)
-    } catch (error) {
-      console.error('Failed to load member:', error)
+    } catch (err) {
+      console.error('Failed to load member:', err)
     }
   }
 
@@ -147,11 +158,12 @@ export default function MembersPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
+        credentials: 'include',
       })
 
       await loadMembers()
-    } catch (error) {
-      console.error('Failed to update member:', error)
+    } catch (err) {
+      console.error('Failed to update member:', err)
     }
   }
 
@@ -161,11 +173,12 @@ export default function MembersPage() {
     try {
       await fetch(`/api/members/${memberId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       await loadMembers()
-    } catch (error) {
-      console.error('Failed to delete member:', error)
+    } catch (err) {
+      console.error('Failed to delete member:', err)
     }
   }
 

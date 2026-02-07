@@ -1,7 +1,8 @@
 ///Users/mahadghazipura/clubcheck/app/api/dashboard/route.ts
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
+import { isDemoOwner } from '@/lib/demo'
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,6 +19,11 @@ export async function GET() {
       )
     }
 
+    // Get gym profile for setup progress
+    const gymProfile = await prisma.gymProfile.findUnique({
+      where: { ownerId: owner.ownerId },
+    })
+
     // Get active members count
     const activeMembers = await prisma.member.count({
       where: {
@@ -26,10 +32,15 @@ export async function GET() {
       },
     })
 
+    // Get total members count (for setup check)
+    const totalMembers = await prisma.member.count({
+      where: { ownerId: owner.ownerId },
+    })
+
     // Get today's check-ins
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     const checkedInToday = await prisma.checkin.count({
       where: {
         ownerId: owner.ownerId,
@@ -37,6 +48,11 @@ export async function GET() {
           gte: today,
         },
       },
+    })
+
+    // Get total check-ins (for setup check)
+    const totalCheckins = await prisma.checkin.count({
+      where: { ownerId: owner.ownerId },
     })
 
     // Get failed payments (members with past_due or unpaid subscription status)
@@ -89,6 +105,32 @@ export async function GET() {
       },
     })
 
+    // Get unresolved billing events
+    const billingAlerts = await prisma.billingEvent.findMany({
+      where: {
+        ownerId: owner.ownerId,
+        resolvedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        type: true,
+        message: true,
+        createdAt: true,
+      },
+    })
+
+    // Build setup progress
+    const setupProgress = {
+      gymName: !!gymProfile?.name,
+      firstMember: totalMembers > 0,
+      kioskPin: !!gymProfile?.kioskPinHash,
+      firstCheckin: totalCheckins > 0,
+      dismissed: !!gymProfile?.setupDismissedAt,
+      isDemo: isDemoOwner(owner.ownerId),
+    }
+
     return NextResponse.json({
       activeMembers,
       checkedInToday,
@@ -96,7 +138,10 @@ export async function GET() {
       cardsExpiringSoon,
       revenue: revenue.toFixed(2),
       planType: ownerData?.planType || 'starter',
+      subscriptionStatus: ownerData?.subscriptionStatus || null,
       memberLimit: ownerData?.planType === 'pro' ? 150 : 75,
+      billingAlerts,
+      setupProgress,
     })
   } catch (error) {
     console.error('Dashboard error:', error)
@@ -104,5 +149,38 @@ export async function GET() {
       { error: 'Failed to load dashboard' },
       { status: 500 }
     )
+  }
+}
+
+// PATCH - Dismiss setup wizard
+export async function PATCH(request: NextRequest) {
+  try {
+    const owner = await getOwnerFromCookie()
+
+    if (!owner) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    if (body.action === 'dismiss-setup') {
+      await prisma.gymProfile.upsert({
+        where: { ownerId: owner.ownerId },
+        create: {
+          ownerId: owner.ownerId,
+          setupDismissedAt: new Date(),
+        },
+        update: {
+          setupDismissedAt: new Date(),
+        },
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (error) {
+    console.error('Dashboard PATCH error:', error)
+    return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
   }
 }

@@ -3,24 +3,43 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { createToken } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { z } from "zod";
+import { rateLimitResponse, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  // Rate limit check
+  const rateLimit = rateLimitResponse(request, "auth-login", AUTH_RATE_LIMIT);
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfter) },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const parsed = loginSchema.safeParse(body);
 
-    if (!email || !password) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Email and password required" },
+        { error: parsed.error.issues[0].message },
         { status: 400 }
       );
     }
 
-    // Normalize email to match signup
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = parsed.data.email.toLowerCase().trim();
+    const { password } = parsed.data;
 
     const owner = await prisma.owner.findUnique({
       where: { email: normalizedEmail },

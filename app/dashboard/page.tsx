@@ -3,8 +3,25 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Navbar from '@/components/Navbar'
+import SetupWizard from '@/components/SetupWizard'
+import BillingStatusBanner from '@/components/BillingStatusBanner'
 
+interface BillingAlert {
+  id: string
+  type: string
+  message: string
+  createdAt: string
+}
+
+interface SetupProgress {
+  gymName: boolean
+  firstMember: boolean
+  kioskPin: boolean
+  firstCheckin: boolean
+  dismissed: boolean
+  isDemo: boolean
+}
 
 interface DashboardData {
   activeMembers: number
@@ -13,7 +30,10 @@ interface DashboardData {
   cardsExpiringSoon: number
   revenue: string
   planType: string
+  subscriptionStatus: string | null
   memberLimit: number
+  billingAlerts: BillingAlert[]
+  setupProgress: SetupProgress
 }
 
 export default function DashboardPage() {
@@ -27,7 +47,7 @@ export default function DashboardPage() {
       try {
         const res = await fetch("/api/dashboard", { cache: "no-store" })
 
-        
+
         if (!res.ok) {
           router.push('/login')
           return
@@ -70,6 +90,24 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleDismissSetup() {
+    try {
+      await fetch('/api/dashboard', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss-setup' }),
+        credentials: 'include',
+      })
+      setData((prev) =>
+        prev
+          ? { ...prev, setupProgress: { ...prev.setupProgress, dismissed: true } }
+          : prev
+      )
+    } catch (error) {
+      console.error('Failed to dismiss setup:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -84,30 +122,72 @@ export default function DashboardPage() {
 
   const isNearLimit = data.activeMembers >= data.memberLimit * 0.9
 
+  async function dismissAlert(eventId: string) {
+    await fetch('/api/billing-events', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId }),
+      credentials: 'include',
+    })
+    setData((prev) =>
+      prev
+        ? { ...prev, billingAlerts: prev.billingAlerts.filter((a) => a.id !== eventId) }
+        : prev
+    )
+  }
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-dark">
+      <Navbar />
+      <BillingStatusBanner />
+      <div className="max-w-7xl mx-auto p-8">
+        {/* Billing Alerts Banner */}
+        {data.billingAlerts && data.billingAlerts.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {data.billingAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={`flex items-center justify-between px-6 py-4 rounded-lg ${
+                  alert.type === 'payment_failed'
+                    ? 'bg-red-900/20 border border-red-900 text-red-400'
+                    : alert.type === 'subscription_canceled'
+                    ? 'bg-yellow-900/20 border border-yellow-900 text-yellow-400'
+                    : 'bg-primary/20 border border-primary text-primary-light'
+                }`}
+              >
+                <div>
+                  <p className="font-semibold">{alert.message}</p>
+                  <p className="text-xs opacity-70 mt-1">
+                    {new Date(alert.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => dismissAlert(alert.id)}
+                  className="text-sm opacity-70 hover:opacity-100 ml-4 shrink-0"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Subscription Status Banner */}
+        {data.subscriptionStatus === 'past_due' && (
+          <div className="mb-6 bg-red-900/20 border border-red-900 text-red-400 px-6 py-4 rounded-lg">
+            <p className="font-semibold">Your subscription payment is past due</p>
+            <p className="text-sm mt-1">Please update your payment method to continue using ClubCheck.</p>
+          </div>
+        )}
+
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-primary">ClubCheck</h1>
-            <p className="text-gray-400 mt-1">Dashboard</p>
-          </div>
-          <div className="flex gap-4">
-            <Link
-              href="/members"
-              className="bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-6 rounded-lg transition"
-            >
-              Manage Members
-            </Link>
-            <Link
-              href="/checkin"
-              className="bg-dark-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-6 rounded-lg border border-gray-700 transition"
-            >
-              Check In
-            </Link>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
+          <p className="text-gray-400 mt-1">Overview of your gym</p>
         </div>
+
+        {/* Setup Wizard */}
+        <SetupWizard progress={data.setupProgress} onDismiss={handleDismissSetup} />
 
         {/* Subscription Upgrade Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -192,8 +272,8 @@ export default function DashboardPage() {
               ⚠️ You're approaching your member limit ({data.activeMembers}/{data.memberLimit})
             </p>
             <p className="text-sm mt-1">
-              {data.planType === 'starter' 
-                ? 'Upgrade to Pro to add up to 150 members' 
+              {data.planType === 'starter'
+                ? 'Upgrade to Pro to add up to 150 members'
                 : 'Contact support to increase your limit'}
             </p>
           </div>
@@ -215,7 +295,7 @@ export default function DashboardPage() {
             <div className="text-gray-400 text-sm mb-2">Checked In Today</div>
             <div className="text-4xl font-bold text-green-400">{data.checkedInToday}</div>
             <div className="text-gray-500 text-sm mt-2">
-              {data.activeMembers > 0 
+              {data.activeMembers > 0
                 ? `${Math.round((data.checkedInToday / data.activeMembers) * 100)}% of members`
                 : 'No members yet'}
             </div>

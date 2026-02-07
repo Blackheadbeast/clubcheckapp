@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import PlanSelectionModal from './PlanSelectionModal'
 
 interface BillingStatus {
   status: 'trialing' | 'active' | 'past_due' | 'grace_expired' | 'canceled' | 'expired'
@@ -18,6 +19,7 @@ interface BillingStatus {
 export default function BillingStatusBanner() {
   const [billing, setBilling] = useState<BillingStatus | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  const [showPlanModal, setShowPlanModal] = useState(false)
 
   useEffect(() => {
     async function loadBillingStatus() {
@@ -56,52 +58,92 @@ export default function BillingStatusBanner() {
     bannerClass = 'bg-orange-900/30 border-orange-700 text-orange-200'
   }
 
-  return (
-    <div className={`border-b px-4 py-3 ${bannerClass}`}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
-          </svg>
-          <p className="text-sm">
-            {billing.message}
-            {billing.status === 'trialing' && billing.daysRemaining && billing.daysRemaining <= 3 && (
-              <span className="ml-2">
-                <Link href="/settings" className="underline hover:no-underline font-medium">
-                  Subscribe now
-                </Link>
-              </span>
-            )}
-            {(billing.status === 'past_due' || billing.status === 'grace_expired') && (
-              <span className="ml-2">
-                <Link href="/settings" className="underline hover:no-underline font-medium">
-                  Update payment method
-                </Link>
-              </span>
-            )}
-            {(billing.status === 'canceled' || billing.status === 'expired') && (
-              <span className="ml-2">
-                <Link href="/settings" className="underline hover:no-underline font-medium">
-                  Resubscribe
-                </Link>
-              </span>
-            )}
-          </p>
-        </div>
+  // Determine modal title/subtitle based on status
+  const getModalContent = () => {
+    if (billing.status === 'trialing') {
+      return {
+        title: 'Subscribe Before Your Trial Ends',
+        subtitle: `Your trial ends in ${billing.daysRemaining} day${billing.daysRemaining === 1 ? '' : 's'}. Choose a plan to continue.`,
+      }
+    }
+    if (billing.status === 'expired') {
+      return {
+        title: 'Reactivate Your Account',
+        subtitle: 'Choose a plan to restore full access to ClubCheck.',
+      }
+    }
+    if (billing.status === 'canceled') {
+      return {
+        title: 'Resubscribe to ClubCheck',
+        subtitle: 'Choose a plan to continue managing your gym.',
+      }
+    }
+    return {
+      title: 'Choose Your Plan',
+      subtitle: 'Select a plan to continue using ClubCheck.',
+    }
+  }
 
-        {/* Only allow dismissing trial warnings, not critical billing issues */}
-        {billing.status === 'trialing' && (
-          <button
-            onClick={() => setDismissed(true)}
-            className="text-yellow-400 hover:text-yellow-200 p-1"
-            title="Dismiss"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  const modalContent = getModalContent()
+
+  return (
+    <>
+      <div className={`border-b px-4 py-3 ${bannerClass}`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
             </svg>
-          </button>
-        )}
+            <p className="text-sm">
+              {billing.message}
+              {billing.status === 'trialing' && billing.daysRemaining && billing.daysRemaining <= 3 && (
+                <button
+                  onClick={() => setShowPlanModal(true)}
+                  className="ml-2 underline hover:no-underline font-medium"
+                >
+                  Subscribe now
+                </button>
+              )}
+              {(billing.status === 'past_due' || billing.status === 'grace_expired') && (
+                <span className="ml-2">
+                  <Link href="/settings" className="underline hover:no-underline font-medium">
+                    Update payment method
+                  </Link>
+                </span>
+              )}
+              {(billing.status === 'canceled' || billing.status === 'expired') && (
+                <button
+                  onClick={() => setShowPlanModal(true)}
+                  className="ml-2 underline hover:no-underline font-medium"
+                >
+                  Resubscribe
+                </button>
+              )}
+            </p>
+          </div>
+
+          {/* Only allow dismissing trial warnings, not critical billing issues */}
+          {billing.status === 'trialing' && (
+            <button
+              onClick={() => setDismissed(true)}
+              className="text-yellow-400 hover:text-yellow-200 p-1"
+              title="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Plan Selection Modal */}
+      <PlanSelectionModal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        title={modalContent.title}
+        subtitle={modalContent.subtitle}
+      />
+    </>
   )
 }

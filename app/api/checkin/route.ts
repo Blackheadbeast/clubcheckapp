@@ -60,8 +60,36 @@ export async function POST(request: NextRequest) {
 
     const checkinSource = source || (qrCode ? 'qr' : 'phone')
     const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    // Create check-in and update lastCheckInAt in a transaction
+    // Calculate streak
+    let newCurrentStreak = member.currentStreak
+    let newLongestStreak = member.longestStreak
+
+    if (member.lastStreakCheckDate) {
+      const lastCheckDate = new Date(member.lastStreakCheckDate)
+      const lastCheckDay = new Date(lastCheckDate.getFullYear(), lastCheckDate.getMonth(), lastCheckDate.getDate())
+      const daysDiff = Math.floor((today.getTime() - lastCheckDay.getTime()) / (1000 * 60 * 60 * 24))
+
+      if (daysDiff === 0) {
+        // Same day - don't increment streak
+      } else if (daysDiff === 1) {
+        // Consecutive day - increment streak
+        newCurrentStreak = member.currentStreak + 1
+        if (newCurrentStreak > newLongestStreak) {
+          newLongestStreak = newCurrentStreak
+        }
+      } else {
+        // Gap in days - reset streak
+        newCurrentStreak = 1
+      }
+    } else {
+      // First check-in - start streak
+      newCurrentStreak = 1
+      newLongestStreak = Math.max(1, member.longestStreak)
+    }
+
+    // Create check-in and update member in a transaction
     const [checkin] = await prisma.$transaction([
       prisma.checkin.create({
         data: {
@@ -73,7 +101,12 @@ export async function POST(request: NextRequest) {
       }),
       prisma.member.update({
         where: { id: member.id },
-        data: { lastCheckInAt: now },
+        data: {
+          lastCheckInAt: now,
+          currentStreak: newCurrentStreak,
+          longestStreak: newLongestStreak,
+          lastStreakCheckDate: today,
+        },
       }),
     ])
 
@@ -82,6 +115,10 @@ export async function POST(request: NextRequest) {
       member: { id: member.id, name: member.name, email: member.email },
       checkin: { id: checkin.id, timestamp: checkin.timestamp },
       checkinMethod: checkinSource,
+      streak: {
+        current: newCurrentStreak,
+        longest: newLongestStreak,
+      },
     })
   } catch (error) {
     console.error('Check-in error:', error)

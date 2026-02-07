@@ -7,6 +7,18 @@ import { isDemoOwner } from '@/lib/demo'
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Helper to get date N days ago at midnight
+function daysAgo(n: number): Date {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+// Helper to format date as YYYY-MM-DD
+function formatDate(d: Date): string {
+  return d.toISOString().split('T')[0]
+}
 
 export async function GET() {
   try {
@@ -92,9 +104,7 @@ export async function GET() {
     })
 
     // Calculate revenue this month (active members * their subscription amount)
-    // For simplicity, we'll just count active members and assume pricing
-    // In a real app, you'd query Stripe for actual revenue
-    const revenue = activeMembers * 29.99 // Example: $29.99 per member
+    const revenue = activeMembers * 29.99
 
     // Get owner subscription info
     const ownerData = await prisma.owner.findUnique({
@@ -102,6 +112,7 @@ export async function GET() {
       select: {
         planType: true,
         subscriptionStatus: true,
+        trialEndsAt: true,
       },
     })
 
@@ -131,6 +142,80 @@ export async function GET() {
       isDemo: isDemoOwner(owner.ownerId),
     }
 
+    // ========================================
+    // TIMESERIES DATA FOR SPARKLINE CHARTS
+    // ========================================
+
+    // 1. Active Members Trend (12 weeks)
+    const membersTrend: { date: string; value: number }[] = []
+    for (let i = 11; i >= 0; i--) {
+      const weekStart = daysAgo(i * 7)
+      const weekEnd = daysAgo((i - 1) * 7)
+      const count = await prisma.member.count({
+        where: {
+          ownerId: owner.ownerId,
+          status: 'active',
+          createdAt: { lte: i === 0 ? new Date() : weekEnd },
+        },
+      })
+      membersTrend.push({ date: formatDate(weekStart), value: count })
+    }
+
+    // 2. Check-ins per day (14 days)
+    const checkinsTrend: { date: string; value: number }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const dayStart = daysAgo(i)
+      const dayEnd = new Date(dayStart)
+      dayEnd.setDate(dayEnd.getDate() + 1)
+      const count = await prisma.checkin.count({
+        where: {
+          ownerId: owner.ownerId,
+          timestamp: { gte: dayStart, lt: dayEnd },
+        },
+      })
+      checkinsTrend.push({ date: formatDate(dayStart), value: count })
+    }
+
+    // 3. Revenue trend (30 days) - simulate based on member count per day
+    const revenueTrend: { date: string; value: number }[] = []
+    const dailyRate = 29.99 / 30 // Daily rate per member
+    for (let i = 29; i >= 0; i--) {
+      const day = daysAgo(i)
+      // Approximate member count at that time
+      const memberCount = await prisma.member.count({
+        where: {
+          ownerId: owner.ownerId,
+          status: 'active',
+          createdAt: { lte: day },
+        },
+      })
+      revenueTrend.push({ date: formatDate(day), value: Math.round(memberCount * dailyRate * 100) / 100 })
+    }
+
+    // 4. Failed payments trend (30 days) - count members that had payment issues
+    const failedPaymentsTrend: { date: string; value: number }[] = []
+    for (let i = 29; i >= 0; i--) {
+      const dayStart = daysAgo(i)
+      const dayEnd = new Date(dayStart)
+      dayEnd.setDate(dayEnd.getDate() + 1)
+      // Check billing events for payment failures on that day
+      const count = await prisma.billingEvent.count({
+        where: {
+          ownerId: owner.ownerId,
+          type: 'payment_failed',
+          createdAt: { gte: dayStart, lt: dayEnd },
+        },
+      })
+      failedPaymentsTrend.push({ date: formatDate(dayStart), value: count })
+    }
+
+    // Calculate trial days remaining
+    let trialDaysRemaining: number | null = null
+    if (ownerData?.trialEndsAt) {
+      const remaining = Math.ceil((new Date(ownerData.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      trialDaysRemaining = Math.max(0, remaining)
+    }
+
     return NextResponse.json({
       activeMembers,
       checkedInToday,
@@ -142,6 +227,14 @@ export async function GET() {
       memberLimit: ownerData?.planType === 'pro' ? 150 : 75,
       billingAlerts,
       setupProgress,
+      trialDaysRemaining,
+      // Timeseries data
+      trends: {
+        members: membersTrend,
+        checkins: checkinsTrend,
+        revenue: revenueTrend,
+        failedPayments: failedPaymentsTrend,
+      },
     })
   } catch (error) {
     console.error('Dashboard error:', error)

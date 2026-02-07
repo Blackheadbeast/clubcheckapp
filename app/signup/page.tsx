@@ -11,6 +11,7 @@ function SignupForm() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [referralCode, setReferralCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -35,6 +36,7 @@ function SignupForm() {
         body: JSON.stringify({
           email,
           password,
+          phone: phone.trim() || undefined,
           referralCode: referralCode.trim() || undefined,
         }),
         credentials: 'include', // Important for cookies
@@ -48,9 +50,9 @@ function SignupForm() {
         return
       }
 
-      // Force a hard navigation to ensure cookies are recognized
+      // Redirect to email verification page
       router.refresh()
-      router.push('/dashboard')
+      router.push('/verify-email')
     } catch (err) {
       setError('Something went wrong. Please try again.')
       setLoading(false)
@@ -115,6 +117,21 @@ function SignupForm() {
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium mb-2">
+                Phone Number <span className="text-gray-500 font-normal">(optional)</span>
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                placeholder="(555) 123-4567"
+              />
             </div>
 
             <div>

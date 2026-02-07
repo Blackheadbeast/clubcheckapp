@@ -16,6 +16,10 @@ const updateSettingsSchema = z.object({
   externalProviderName: z.string().max(100).optional(),
 })
 
+const patchSettingsSchema = z.object({
+  theme: z.enum(['light', 'dark', 'auto']).optional(),
+})
+
 export async function GET() {
   try {
     const auth = await getOwnerFromCookie()
@@ -146,6 +150,45 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Update settings error:', error)
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const owner = await getOwnerFromCookie()
+    if (!owner) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const parsed = patchSettingsSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { theme } = parsed.data
+
+    if (theme) {
+      await prisma.gymProfile.upsert({
+        where: { ownerId: owner.ownerId },
+        create: {
+          ownerId: owner.ownerId,
+          theme,
+        },
+        update: {
+          theme,
+        },
+      })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Patch settings error:', error)
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
 }

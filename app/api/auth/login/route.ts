@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = await createToken({ ownerId: owner.id });
+    const isVerified = !!owner.emailVerified;
+    const token = await createToken({ ownerId: owner.id, emailVerified: isVerified });
 
     // ✅ Next.js 15: cookies() is async and MUST be awaited
     const cookieStore = await cookies();
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       owner: { id: owner.id, email: owner.email },
+      requiresVerification: !isVerified,
     });
   } catch (error) {
     console.error("Login error:", error);

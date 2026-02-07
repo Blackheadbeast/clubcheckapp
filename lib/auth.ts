@@ -16,6 +16,7 @@ export interface AuthPayload {
   ownerId: string;
   staffId?: string;
   role?: StaffRole;
+  emailVerified?: boolean;
 }
 
 function getSecret() {

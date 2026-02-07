@@ -39,22 +39,21 @@ export default function BillingStatusBanner() {
   // Don't show banner for demo accounts or if dismissed
   if (!billing || billing.isDemo || dismissed) return null
 
-  // Don't show banner if everything is fine
+  // Don't show banner if everything is fine (active subscription, no issues)
   if (billing.status === 'active' && !billing.message) return null
 
-  // Trial with plenty of days left - no banner needed
-  if (billing.status === 'trialing' && billing.daysRemaining && billing.daysRemaining > 3) {
-    return null
-  }
-
   // Determine banner style based on severity
-  let bannerClass = 'bg-yellow-900/30 border-yellow-700 text-yellow-200'
-  let iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
+  let bannerClass = 'bg-primary/20 border-primary/50 text-primary'
+  let iconPath = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' // Clock icon for trial
 
-  if (billing.status === 'grace_expired' || billing.status === 'expired') {
+  if (billing.status === 'trialing' && billing.daysRemaining && billing.daysRemaining <= 3) {
+    // Urgent trial - use warning style
+    bannerClass = 'bg-yellow-900/30 border-yellow-700 text-yellow-200'
+    iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
+  } else if (billing.status === 'grace_expired' || billing.status === 'expired') {
     bannerClass = 'bg-red-900/30 border-red-700 text-red-200'
     iconPath = 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'
-  } else if (billing.status === 'canceled') {
+  } else if (billing.status === 'canceled' || billing.status === 'past_due') {
     bannerClass = 'bg-orange-900/30 border-orange-700 text-orange-200'
   }
 
@@ -95,29 +94,35 @@ export default function BillingStatusBanner() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={iconPath} />
             </svg>
             <p className="text-sm">
-              {billing.message}
-              {billing.status === 'trialing' && billing.daysRemaining && billing.daysRemaining <= 3 && (
-                <button
-                  onClick={() => setShowPlanModal(true)}
-                  className="ml-2 underline hover:no-underline font-medium"
-                >
-                  Subscribe now
-                </button>
-              )}
-              {(billing.status === 'past_due' || billing.status === 'grace_expired') && (
-                <span className="ml-2">
-                  <Link href="/settings" className="underline hover:no-underline font-medium">
-                    Update payment method
-                  </Link>
-                </span>
-              )}
-              {(billing.status === 'canceled' || billing.status === 'expired') && (
-                <button
-                  onClick={() => setShowPlanModal(true)}
-                  className="ml-2 underline hover:no-underline font-medium"
-                >
-                  Resubscribe
-                </button>
+              {billing.status === 'trialing' && billing.daysRemaining ? (
+                <>
+                  <span className="font-medium">{billing.daysRemaining} day{billing.daysRemaining === 1 ? '' : 's'}</span> left in your free trial.
+                  <button
+                    onClick={() => setShowPlanModal(true)}
+                    className="ml-2 underline hover:no-underline font-medium"
+                  >
+                    Upgrade now
+                  </button>
+                </>
+              ) : (
+                <>
+                  {billing.message}
+                  {(billing.status === 'past_due' || billing.status === 'grace_expired') && (
+                    <span className="ml-2">
+                      <Link href="/settings" className="underline hover:no-underline font-medium">
+                        Update payment method
+                      </Link>
+                    </span>
+                  )}
+                  {(billing.status === 'canceled' || billing.status === 'expired') && (
+                    <button
+                      onClick={() => setShowPlanModal(true)}
+                      className="ml-2 underline hover:no-underline font-medium"
+                    >
+                      Resubscribe
+                    </button>
+                  )}
+                </>
               )}
             </p>
           </div>

@@ -30,6 +30,12 @@ export const PLAN_LIMITS = {
 }
 
 export const PLAN_PRICES = {
-  starter: process.env.STRIPE_PRICE_ID_STARTER || '',
-  pro: process.env.STRIPE_PRICE_ID_PRO || '',
+  starter: {
+    monthly: process.env.STRIPE_PRICE_ID_STARTER || '',
+    yearly: process.env.STRIPE_PRICE_ID_STARTER_YEARLY || '',
+  },
+  pro: {
+    monthly: process.env.STRIPE_PRICE_ID_PRO || '',
+    yearly: process.env.STRIPE_PRICE_ID_PRO_YEARLY || '',
+  },
 }

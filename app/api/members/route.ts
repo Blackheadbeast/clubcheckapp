@@ -5,6 +5,7 @@ import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
 import { requireWriteAccess, checkMemberLimit } from '@/lib/billing'
 import { z } from 'zod'
 import QRCode from 'qrcode'
+import { randomBytes } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,6 +119,10 @@ export async function POST(request: NextRequest) {
     const { name, email, phone } = parsed.data
     const qrData = `clubcheck-member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
+    // Generate access token for member portal (valid for 1 year)
+    const accessToken = randomBytes(32).toString('hex')
+    const accessTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+
     const qrCodeUrl = await QRCode.toDataURL(qrData, {
       width: 300,
       margin: 2,
@@ -131,6 +136,8 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         qrCode: qrData,
         ownerId: owner.ownerId,
+        accessToken,
+        accessTokenExpiry,
       },
     })
 

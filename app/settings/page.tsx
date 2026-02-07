@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import SystemStatus from '@/components/SystemStatus'
+import { useTheme } from '@/components/ThemeProvider'
+import { Theme } from '@/lib/theme'
 
-type Tab = 'gym' | 'account' | 'billing' | 'waiver' | 'system'
+type Tab = 'gym' | 'account' | 'billing' | 'waiver' | 'appearance' | 'system'
 
 interface SettingsData {
   owner: {
@@ -233,11 +235,14 @@ export default function SettingsPage() {
     )
   }
 
+  const { theme, setTheme } = useTheme()
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'gym', label: 'Gym Info' },
     { id: 'account', label: 'Account' },
     { id: 'billing', label: 'Billing' },
     { id: 'waiver', label: 'Waiver' },
+    { id: 'appearance', label: 'Appearance' },
     { id: 'system', label: 'System' },
   ]
 
@@ -602,6 +607,82 @@ I have read this waiver in its entirety and understand that I am giving up subst
               {saving ? 'Saving...' : 'Save Waiver Settings'}
             </button>
           </form>
+        )}
+
+        {/* Appearance Tab */}
+        {activeTab === 'appearance' && (
+          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+            <h2 className="text-xl font-semibold text-gray-100 mb-6">Appearance</h2>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-4">Theme</label>
+                <div className="grid grid-cols-3 gap-4">
+                  {(['light', 'dark', 'auto'] as Theme[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setTheme(option)}
+                      className={`p-4 rounded-xl border-2 transition flex flex-col items-center gap-3 ${
+                        theme === option
+                          ? 'border-primary bg-primary/10'
+                          : 'border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          option === 'light'
+                            ? 'bg-gray-100'
+                            : option === 'dark'
+                            ? 'bg-gray-900'
+                            : 'bg-gradient-to-br from-gray-100 to-gray-900'
+                        }`}
+                      >
+                        {option === 'light' && (
+                          <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
+                          </svg>
+                        )}
+                        {option === 'dark' && (
+                          <svg className="w-6 h-6 text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {option === 'auto' && (
+                          <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <div className={`font-medium capitalize ${theme === option ? 'text-primary' : 'text-gray-100'}`}>
+                          {option}
+                        </div>
+                        <div className="text-gray-500 text-xs mt-1">
+                          {option === 'light' && 'Always light'}
+                          {option === 'dark' && 'Always dark'}
+                          {option === 'auto' && 'Match system'}
+                        </div>
+                      </div>
+                      {theme === option && (
+                        <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-dark-lighter rounded-lg border border-gray-700">
+                <p className="text-gray-400 text-sm">
+                  Your theme preference is saved automatically and synced across devices.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* System Tab */}

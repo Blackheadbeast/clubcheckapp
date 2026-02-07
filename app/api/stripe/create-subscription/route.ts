@@ -15,11 +15,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { planType } = await request.json() // 'starter' or 'pro'
+    const { planType, billingPeriod = 'monthly' } = await request.json()
 
     if (!planType || (planType !== 'starter' && planType !== 'pro')) {
       return NextResponse.json(
         { error: 'Invalid plan type' },
+        { status: 400 }
+      )
+    }
+
+    if (billingPeriod !== 'monthly' && billingPeriod !== 'yearly') {
+      return NextResponse.json(
+        { error: 'Invalid billing period' },
         { status: 400 }
       )
     }
@@ -53,6 +60,16 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Get the appropriate price ID based on plan and billing period
+    const priceId = PLAN_PRICES[planType as 'starter' | 'pro'][billingPeriod as 'monthly' | 'yearly']
+
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Price configuration not found' },
+        { status: 500 }
+      )
+    }
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -60,7 +77,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: planType === 'starter' ? PLAN_PRICES.starter : PLAN_PRICES.pro,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -69,6 +86,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         ownerId: owner.ownerId,
         planType,
+        billingPeriod,
       },
     })
 

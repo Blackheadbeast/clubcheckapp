@@ -15,11 +15,22 @@ export default function PlanSelectionModal({
   title = 'Choose Your Plan',
   subtitle = 'Select a plan to continue using ClubCheck',
 }: PlanSelectionModalProps) {
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro'>('starter')
+  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro'>('pro')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
+
+  const prices = {
+    starter: { monthly: 49.99, yearly: 499.99 },
+    pro: { monthly: 99.99, yearly: 999.99 },
+  }
+
+  const savings = {
+    starter: Math.round(prices.starter.monthly * 12 - prices.starter.yearly),
+    pro: Math.round(prices.pro.monthly * 12 - prices.pro.yearly),
+  }
 
   async function handleSubscribe() {
     setLoading(true)
@@ -29,7 +40,7 @@ export default function PlanSelectionModal({
       const res = await fetch('/api/stripe/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planType: selectedPlan }),
+        body: JSON.stringify({ planType: selectedPlan, billingPeriod }),
         credentials: 'include',
       })
 
@@ -47,11 +58,14 @@ export default function PlanSelectionModal({
         setError('Failed to get checkout URL')
         setLoading(false)
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
+
+  const currentPrice = prices[selectedPlan][billingPeriod]
+  const currentSavings = savings[selectedPlan]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -77,6 +91,39 @@ export default function PlanSelectionModal({
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Billing Period Toggle */}
+        <div className="px-6 pt-6">
+          <div className="flex items-center justify-center gap-2 p-1 bg-dark-lighter rounded-lg w-fit mx-auto">
+            <button
+              onClick={() => setBillingPeriod('monthly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                billingPeriod === 'monthly'
+                  ? 'bg-primary text-black'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingPeriod('yearly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${
+                billingPeriod === 'yearly'
+                  ? 'bg-primary text-black'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Yearly
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                billingPeriod === 'yearly'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-green-600/20 text-green-400'
+              }`}>
+                Save ${currentSavings}
+              </span>
             </button>
           </div>
         </div>
@@ -114,8 +161,15 @@ export default function PlanSelectionModal({
               </div>
 
               <div className="mb-4">
-                <span className="text-4xl font-bold text-primary">$49.99</span>
-                <span className="text-gray-500">/month</span>
+                <span className="text-4xl font-bold text-primary">
+                  ${billingPeriod === 'monthly' ? prices.starter.monthly : prices.starter.yearly}
+                </span>
+                <span className="text-gray-500">/{billingPeriod === 'monthly' ? 'month' : 'year'}</span>
+                {billingPeriod === 'yearly' && (
+                  <p className="text-green-400 text-sm mt-1">
+                    Save ${savings.starter}/year
+                  </p>
+                )}
               </div>
 
               <ul className="space-y-2">
@@ -183,8 +237,15 @@ export default function PlanSelectionModal({
               </div>
 
               <div className="mb-4">
-                <span className="text-4xl font-bold text-primary">$99.99</span>
-                <span className="text-gray-500">/month</span>
+                <span className="text-4xl font-bold text-primary">
+                  ${billingPeriod === 'monthly' ? prices.pro.monthly : prices.pro.yearly}
+                </span>
+                <span className="text-gray-500">/{billingPeriod === 'monthly' ? 'month' : 'year'}</span>
+                {billingPeriod === 'yearly' && (
+                  <p className="text-green-400 text-sm mt-1">
+                    Save ${savings.pro}/year
+                  </p>
+                )}
               </div>
 
               <ul className="space-y-2">
@@ -252,7 +313,7 @@ export default function PlanSelectionModal({
                   </>
                 ) : (
                   <>
-                    Subscribe to {selectedPlan === 'starter' ? 'Starter' : 'Pro'}
+                    Subscribe to {selectedPlan === 'starter' ? 'Starter' : 'Pro'} (${currentPrice}/{billingPeriod === 'monthly' ? 'mo' : 'yr'})
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>

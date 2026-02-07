@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { createToken } from "@/lib/auth";
-import { getTrialEndDate } from "@/lib/billing";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import crypto from "crypto";
+import { randomBytes } from "crypto";
 import { rateLimitResponse, SIGNUP_RATE_LIMIT } from "@/lib/rate-limit";
+import { sendVerificationEmail } from "@/lib/email";
 
 const signupSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  phone: z.string().optional(),
   referralCode: z.string().optional(),
 });
 
@@ -78,12 +80,20 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create owner with 14-day trial
+    // Generate verification token (24 hour expiry)
+    const verificationToken = randomBytes(32).toString("hex");
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Create owner (trial starts after email verification)
     const owner = await prisma.owner.create({
       data: {
         email: normalizedEmail,
         password: hashedPassword,
-        trialEndsAt: getTrialEndDate(),
+        phone: parsed.data.phone || null,
+        verificationToken,
+        verificationTokenExpiry,
+        // emailVerified: null - default
+        // trialEndsAt: null - trial starts after verification
       },
     });
 
@@ -108,17 +118,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send welcome email (non-blocking)
-    try {
-      const { sendOwnerWelcomeEmail } = await import("@/lib/email");
-      sendOwnerWelcomeEmail(owner.email).catch((err) => {
-        console.error("Failed to send owner welcome email:", err);
-      });
-    } catch (emailErr) {
-      console.error("Email import error:", emailErr);
-    }
+    // Send verification email (non-blocking)
+    sendVerificationEmail(owner.email, verificationToken).catch((err) => {
+      console.error("Failed to send verification email:", err);
+    });
 
-    const token = await createToken({ ownerId: owner.id });
+    const token = await createToken({ ownerId: owner.id, emailVerified: false });
 
     // Next.js 15: cookies() is async and MUST be awaited
     const cookieStore = await cookies();
@@ -134,6 +139,7 @@ export async function POST(request: NextRequest) {
       success: true,
       owner: { id: owner.id, email: owner.email },
       referred: !!referredByOwnerId,
+      requiresVerification: true,
     });
   } catch (error) {
     console.error("Signup error:", error);

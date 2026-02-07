@@ -37,7 +37,13 @@ export default function LoginPage() {
 
       // Force a hard navigation to ensure cookies are recognized
       router.refresh()
-      router.push('/dashboard')
+
+      // Redirect to verification page if email not verified
+      if (data.requiresVerification) {
+        router.push('/verify-email')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.')
       setLoading(false)

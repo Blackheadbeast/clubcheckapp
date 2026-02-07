@@ -8,17 +8,24 @@ datasource db {
 }
 
 model Owner {
-  id                   String    @id @default(uuid())
-  email                String    @unique
-  password             String
-  createdAt            DateTime  @default(now())
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  password                 String
+  phone                    String?
+  createdAt                DateTime  @default(now())
 
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  subscriptionStatus   String?
-  currentPeriodEnd     DateTime?
-  planType             String    @default("starter")
-  trialEndsAt          DateTime? // 14-day trial end date
+  // Email verification
+  emailVerified            DateTime?
+  verificationToken        String?   @unique
+  verificationTokenExpiry  DateTime?
+
+  // Stripe billing
+  stripeCustomerId         String?
+  stripeSubscriptionId     String?
+  subscriptionStatus       String?
+  currentPeriodEnd         DateTime?
+  planType                 String    @default("starter")
+  trialEndsAt              DateTime? // Starts after email verification
 
   members              Member[]
   checkins             Checkin[]
@@ -29,6 +36,7 @@ model Owner {
   referral             Referral?
   prospects            Prospect[]
   staff                Staff[]
+  feedback             Feedback[]
 }
 
 model GymProfile {
@@ -44,6 +52,7 @@ model GymProfile {
   setupDismissedAt      DateTime? // When user dismissed the setup wizard
   waiverEnabled         Boolean  @default(false)
   waiverText            String?  @db.Text
+  theme                 String   @default("dark") // "light" | "dark" | "auto"
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -73,6 +82,15 @@ model Member {
 
   waiverSignedAt       DateTime?
   waiverSignature      String?   // Typed name as signature
+
+  // Check-in streaks
+  currentStreak        Int       @default(0)
+  longestStreak        Int       @default(0)
+  lastStreakCheckDate  DateTime?
+
+  // Member portal access
+  accessToken          String?   @unique
+  accessTokenExpiry    DateTime?
 
   checkins             Checkin[]
   paymentRecords       PaymentRecord[]
@@ -176,4 +194,14 @@ model Staff {
   owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([email, ownerId])
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  rating    Int      // 1-5 star rating
+  message   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  ownerId   String
+  owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }

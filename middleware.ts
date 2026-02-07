@@ -19,6 +19,9 @@ const protectedPaths = [
 
 const authPaths = ["/login", "/signup", "/staff-login"];
 
+// Paths that unverified users can access
+const verificationPaths = ["/verify-email"];
+
 function getSecret() {
   const s = process.env.JWT_SECRET;
   if (!s) throw new Error("JWT_SECRET is not set");
@@ -45,14 +48,38 @@ export async function middleware(request: NextRequest) {
   }
 
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+  const isVerificationPath = verificationPaths.some((p) => pathname.startsWith(p));
 
-  // Protected routes: require valid JWT
+  // Verification pages: require auth but allow unverified users
+  if (isVerificationPath) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    try {
+      const { payload } = await jwtVerify(token, getSecret());
+      // If already verified, redirect to dashboard
+      if (payload.emailVerified === true) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    } catch {
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete("auth-token");
+      return response;
+    }
+    return NextResponse.next();
+  }
+
+  // Protected routes: require valid JWT and verified email
   if (isProtected) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     try {
-      await jwtVerify(token, getSecret());
+      const { payload } = await jwtVerify(token, getSecret());
+      // Check if email is verified
+      if (payload.emailVerified === false) {
+        return NextResponse.redirect(new URL("/verify-email", request.url));
+      }
     } catch {
       // Invalid/expired token — clear it and redirect
       const response = NextResponse.redirect(new URL("/login", request.url));
@@ -78,6 +105,7 @@ export const config = {
     "/referrals/:path*",
     "/staff/:path*",
     "/setup-guide/:path*",
+    "/verify-email/:path*",
     "/login",
     "/signup",
     "/staff-login",

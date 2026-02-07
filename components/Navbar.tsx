@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import HelpModal from './HelpModal'
 import DemoBanner from './DemoBanner'
+import NavigationDrawer from './NavigationDrawer'
 
 interface GymProfile {
   name: string
@@ -24,13 +24,12 @@ interface SettingsData {
 const DEMO_OWNER_ID = 'demo-owner-00000000-0000-0000-0000'
 
 export default function Navbar() {
-  const pathname = usePathname()
   const [gym, setGym] = useState<GymProfile | null>(null)
   const [isDemo, setIsDemo] = useState(false)
   const [isStaff, setIsStaff] = useState(false)
   const [staffRole, setStaffRole] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showDrawer, setShowDrawer] = useState(false)
 
   useEffect(() => {
     async function loadGymProfile() {
@@ -50,27 +49,7 @@ export default function Navbar() {
     loadGymProfile()
   }, [])
 
-  // Build nav links based on role
-  const allNavLinks = [
-    { href: '/dashboard', label: 'Dashboard', roles: ['owner', 'manager', 'front_desk'] },
-    { href: '/members', label: 'Members', roles: ['owner', 'manager', 'front_desk'] },
-    { href: '/prospects', label: 'Prospects', roles: ['owner', 'manager'] },
-    { href: '/broadcast', label: 'Broadcast', roles: ['owner', 'manager'] },
-    { href: '/checkin', label: 'Check In', roles: ['owner', 'manager', 'front_desk'] },
-    { href: '/kiosk', label: 'Kiosk', roles: ['owner', 'manager', 'front_desk'] },
-    { href: '/analytics', label: 'Analytics', roles: ['owner', 'manager'] },
-    { href: '/invoices', label: 'Invoices', roles: ['owner', 'manager'] },
-    { href: '/referrals', label: 'Referrals', roles: ['owner'] },
-    { href: '/staff', label: 'Staff', roles: ['owner'] },
-    { href: '/settings', label: 'Settings', roles: ['owner'] },
-  ]
-
-  const userRole = isStaff ? staffRole : 'owner'
-  const navLinks = allNavLinks.filter((link) =>
-    link.roles.includes(userRole || 'owner')
-  )
-
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  const userRole = isStaff ? (staffRole || 'front_desk') : 'owner'
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
@@ -98,35 +77,18 @@ export default function Navbar() {
                     <span className="text-black font-bold text-lg">C</span>
                   </div>
                 )}
-                <span className="text-lg font-semibold text-gray-100 hidden sm:block">
+                <span className="text-lg font-semibold text-gray-100">
                   {gym?.name || 'ClubCheck'}
                 </span>
                 {isDemo && (
-                  <span className="hidden sm:inline-block bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded ml-1">
+                  <span className="bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded ml-1">
                     DEMO
                   </span>
                 )}
               </Link>
             </div>
 
-            {/* Desktop Nav Links */}
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                    isActive(link.href)
-                      ? 'bg-primary/20 text-primary'
-                      : 'text-gray-400 hover:text-gray-100 hover:bg-dark-lighter'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Right side: Help + Logout */}
+            {/* Right side: Help + Hamburger */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowHelp(true)}
@@ -143,58 +105,31 @@ export default function Navbar() {
                 </svg>
               </button>
 
+              {/* Hamburger menu button */}
               <button
-                onClick={handleLogout}
-                className="hidden sm:block text-gray-400 hover:text-red-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-dark-lighter transition"
-              >
-                {isDemo ? 'Exit Demo' : 'Logout'}
-              </button>
-
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="md:hidden text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-dark-lighter transition"
+                onClick={() => setShowDrawer(true)}
+                className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-dark-lighter transition"
+                aria-label="Open menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {showMobileMenu ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
             </div>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {showMobileMenu && (
-          <div className="md:hidden border-t border-gray-800 bg-dark-card">
-            <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setShowMobileMenu(false)}
-                  className={`block px-3 py-2 rounded-lg text-sm font-medium transition ${
-                    isActive(link.href)
-                      ? 'bg-primary/20 text-primary'
-                      : 'text-gray-400 hover:text-gray-100 hover:bg-dark-lighter'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-dark-lighter transition"
-              >
-                {isDemo ? 'Exit Demo' : 'Logout'}
-              </button>
-            </div>
-          </div>
-        )}
       </nav>
+
+      {/* Navigation Drawer */}
+      <NavigationDrawer
+        isOpen={showDrawer}
+        onClose={() => setShowDrawer(false)}
+        gymName={gym?.name || 'ClubCheck'}
+        gymLogo={gym?.logoUrl || null}
+        isDemo={isDemo}
+        userRole={userRole}
+        onLogout={handleLogout}
+      />
 
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </>

@@ -209,7 +209,7 @@ export default function KioskPage() {
   // ---- LOADING ----
   if (state === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark">
+      <div className="min-h-screen flex items-center justify-center bg-theme">
         <div className="text-primary text-xl">Loading kiosk...</div>
       </div>
     )
@@ -218,13 +218,13 @@ export default function KioskPage() {
   // ---- SET PIN (first time) ----
   if (state === 'set-pin') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark px-4">
+      <div className="min-h-screen flex items-center justify-center bg-theme px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary">Kiosk Setup</h1>
             <p className="text-gray-400 mt-2">Set a 4–6 digit PIN to secure the kiosk</p>
           </div>
-          <form onSubmit={handleSetPin} className="bg-dark-card p-6 rounded-lg border border-gray-800 space-y-4">
+          <form onSubmit={handleSetPin} className="bg-theme-card p-6 rounded-lg border border-theme space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">PIN</label>
               <input
@@ -235,7 +235,7 @@ export default function KioskPage() {
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="Enter PIN"
                 autoFocus
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
+                className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
               />
             </div>
             <div>
@@ -247,7 +247,7 @@ export default function KioskPage() {
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="Confirm PIN"
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
+                className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
               />
             </div>
             {pinError && (
@@ -269,13 +269,13 @@ export default function KioskPage() {
   // ---- ENTER PIN ----
   if (state === 'enter-pin') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark px-4">
+      <div className="min-h-screen flex items-center justify-center bg-theme px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary">ClubCheck Kiosk</h1>
             <p className="text-gray-400 mt-2">Enter your kiosk PIN to unlock</p>
           </div>
-          <form onSubmit={handleVerifyPin} className="bg-dark-card p-6 rounded-lg border border-gray-800 space-y-4">
+          <form onSubmit={handleVerifyPin} className="bg-theme-card p-6 rounded-lg border border-theme space-y-4">
             <input
               type="password"
               inputMode="numeric"
@@ -284,7 +284,7 @@ export default function KioskPage() {
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
               placeholder="PIN"
               autoFocus
-              className="w-full px-4 py-4 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-3xl tracking-[0.5em] focus:outline-none focus:border-primary"
+              className="w-full px-4 py-4 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-3xl tracking-[0.5em] focus:outline-none focus:border-primary"
             />
             {pinError && (
               <div className="bg-red-900/20 border border-red-900 text-red-400 px-4 py-2 rounded-lg text-sm">{pinError}</div>
@@ -304,9 +304,9 @@ export default function KioskPage() {
 
   // ---- ACTIVE KIOSK ----
   return (
-    <div className="min-h-screen bg-dark flex flex-col">
+    <div className="min-h-screen bg-theme flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-theme">
         <h1 className="text-2xl font-bold text-primary">ClubCheck Kiosk</h1>
         <button
           onClick={handleLock}
@@ -332,7 +332,7 @@ export default function KioskPage() {
 
         {/* Mode tabs */}
         <div className="w-full max-w-md mb-6">
-          <div className="flex gap-2 bg-dark-lighter p-1 rounded-lg">
+          <div className="flex gap-2 bg-theme-lighter p-1 rounded-lg">
             <button
               onClick={() => setMode('scanner')}
               className={`flex-1 py-3 rounded-lg font-semibold transition ${
@@ -355,7 +355,7 @@ export default function KioskPage() {
         {/* Scanner mode */}
         {mode === 'scanner' && (
           <div className="w-full max-w-md">
-            <div className="bg-dark-card rounded-lg border border-gray-800 overflow-hidden">
+            <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
               <div
                 id="kiosk-scanner"
                 ref={scannerRef}
@@ -372,7 +372,7 @@ export default function KioskPage() {
         {/* Manual mode */}
         {mode === 'manual' && (
           <div className="w-full max-w-md">
-            <form onSubmit={handleManualSubmit} className="bg-dark-card p-6 rounded-lg border border-gray-800 space-y-4">
+            <form onSubmit={handleManualSubmit} className="bg-theme-card p-6 rounded-lg border border-theme space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Phone Number or QR Code
@@ -383,7 +383,7 @@ export default function KioskPage() {
                   onChange={(e) => setManualInput(e.target.value)}
                   placeholder="Enter phone number or scan QR..."
                   autoFocus
-                  className="w-full px-4 py-4 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-lg focus:outline-none focus:border-primary"
+                  className="w-full px-4 py-4 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-lg focus:outline-none focus:border-primary"
                 />
               </div>
               <button

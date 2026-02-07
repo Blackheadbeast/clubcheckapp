@@ -34,9 +34,9 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-theme flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-dark-card border border-gray-800 rounded-2xl p-8 text-center">
+        <div className="bg-theme-card border border-theme rounded-2xl p-8 text-center">
           {/* Logo */}
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl mb-6">
             <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,7 +49,7 @@ export default function VerifyEmailPage() {
             We&apos;ve sent you a verification link. Click the link in your email to activate your account and start your 14-day free trial.
           </p>
 
-          <div className="bg-dark-lighter border border-gray-700 rounded-xl p-4 mb-6">
+          <div className="bg-theme-lighter border border-gray-700 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
               <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -95,7 +95,7 @@ export default function VerifyEmailPage() {
             </button>
           )}
 
-          <div className="mt-6 pt-6 border-t border-gray-800">
+          <div className="mt-6 pt-6 border-t border-theme">
             <p className="text-gray-500 text-sm">
               Wrong email?{' '}
               <Link href="/signup" className="text-primary hover:underline">

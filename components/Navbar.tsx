@@ -60,7 +60,7 @@ export default function Navbar() {
     <>
       {isDemo && <DemoBanner />}
 
-      <nav className="bg-dark-card border-b border-gray-800 sticky top-0 z-40">
+      <nav className="bg-theme-card border-b border-theme sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             {/* Logo / Gym Name */}
@@ -92,7 +92,7 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowHelp(true)}
-                className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-dark-lighter transition"
+                className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-theme-lighter transition"
                 title="Help"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,7 +108,7 @@ export default function Navbar() {
               {/* Hamburger menu button */}
               <button
                 onClick={() => setShowDrawer(true)}
-                className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-dark-lighter transition"
+                className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-theme-lighter transition"
                 aria-label="Open menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

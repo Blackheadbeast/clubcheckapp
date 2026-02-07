@@ -188,7 +188,7 @@ export default function DashboardPage() {
   const billingStatus = getBillingStatus()
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <BillingStatusBanner />
       <div className="max-w-7xl mx-auto p-8">
@@ -241,7 +241,7 @@ export default function DashboardPage() {
         <SetupWizard progress={data.setupProgress} onDismiss={handleDismissSetup} />
 
         {/* Billing Status Strip */}
-        <div className="bg-dark-card border border-gray-800 rounded-xl p-4 mb-8">
+        <div className="bg-theme-card border border-theme rounded-xl p-4 mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className={`px-3 py-1 rounded-lg ${billingStatus.bgColor}`}>
@@ -284,13 +284,13 @@ export default function DashboardPage() {
         {/* Stats Grid with Sparklines */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Active Members */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-gray-400 text-sm mb-1">Active Members</div>
                 <div className="text-3xl font-bold text-primary">{data.activeMembers}</div>
               </div>
-              <div className="text-gray-500 text-xs bg-dark-lighter px-2 py-1 rounded">
+              <div className="text-gray-500 text-xs bg-theme-lighter px-2 py-1 rounded">
                 12w trend
               </div>
             </div>
@@ -298,13 +298,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Checked In Today */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-gray-400 text-sm mb-1">Check-ins Today</div>
                 <div className="text-3xl font-bold text-green-400">{data.checkedInToday}</div>
               </div>
-              <div className="text-gray-500 text-xs bg-dark-lighter px-2 py-1 rounded">
+              <div className="text-gray-500 text-xs bg-theme-lighter px-2 py-1 rounded">
                 14d trend
               </div>
             </div>
@@ -312,13 +312,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Revenue This Month */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-gray-400 text-sm mb-1">Est. Revenue</div>
                 <div className="text-3xl font-bold text-primary">${data.revenue}</div>
               </div>
-              <div className="text-gray-500 text-xs bg-dark-lighter px-2 py-1 rounded">
+              <div className="text-gray-500 text-xs bg-theme-lighter px-2 py-1 rounded">
                 30d trend
               </div>
             </div>
@@ -326,7 +326,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Failed Payments */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-gray-400 text-sm mb-1">Failed Payments</div>
@@ -334,7 +334,7 @@ export default function DashboardPage() {
                   {data.failedPayments}
                 </div>
               </div>
-              <div className="text-gray-500 text-xs bg-dark-lighter px-2 py-1 rounded">
+              <div className="text-gray-500 text-xs bg-theme-lighter px-2 py-1 rounded">
                 30d trend
               </div>
             </div>

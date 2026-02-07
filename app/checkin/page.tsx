@@ -128,7 +128,7 @@ export default function CheckinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex justify-between items-center mb-8">
@@ -138,18 +138,18 @@ export default function CheckinPage() {
           </div>
           <button
             onClick={handleExport}
-            className="bg-dark-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-5 rounded-lg border border-gray-700 transition"
+            className="bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-5 rounded-lg border border-gray-700 transition"
           >
             Export CSV
           </button>
         </div>
 
         {/* Check-in Card */}
-        <div className="bg-dark-card p-8 rounded-lg border border-gray-800 mb-8">
+        <div className="bg-theme-card p-8 rounded-lg border border-theme mb-8">
           <h2 className="text-xl font-bold text-primary mb-6">Member Check-In</h2>
 
           {/* Method Tabs */}
-          <div className="flex gap-2 mb-6 bg-dark-lighter p-1 rounded-lg">
+          <div className="flex gap-2 mb-6 bg-theme-lighter p-1 rounded-lg">
             <button
               onClick={() => setActiveTab('qr')}
               className={`flex-1 py-3 px-4 rounded-lg font-semibold transition ${
@@ -178,7 +178,7 @@ export default function CheckinPage() {
                   onChange={(e) => setQrInput(e.target.value)}
                   placeholder="Scan member's QR code here..."
                   autoFocus
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 text-lg"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 text-lg"
                 />
                 <p className="text-gray-500 text-sm mt-2">Click here and scan the member&apos;s QR code</p>
               </div>
@@ -193,7 +193,7 @@ export default function CheckinPage() {
                   onChange={(e) => setPhoneInput(e.target.value)}
                   placeholder="(555) 123-4567"
                   autoFocus
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 text-lg"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 text-lg"
                 />
               </div>
             )}
@@ -216,22 +216,22 @@ export default function CheckinPage() {
         </div>
 
         {/* History Section */}
-        <div className="bg-dark-card rounded-lg border border-gray-800">
-          <div className="px-6 py-4 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="bg-theme-card rounded-lg border border-theme">
+          <div className="px-6 py-4 border-b border-theme flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h2 className="text-xl font-bold text-primary">Check-In History</h2>
             <div className="flex items-center gap-2">
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="px-3 py-1.5 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-sm focus:outline-none focus:border-primary"
+                className="px-3 py-1.5 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-sm focus:outline-none focus:border-primary"
               />
               <span className="text-gray-500 text-sm">to</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="px-3 py-1.5 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-sm focus:outline-none focus:border-primary"
+                className="px-3 py-1.5 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-sm focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function CheckinPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-dark-lighter border-b border-gray-800">
+                <thead className="bg-theme-lighter border-b border-theme">
                   <tr>
                     <th className="text-left px-6 py-3 text-gray-400 font-medium text-sm">Member</th>
                     <th className="text-left px-6 py-3 text-gray-400 font-medium text-sm">Time</th>
@@ -250,7 +250,7 @@ export default function CheckinPage() {
                 </thead>
                 <tbody>
                   {checkins.map((checkin) => (
-                    <tr key={checkin.id} className="border-b border-gray-800 hover:bg-dark-lighter">
+                    <tr key={checkin.id} className="border-b border-theme hover:bg-theme-lighter">
                       <td className="px-6 py-3">
                         <Link href={`/members/${checkin.member.id}`} className="hover:text-primary transition">
                           <div className="font-medium text-gray-100">{checkin.member.name}</div>
@@ -267,7 +267,7 @@ export default function CheckinPage() {
                         })}
                       </td>
                       <td className="px-6 py-3">
-                        <span className="text-xs text-gray-400 bg-dark-lighter px-2 py-1 rounded">
+                        <span className="text-xs text-gray-400 bg-theme-lighter px-2 py-1 rounded">
                           {sourceLabel(checkin.source)}
                         </span>
                       </td>

@@ -67,7 +67,7 @@ function SignupForm() {
           <p className="text-gray-400">Create your gym account</p>
         </div>
 
-        <div className="bg-dark-card p-8 rounded-lg shadow-xl border border-gray-800">
+        <div className="bg-theme-card p-8 rounded-lg shadow-xl border border-theme">
           {referralCode && (
             <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 mb-6">
               <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ function SignupForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="you@gym.com"
               />
             </div>
@@ -113,7 +113,7 @@ function SignupForm() {
                 required
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
@@ -129,7 +129,7 @@ function SignupForm() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 autoComplete="tel"
-                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="(555) 123-4567"
               />
             </div>
@@ -144,7 +144,7 @@ function SignupForm() {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 autoComplete="off"
-                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 font-mono"
+                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 font-mono"
                 placeholder="GYM-XXXXXX"
               />
             </div>

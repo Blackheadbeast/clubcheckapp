@@ -78,7 +78,7 @@ export default function SetupWizard({ progress, onDismiss }: SetupWizardProps) {
         </div>
         <button
           onClick={onDismiss}
-          className="text-gray-500 hover:text-gray-300 text-sm px-3 py-1 rounded-lg hover:bg-dark-lighter transition"
+          className="text-gray-500 hover:text-gray-300 text-sm px-3 py-1 rounded-lg hover:bg-theme-lighter transition"
         >
           Dismiss
         </button>
@@ -90,7 +90,7 @@ export default function SetupWizard({ progress, onDismiss }: SetupWizardProps) {
           <span className="text-gray-400">Progress</span>
           <span className="text-primary font-medium">{completedCount} of {steps.length} complete</span>
         </div>
-        <div className="h-2 bg-dark-lighter rounded-full overflow-hidden">
+        <div className="h-2 bg-theme-lighter rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-primary to-primary-light transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
@@ -109,7 +109,7 @@ export default function SetupWizard({ progress, onDismiss }: SetupWizardProps) {
               className={`flex items-center gap-4 p-4 rounded-lg border transition ${
                 isComplete
                   ? 'bg-green-900/10 border-green-800/50'
-                  : 'bg-dark-card border-gray-800 hover:border-gray-700'
+                  : 'bg-theme-card border-theme hover:border-gray-700'
               }`}
             >
               {/* Checkbox */}
@@ -117,7 +117,7 @@ export default function SetupWizard({ progress, onDismiss }: SetupWizardProps) {
                 className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   isComplete
                     ? 'bg-green-600 text-white'
-                    : 'bg-dark-lighter border-2 border-gray-600'
+                    : 'bg-theme-lighter border-2 border-gray-600'
                 }`}
               >
                 {isComplete ? (

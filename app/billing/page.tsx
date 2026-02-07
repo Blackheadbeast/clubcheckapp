@@ -95,7 +95,7 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center">
+      <div className="min-h-screen bg-theme flex items-center justify-center">
         <div className="text-primary text-xl">Loading...</div>
       </div>
     )
@@ -110,7 +110,7 @@ export default function BillingPage() {
   const isTrialing = data.subscriptionStatus === 'trialing' || (!data.subscriptionStatus && daysRemaining !== null && daysRemaining > 0)
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
@@ -120,7 +120,7 @@ export default function BillingPage() {
         </div>
 
         {/* Current Status Card */}
-        <div className="bg-dark-card border border-gray-800 rounded-xl p-6 mb-8">
+        <div className="bg-theme-card border border-theme rounded-xl p-6 mb-8">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-400 mb-1">Current Plan</div>
@@ -161,7 +161,7 @@ export default function BillingPage() {
 
           {/* Manage Subscription Button */}
           {data.subscriptionStatus === 'active' && !data.isDemo && (
-            <div className="mt-6 pt-6 border-t border-gray-800">
+            <div className="mt-6 pt-6 border-t border-theme">
               <button
                 onClick={handleManageSubscription}
                 className="text-primary hover:text-primary-light font-medium text-sm flex items-center gap-2"
@@ -177,7 +177,7 @@ export default function BillingPage() {
 
         {/* Billing Period Toggle */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center gap-2 p-1 bg-dark-card border border-gray-800 rounded-lg">
+          <div className="inline-flex items-center gap-2 p-1 bg-theme-card border border-theme rounded-lg">
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition ${
@@ -211,8 +211,8 @@ export default function BillingPage() {
         {/* Plan Cards */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Starter Plan */}
-          <div className={`bg-dark-card p-6 rounded-xl border-2 transition ${
-            data.planType === 'starter' ? 'border-primary' : 'border-gray-800'
+          <div className={`bg-theme-card p-6 rounded-xl border-2 transition ${
+            data.planType === 'starter' ? 'border-primary' : 'border-theme'
           }`}>
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -267,7 +267,7 @@ export default function BillingPage() {
               <button
                 onClick={() => handleSubscribe('starter')}
                 disabled={upgrading !== null}
-                className="w-full bg-dark-lighter hover:bg-gray-800 text-gray-100 font-semibold py-3 px-4 rounded-lg border border-gray-700 transition disabled:opacity-50"
+                className="w-full bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-3 px-4 rounded-lg border border-gray-700 transition disabled:opacity-50"
               >
                 {upgrading === 'starter' ? 'Processing...' : 'Downgrade to Starter'}
               </button>
@@ -275,8 +275,8 @@ export default function BillingPage() {
           </div>
 
           {/* Pro Plan */}
-          <div className={`bg-dark-card p-6 rounded-xl border-2 transition relative ${
-            data.planType === 'pro' ? 'border-primary' : 'border-gray-800'
+          <div className={`bg-theme-card p-6 rounded-xl border-2 transition relative ${
+            data.planType === 'pro' ? 'border-primary' : 'border-theme'
           }`}>
             {/* Popular Badge */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -347,7 +347,7 @@ export default function BillingPage() {
         </div>
 
         {/* Invoice Link */}
-        <div className="bg-dark-card border border-gray-800 rounded-xl p-6">
+        <div className="bg-theme-card border border-theme rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-100">Invoice History</h3>

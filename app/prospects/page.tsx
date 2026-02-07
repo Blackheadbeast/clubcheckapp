@@ -232,7 +232,7 @@ export default function ProspectsPage() {
   const totalProspects = Object.values(statusCounts).reduce((a, b) => a + b, 0)
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
@@ -258,7 +258,7 @@ export default function ProspectsPage() {
               className={`p-4 rounded-lg border transition ${
                 statusFilter === s.value
                   ? 'border-primary bg-primary/10'
-                  : 'border-gray-800 bg-dark-card hover:border-gray-700'
+                  : 'border-theme bg-theme-card hover:border-gray-700'
               }`}
             >
               <div className="text-2xl font-bold text-gray-100">
@@ -271,7 +271,7 @@ export default function ProspectsPage() {
 
         {/* Add Prospect Form */}
         {showAddForm && (
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800 mb-6">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme mb-6">
             <h2 className="text-xl font-bold text-primary mb-4">Add New Prospect</h2>
             <form onSubmit={handleAddProspect} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -282,7 +282,7 @@ export default function ProspectsPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="John Doe"
                   />
                 </div>
@@ -293,7 +293,7 @@ export default function ProspectsPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -303,7 +303,7 @@ export default function ProspectsPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -314,7 +314,7 @@ export default function ProspectsPage() {
                   <select
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                   >
                     <option value="">Select source...</option>
                     {SOURCE_OPTIONS.map((s) => (
@@ -330,7 +330,7 @@ export default function ProspectsPage() {
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="Any notes about this prospect..."
                   />
                 </div>
@@ -358,13 +358,13 @@ export default function ProspectsPage() {
             placeholder="Search by name, email, or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 bg-dark-card border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+            className="w-full px-4 py-2 bg-theme-card border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
           />
         </div>
 
         {/* Prospects Table */}
         {prospects.length === 0 ? (
-          <div className="bg-dark-card p-12 rounded-lg border border-gray-800 text-center">
+          <div className="bg-theme-card p-12 rounded-lg border border-theme text-center">
             <p className="text-gray-400 text-lg mb-4">
               {search || statusFilter !== 'all' ? 'No prospects match your filters' : 'No prospects yet'}
             </p>
@@ -378,10 +378,10 @@ export default function ProspectsPage() {
             )}
           </div>
         ) : (
-          <div className="bg-dark-card rounded-lg border border-gray-800 overflow-hidden">
+          <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-dark-lighter border-b border-gray-800">
+                <thead className="bg-theme-lighter border-b border-theme">
                   <tr>
                     <th className="text-left px-4 py-4 text-gray-400 font-medium">Name</th>
                     <th className="text-left px-4 py-4 text-gray-400 font-medium">Email</th>
@@ -396,7 +396,7 @@ export default function ProspectsPage() {
                     <tr
                       key={prospect.id}
                       onClick={() => openEditModal(prospect)}
-                      className="border-b border-gray-800 hover:bg-dark-lighter cursor-pointer"
+                      className="border-b border-theme hover:bg-theme-lighter cursor-pointer"
                     >
                       <td className="px-4 py-4 font-medium text-gray-100">{prospect.name}</td>
                       <td className="px-4 py-4 text-gray-400">{prospect.email}</td>
@@ -417,7 +417,7 @@ export default function ProspectsPage() {
         {/* Edit Modal */}
         {editingProspect && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-dark-card rounded-lg border border-gray-800 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="bg-theme-card rounded-lg border border-theme w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-primary">Edit Prospect</h2>
@@ -439,7 +439,7 @@ export default function ProspectsPage() {
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       required
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     />
                   </div>
                   <div>
@@ -449,7 +449,7 @@ export default function ProspectsPage() {
                       value={editEmail}
                       onChange={(e) => setEditEmail(e.target.value)}
                       required
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     />
                   </div>
                   <div>
@@ -458,7 +458,7 @@ export default function ProspectsPage() {
                       type="tel"
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     />
                   </div>
                   <div>
@@ -466,7 +466,7 @@ export default function ProspectsPage() {
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     >
                       {STATUS_OPTIONS.filter((s) => s.value !== 'converted').map((s) => (
                         <option key={s.value} value={s.value}>
@@ -480,7 +480,7 @@ export default function ProspectsPage() {
                     <select
                       value={editSource}
                       onChange={(e) => setEditSource(e.target.value)}
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     >
                       <option value="">Select source...</option>
                       {SOURCE_OPTIONS.map((s) => (
@@ -496,7 +496,7 @@ export default function ProspectsPage() {
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 resize-none"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 resize-none"
                     />
                   </div>
 
@@ -507,7 +507,7 @@ export default function ProspectsPage() {
                   )}
 
                   {/* Timestamps */}
-                  <div className="pt-4 border-t border-gray-800 text-sm text-gray-500 space-y-1">
+                  <div className="pt-4 border-t border-theme text-sm text-gray-500 space-y-1">
                     <p>Added: {new Date(editingProspect.createdAt).toLocaleString()}</p>
                     {editingProspect.contactedAt && (
                       <p>Contacted: {new Date(editingProspect.contactedAt).toLocaleString()}</p>

@@ -2,6 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    /* Light theme (default) */
+    --color-bg: 245 245 245;           /* #f5f5f5 */
+    --color-bg-card: 255 255 255;      /* #ffffff */
+    --color-bg-lighter: 229 229 229;   /* #e5e5e5 */
+    --color-border: 212 212 212;       /* #d4d4d4 */
+    --color-text: 23 23 23;            /* #171717 */
+    --color-text-secondary: 115 115 115; /* #737373 */
+    --color-text-muted: 163 163 163;   /* #a3a3a3 */
+  }
+
+  .dark {
+    /* Dark theme */
+    --color-bg: 10 10 10;              /* #0a0a0a */
+    --color-bg-card: 23 23 23;         /* #171717 */
+    --color-bg-lighter: 26 26 26;      /* #1a1a1a */
+    --color-border: 38 38 38;          /* #262626 */
+    --color-text: 243 244 246;         /* #f3f4f6 */
+    --color-text-secondary: 156 163 175; /* #9ca3af */
+    --color-text-muted: 107 114 128;   /* #6b7280 */
+  }
+}
+
 body {
-  @apply bg-dark text-gray-100;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+}
+
+/* Theme-aware utility classes */
+@layer utilities {
+  .bg-theme {
+    background-color: rgb(var(--color-bg));
+  }
+  .bg-theme-card {
+    background-color: rgb(var(--color-bg-card));
+  }
+  .bg-theme-lighter {
+    background-color: rgb(var(--color-bg-lighter));
+  }
+  .border-theme {
+    border-color: rgb(var(--color-border));
+  }
+  .text-theme {
+    color: rgb(var(--color-text));
+  }
+  .text-theme-secondary {
+    color: rgb(var(--color-text-secondary));
+  }
+  .text-theme-muted {
+    color: rgb(var(--color-text-muted));
+  }
 }

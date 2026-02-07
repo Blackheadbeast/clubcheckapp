@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
@@ -109,25 +109,25 @@ export default function AnalyticsPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Monthly Recurring Revenue</div>
             <div className="text-4xl font-bold text-primary">${data.revenue.mrr.toLocaleString()}</div>
             <div className="text-gray-500 text-sm mt-2">MRR estimate</div>
           </div>
 
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Annual Recurring Revenue</div>
             <div className="text-4xl font-bold text-green-400">${data.revenue.arr.toLocaleString()}</div>
             <div className="text-gray-500 text-sm mt-2">ARR projection</div>
           </div>
 
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Check-ins Today</div>
             <div className="text-4xl font-bold text-blue-400">{data.attendance.today}</div>
             <div className="text-gray-500 text-sm mt-2">Avg: {data.attendance.avgPerDay}/day</div>
           </div>
 
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Total Members</div>
             <div className="text-4xl font-bold text-purple-400">{data.memberGrowth.total}</div>
             <div className="text-gray-500 text-sm mt-2">{data.memberGrowth.active} active</div>
@@ -137,7 +137,7 @@ export default function AnalyticsPage() {
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Revenue Chart */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-4">Revenue (Last 30 Days)</h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -183,7 +183,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Attendance Chart */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-4">Attendance (Last 30 Days)</h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -228,7 +228,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Member Growth Chart */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-4">Member Growth (Last 12 Weeks)</h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -256,7 +256,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Top Members */}
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-4">Top Members (Last 30 Days)</h2>
             {data.topMembers.length === 0 ? (
               <div className="h-64 flex items-center justify-center">
@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {data.topMembers.map((member, index) => (
-                      <tr key={member.id} className="border-t border-gray-800">
+                      <tr key={member.id} className="border-t border-theme">
                         <td className="py-3 text-gray-500">{index + 1}</td>
                         <td className="py-3">
                           <div className="text-gray-100 font-medium">{member.name}</div>
@@ -295,7 +295,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* 30-Day Summary */}
-        <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+        <div className="bg-theme-card p-6 rounded-lg border border-theme">
           <h2 className="text-xl font-semibold text-gray-100 mb-4">30-Day Summary</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>

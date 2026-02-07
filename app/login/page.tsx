@@ -84,7 +84,7 @@ export default function LoginPage() {
           <p className="text-gray-400">Log in to your gym</p>
         </div>
 
-        <div className="bg-dark-card p-8 rounded-lg shadow-xl border border-gray-800">
+        <div className="bg-theme-card p-8 rounded-lg shadow-xl border border-theme">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2">
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="you@gym.com"
               />
             </div>
@@ -113,7 +113,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 placeholder="••••••••"
               />
             </div>
@@ -139,7 +139,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-dark-card text-gray-500">or</span>
+              <span className="px-3 bg-theme-card text-gray-500">or</span>
             </div>
           </div>
 

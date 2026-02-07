@@ -52,13 +52,13 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-lg bg-dark-card rounded-xl border border-gray-800 shadow-xl">
+        <div className="relative w-full max-w-lg bg-theme-card rounded-xl border border-theme shadow-xl">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-theme">
             <h2 className="text-xl font-semibold text-gray-100">Help & FAQ</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-100 p-1 rounded-lg hover:bg-dark-lighter transition"
+              className="text-gray-400 hover:text-gray-100 p-1 rounded-lg hover:bg-theme-lighter transition"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -70,10 +70,10 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
           <div className="px-6 py-4 max-h-96 overflow-y-auto">
             <div className="space-y-2">
               {faqs.map((faq, index) => (
-                <div key={index} className="border border-gray-800 rounded-lg overflow-hidden">
+                <div key={index} className="border border-theme rounded-lg overflow-hidden">
                   <button
                     onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
-                    className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-dark-lighter transition"
+                    className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-theme-lighter transition"
                   >
                     <span className="text-gray-100 font-medium text-sm">{faq.question}</span>
                     <svg
@@ -98,7 +98,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-800 bg-dark-lighter rounded-b-xl">
+          <div className="px-6 py-4 border-t border-theme bg-theme-lighter rounded-b-xl">
             <p className="text-gray-400 text-sm mb-3">Still need help?</p>
             <a
               href="mailto:support@clubcheckapp.com?subject=ClubCheck Support Request"

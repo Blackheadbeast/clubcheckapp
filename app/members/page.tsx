@@ -239,7 +239,7 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
@@ -251,13 +251,13 @@ export default function MembersPage() {
           <div className="flex gap-3">
             <button
               onClick={() => (window.location.href = '/api/members/export')}
-              className="bg-dark-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-5 rounded-lg border border-gray-700 transition"
+              className="bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-5 rounded-lg border border-gray-700 transition"
             >
               Export CSV
             </button>
             <button
               onClick={() => { setShowImport(!showImport); setShowAddForm(false) }}
-              className="bg-dark-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-5 rounded-lg border border-gray-700 transition"
+              className="bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-2 px-5 rounded-lg border border-gray-700 transition"
             >
               {showImport ? 'Cancel Import' : 'Import CSV'}
             </button>
@@ -272,21 +272,21 @@ export default function MembersPage() {
 
         {/* Add Member Form */}
         {showAddForm && (
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800 mb-6">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme mb-6">
             <h2 className="text-xl font-bold text-primary mb-4">Add New Member</h2>
             <form onSubmit={handleAddMember} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Name *</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100" placeholder="John Doe" />
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100" placeholder="John Doe" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Email *</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100" placeholder="john@example.com" />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100" placeholder="john@example.com" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Phone</label>
-                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100" placeholder="(555) 123-4567" />
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100" placeholder="(555) 123-4567" />
                 </div>
               </div>
               {error && (
@@ -301,12 +301,12 @@ export default function MembersPage() {
 
         {/* CSV Import Form */}
         {showImport && (
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800 mb-6">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme mb-6">
             <h2 className="text-xl font-bold text-primary mb-4">Import Members from CSV</h2>
             <form onSubmit={handleCSVImport} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Upload CSV File</label>
-                <input type="file" accept=".csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-black file:font-semibold hover:file:bg-primary-dark" />
+                <input type="file" accept=".csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-black file:font-semibold hover:file:bg-primary-dark" />
                 <p className="text-gray-500 text-sm mt-2">CSV format: name, email, phone (one member per line, header row required)</p>
               </div>
               {importResult && (
@@ -333,12 +333,12 @@ export default function MembersPage() {
             placeholder="Search by name, email, or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-4 py-2 bg-dark-card border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+            className="flex-1 px-4 py-2 bg-theme-card border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-dark-card border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+            className="px-4 py-2 bg-theme-card border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
           >
             <option value="all">All statuses</option>
             <option value="active">Active</option>
@@ -350,12 +350,12 @@ export default function MembersPage() {
 
         {/* Bulk Action Bar */}
         {selected.size > 0 && (
-          <div className="flex items-center gap-3 mb-4 bg-dark-card border border-primary/30 rounded-lg px-4 py-3">
+          <div className="flex items-center gap-3 mb-4 bg-theme-card border border-primary/30 rounded-lg px-4 py-3">
             <span className="text-primary font-medium">{selected.size} selected</span>
             <select
               value={bulkAction}
               onChange={(e) => setBulkAction(e.target.value)}
-              className="px-3 py-1.5 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 text-sm"
+              className="px-3 py-1.5 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-sm"
             >
               <option value="">Choose action...</option>
               <option value="active">Set Active</option>
@@ -383,7 +383,7 @@ export default function MembersPage() {
 
         {/* Members Table */}
         {members.length === 0 ? (
-          <div className="bg-dark-card p-12 rounded-lg border border-gray-800 text-center">
+          <div className="bg-theme-card p-12 rounded-lg border border-theme text-center">
             <p className="text-gray-400 text-lg mb-4">
               {search || statusFilter !== 'all' ? 'No members match your filters' : 'No members yet'}
             </p>
@@ -394,10 +394,10 @@ export default function MembersPage() {
             )}
           </div>
         ) : (
-          <div className="bg-dark-card rounded-lg border border-gray-800 overflow-hidden">
+          <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-dark-lighter border-b border-gray-800">
+                <thead className="bg-theme-lighter border-b border-theme">
                   <tr>
                     <th className="px-4 py-4 w-10">
                       <input
@@ -434,7 +434,7 @@ export default function MembersPage() {
                   {members.map((member) => (
                     <tr
                       key={member.id}
-                      className="border-b border-gray-800 hover:bg-dark-lighter cursor-pointer"
+                      className="border-b border-theme hover:bg-theme-lighter cursor-pointer"
                       onClick={() => router.push(`/members/${member.id}`)}
                     >
                       <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>

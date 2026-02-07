@@ -247,7 +247,7 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-800 pb-2">
+        <div className="flex gap-2 mb-6 border-b border-theme pb-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -278,7 +278,7 @@ export default function SettingsPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeTab === tab.id
                   ? 'bg-primary text-black'
-                  : 'text-gray-400 hover:text-gray-100 hover:bg-dark-lighter'
+                  : 'text-gray-400 hover:text-gray-100 hover:bg-theme-lighter'
               }`}
             >
               {tab.label}
@@ -288,7 +288,7 @@ export default function SettingsPage() {
 
         {/* Gym Info Tab */}
         {activeTab === 'gym' && (
-          <form onSubmit={handleSaveGym} className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <form onSubmit={handleSaveGym} className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-6">Gym Information</h2>
 
             <div className="space-y-4">
@@ -299,7 +299,7 @@ export default function SettingsPage() {
                   value={gymName}
                   onChange={(e) => setGymName(e.target.value)}
                   placeholder="Your Gym Name"
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                 />
               </div>
 
@@ -310,7 +310,7 @@ export default function SettingsPage() {
                   onChange={(e) => setGymAddress(e.target.value)}
                   placeholder="123 Main St, City, State 12345"
                   rows={2}
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary resize-none"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary resize-none"
                 />
               </div>
 
@@ -321,7 +321,7 @@ export default function SettingsPage() {
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
                   placeholder="https://example.com/logo.png"
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                 />
                 <p className="text-gray-500 text-sm mt-1">
                   Enter a URL to your gym&apos;s logo. Recommended size: 200x200px.
@@ -356,7 +356,7 @@ export default function SettingsPage() {
         {activeTab === 'account' && (
           <div className="space-y-6">
             {/* Account Info */}
-            <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+            <div className="bg-theme-card p-6 rounded-lg border border-theme">
               <h2 className="text-xl font-semibold text-gray-100 mb-6">Account Information</h2>
 
               <div className="space-y-4">
@@ -388,7 +388,7 @@ export default function SettingsPage() {
             {/* Change Password */}
             <form
               onSubmit={handleChangePassword}
-              className="bg-dark-card p-6 rounded-lg border border-gray-800"
+              className="bg-theme-card p-6 rounded-lg border border-theme"
             >
               <h2 className="text-xl font-semibold text-gray-100 mb-6">Change Password</h2>
 
@@ -401,7 +401,7 @@ export default function SettingsPage() {
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                   />
                 </div>
 
@@ -411,7 +411,7 @@ export default function SettingsPage() {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                   />
                 </div>
 
@@ -423,7 +423,7 @@ export default function SettingsPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -441,7 +441,7 @@ export default function SettingsPage() {
 
         {/* Billing Tab */}
         {activeTab === 'billing' && (
-          <form onSubmit={handleSaveBilling} className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <form onSubmit={handleSaveBilling} className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-6">Billing Settings</h2>
 
             <div className="space-y-4">
@@ -450,7 +450,7 @@ export default function SettingsPage() {
                 <select
                   value={billingMode}
                   onChange={(e) => setBillingMode(e.target.value)}
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                 >
                   <option value="stripe">Stripe (Automatic)</option>
                   <option value="external">External Provider</option>
@@ -470,7 +470,7 @@ export default function SettingsPage() {
                     value={externalProviderName}
                     onChange={(e) => setExternalProviderName(e.target.value)}
                     placeholder="e.g., Square, PayPal, etc."
-                    className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                   />
                 </div>
               )}
@@ -484,7 +484,7 @@ export default function SettingsPage() {
                   value={billingContactEmail}
                   onChange={(e) => setBillingContactEmail(e.target.value)}
                   placeholder="billing@yourgym.com"
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                 />
                 <p className="text-gray-500 text-sm mt-1">
                   Where billing-related notifications should be sent.
@@ -493,7 +493,7 @@ export default function SettingsPage() {
 
               {/* Subscription Info */}
               {data?.owner.subscriptionStatus && (
-                <div className="mt-6 pt-6 border-t border-gray-800">
+                <div className="mt-6 pt-6 border-t border-theme">
                   <h3 className="text-lg font-medium text-gray-100 mb-4">Current Subscription</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -535,12 +535,12 @@ export default function SettingsPage() {
 
         {/* Waiver Tab */}
         {activeTab === 'waiver' && (
-          <form onSubmit={handleSaveWaiver} className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <form onSubmit={handleSaveWaiver} className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-6">Liability Waiver</h2>
 
             <div className="space-y-6">
               {/* Enable Toggle */}
-              <div className="flex items-center justify-between p-4 bg-dark-lighter rounded-lg border border-gray-700">
+              <div className="flex items-center justify-between p-4 bg-theme-lighter rounded-lg border border-gray-700">
                 <div>
                   <h3 className="font-medium text-gray-100">Enable Digital Waiver</h3>
                   <p className="text-gray-500 text-sm mt-1">
@@ -577,7 +577,7 @@ RELEASE AND WAIVER: I hereby release and waive any claims against [Gym Name], it
 MEDICAL CONDITIONS: I confirm that I have no medical conditions that would prevent me from safely participating in physical exercise, or I have obtained clearance from a medical professional.
 
 I have read this waiver in its entirety and understand that I am giving up substantial rights by signing it."
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary resize-none font-mono text-sm"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary resize-none font-mono text-sm"
                 />
                 <p className="text-gray-500 text-sm mt-2">
                   This text will be shown to members when they sign the waiver. Make sure to include all
@@ -611,7 +611,7 @@ I have read this waiver in its entirety and understand that I am giving up subst
 
         {/* Appearance Tab */}
         {activeTab === 'appearance' && (
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <h2 className="text-xl font-semibold text-gray-100 mb-6">Appearance</h2>
 
             <div className="space-y-6">
@@ -676,7 +676,7 @@ I have read this waiver in its entirety and understand that I am giving up subst
                 </div>
               </div>
 
-              <div className="p-4 bg-dark-lighter rounded-lg border border-gray-700">
+              <div className="p-4 bg-theme-lighter rounded-lg border border-gray-700">
                 <p className="text-gray-400 text-sm">
                   Your theme preference is saved automatically and synced across devices.
                 </p>
@@ -691,7 +691,7 @@ I have read this waiver in its entirety and understand that I am giving up subst
             <SystemStatus />
 
             {/* Environment Info */}
-            <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+            <div className="bg-theme-card p-6 rounded-lg border border-theme">
               <h3 className="text-lg font-semibold mb-4">Environment</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>

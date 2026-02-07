@@ -202,9 +202,9 @@ export default function NavigationDrawer({
       />
 
       {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-dark-card border-l border-gray-800 shadow-2xl overflow-y-auto">
+      <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-theme-card border-l border-theme shadow-2xl overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-dark-card border-b border-gray-800 p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-theme-card border-b border-theme p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {gymLogo ? (
               <img
@@ -228,7 +228,7 @@ export default function NavigationDrawer({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-100 hover:bg-dark-lighter rounded-lg transition"
+            className="p-2 text-gray-400 hover:text-gray-100 hover:bg-theme-lighter rounded-lg transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -259,7 +259,7 @@ export default function NavigationDrawer({
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
                         isActive(link.href)
                           ? 'bg-primary/20 text-primary'
-                          : 'text-gray-400 hover:text-gray-100 hover:bg-dark-lighter'
+                          : 'text-theme-secondary hover:text-theme hover:bg-theme-lighter'
                       }`}
                     >
                       {link.icon}
@@ -276,7 +276,7 @@ export default function NavigationDrawer({
         </div>
 
         {/* Footer - Logout */}
-        <div className="sticky bottom-0 bg-dark-card border-t border-gray-800 p-4">
+        <div className="sticky bottom-0 bg-theme-card border-t border-theme p-4">
           <button
             onClick={() => {
               onClose()

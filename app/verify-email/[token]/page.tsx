@@ -44,9 +44,9 @@ export default function VerifyEmailTokenPage() {
   }, [params.token, router])
 
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-theme flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-dark-card border border-gray-800 rounded-2xl p-8 text-center">
+        <div className="bg-theme-card border border-theme rounded-2xl p-8 text-center">
           {status === 'verifying' && (
             <>
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl mb-6">

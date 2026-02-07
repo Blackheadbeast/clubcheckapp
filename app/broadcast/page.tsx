@@ -178,7 +178,7 @@ export default function BroadcastPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
@@ -213,7 +213,7 @@ export default function BroadcastPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2">
-            <form onSubmit={handleSend} className="bg-dark-card rounded-lg border border-gray-800 p-6">
+            <form onSubmit={handleSend} className="bg-theme-card rounded-lg border border-theme p-6">
               {/* Target Group */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-300 mb-3">
@@ -228,7 +228,7 @@ export default function BroadcastPage() {
                       className={`p-4 rounded-lg border text-left transition ${
                         targetGroup === opt.value
                           ? 'border-primary bg-primary/10'
-                          : 'border-gray-700 bg-dark-lighter hover:border-gray-600'
+                          : 'border-gray-700 bg-theme-lighter hover:border-gray-600'
                       }`}
                     >
                       <div className="flex justify-between items-start">
@@ -249,7 +249,7 @@ export default function BroadcastPage() {
                 <select
                   value={selectedTemplate}
                   onChange={(e) => handleTemplateChange(e.target.value)}
-                  className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                  className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 >
                   <option value="">Choose a template...</option>
                   {TEMPLATES.map((t) => (
@@ -271,7 +271,7 @@ export default function BroadcastPage() {
                   onChange={(e) => setSubject(e.target.value)}
                   required
                   placeholder="Email subject line"
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                 />
               </div>
 
@@ -286,7 +286,7 @@ export default function BroadcastPage() {
                   required
                   rows={12}
                   placeholder="Write your message here..."
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 resize-none"
+                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 resize-none"
                 />
                 <p className="text-gray-500 text-xs mt-2">
                   Each member will be addressed by their first name automatically.
@@ -308,10 +308,10 @@ export default function BroadcastPage() {
 
           {/* Preview Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-dark-card rounded-lg border border-gray-800 p-6 sticky top-24">
+            <div className="bg-theme-card rounded-lg border border-theme p-6 sticky top-24">
               <h3 className="text-lg font-semibold text-gray-100 mb-4">Preview</h3>
 
-              <div className="bg-dark-lighter rounded-lg p-4 text-sm">
+              <div className="bg-theme-lighter rounded-lg p-4 text-sm">
                 <div className="mb-3 pb-3 border-b border-gray-700">
                   <div className="text-gray-500 text-xs mb-1">From</div>
                   <div className="text-gray-300">{gymName}</div>

@@ -105,7 +105,7 @@ export default function ReferralsPage() {
   const signupUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/signup?ref=${data.referralCode}`
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
@@ -126,19 +126,19 @@ export default function ReferralsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Total Referred</div>
             <div className="text-4xl font-bold text-primary">{data.totalReferred}</div>
             <div className="text-gray-500 text-sm mt-2">gyms signed up</div>
           </div>
 
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Paying Referrals</div>
             <div className="text-4xl font-bold text-green-400">{data.payingReferrals}</div>
             <div className="text-gray-500 text-sm mt-2">converted to paid</div>
           </div>
 
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="text-gray-400 text-sm mb-2">Credits Earned</div>
             <div className="text-4xl font-bold text-blue-400">{data.creditedMonths}</div>
             <div className="text-gray-500 text-sm mt-2">free months</div>
@@ -146,11 +146,11 @@ export default function ReferralsPage() {
         </div>
 
         {/* Referral Code Card */}
-        <div className="bg-dark-card p-6 rounded-lg border border-gray-800 mb-8">
+        <div className="bg-theme-card p-6 rounded-lg border border-theme mb-8">
           <h2 className="text-xl font-semibold text-gray-100 mb-4">Your Referral Link</h2>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 bg-dark-lighter border border-gray-700 rounded-lg p-4">
+            <div className="flex-1 bg-theme-lighter border border-gray-700 rounded-lg p-4">
               <div className="text-xs text-gray-500 mb-1">Referral Code</div>
               <div className="text-primary font-mono font-bold text-lg">{data.referralCode}</div>
             </div>
@@ -185,7 +185,7 @@ export default function ReferralsPage() {
               <button
                 onClick={regenerateCode}
                 disabled={regenerating}
-                className="bg-dark-lighter hover:bg-gray-800 text-gray-100 font-semibold py-3 px-4 rounded-lg border border-gray-700 transition disabled:opacity-50"
+                className="bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-3 px-4 rounded-lg border border-gray-700 transition disabled:opacity-50"
                 title="Generate new code"
               >
                 <svg
@@ -205,15 +205,15 @@ export default function ReferralsPage() {
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-dark-lighter rounded-lg">
+          <div className="mt-4 p-3 bg-theme-lighter rounded-lg">
             <div className="text-xs text-gray-500 mb-1">Full URL</div>
             <div className="text-gray-300 text-sm font-mono break-all">{signupUrl}</div>
           </div>
         </div>
 
         {/* Referral History */}
-        <div className="bg-dark-card rounded-lg border border-gray-800">
-          <div className="px-6 py-4 border-b border-gray-800">
+        <div className="bg-theme-card rounded-lg border border-theme">
+          <div className="px-6 py-4 border-b border-theme">
             <h2 className="text-xl font-semibold text-gray-100">Referral History</h2>
           </div>
 
@@ -225,7 +225,7 @@ export default function ReferralsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-dark-lighter">
+                <thead className="bg-theme-lighter">
                   <tr>
                     <th className="text-left px-6 py-3 text-gray-400 text-sm font-medium">Gym</th>
                     <th className="text-left px-6 py-3 text-gray-400 text-sm font-medium">Date</th>
@@ -235,7 +235,7 @@ export default function ReferralsPage() {
                 </thead>
                 <tbody>
                   {data.referrals.map((ref) => (
-                    <tr key={ref.id} className="border-t border-gray-800 hover:bg-dark-lighter">
+                    <tr key={ref.id} className="border-t border-theme hover:bg-theme-lighter">
                       <td className="px-6 py-4">
                         <div className="text-gray-100 font-medium">{ref.gymName}</div>
                         <div className="text-gray-500 text-sm">{ref.email}</div>

@@ -190,7 +190,7 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-5xl mx-auto p-8">
         {/* Header */}
@@ -208,14 +208,14 @@ export default function StaffPage() {
         </div>
 
         {/* Gym Code Info */}
-        <div className="bg-dark-card p-4 rounded-lg border border-gray-800 mb-6">
+        <div className="bg-theme-card p-4 rounded-lg border border-theme mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-medium text-gray-300">Staff Login Gym Code</h3>
               <p className="text-xs text-gray-500 mt-1">Staff members need this code to log in at /staff-login</p>
             </div>
             <div className="flex items-center gap-2">
-              <code className="bg-dark-lighter px-3 py-2 rounded text-primary font-mono text-sm">
+              <code className="bg-theme-lighter px-3 py-2 rounded text-primary font-mono text-sm">
                 {gymCode}
               </code>
               <button
@@ -235,7 +235,7 @@ export default function StaffPage() {
 
         {/* Add Staff Form */}
         {showAddForm && (
-          <div className="bg-dark-card p-6 rounded-lg border border-gray-800 mb-6">
+          <div className="bg-theme-card p-6 rounded-lg border border-theme mb-6">
             <h2 className="text-xl font-bold text-primary mb-4">Add Staff Member</h2>
             <form onSubmit={handleAddStaff} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -246,7 +246,7 @@ export default function StaffPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="John Smith"
                   />
                 </div>
@@ -257,7 +257,7 @@ export default function StaffPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -271,7 +271,7 @@ export default function StaffPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     placeholder="Min 8 characters"
                   />
                 </div>
@@ -280,7 +280,7 @@ export default function StaffPage() {
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                    className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                   >
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -292,7 +292,7 @@ export default function StaffPage() {
               </div>
 
               {/* Role descriptions */}
-              <div className="bg-dark-lighter rounded-lg p-4">
+              <div className="bg-theme-lighter rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-300 mb-2">Role Permissions:</h4>
                 <ul className="text-xs text-gray-500 space-y-1">
                   <li><strong className="text-blue-400">Front Desk:</strong> Check-in members, view member list, kiosk access</li>
@@ -318,7 +318,7 @@ export default function StaffPage() {
 
         {/* Staff Table */}
         {staff.length === 0 ? (
-          <div className="bg-dark-card p-12 rounded-lg border border-gray-800 text-center">
+          <div className="bg-theme-card p-12 rounded-lg border border-theme text-center">
             <p className="text-gray-400 text-lg mb-4">No staff members yet</p>
             <button
               onClick={() => setShowAddForm(true)}
@@ -328,9 +328,9 @@ export default function StaffPage() {
             </button>
           </div>
         ) : (
-          <div className="bg-dark-card rounded-lg border border-gray-800 overflow-hidden">
+          <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
             <table className="w-full">
-              <thead className="bg-dark-lighter border-b border-gray-800">
+              <thead className="bg-theme-lighter border-b border-theme">
                 <tr>
                   <th className="text-left px-4 py-4 text-gray-400 font-medium">Name</th>
                   <th className="text-left px-4 py-4 text-gray-400 font-medium">Email</th>
@@ -344,7 +344,7 @@ export default function StaffPage() {
                   <tr
                     key={member.id}
                     onClick={() => openEditModal(member)}
-                    className="border-b border-gray-800 hover:bg-dark-lighter cursor-pointer"
+                    className="border-b border-theme hover:bg-theme-lighter cursor-pointer"
                   >
                     <td className="px-4 py-4 font-medium text-gray-100">{member.name}</td>
                     <td className="px-4 py-4 text-gray-400">{member.email}</td>
@@ -371,7 +371,7 @@ export default function StaffPage() {
         {/* Edit Modal */}
         {editingStaff && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-dark-card rounded-lg border border-gray-800 w-full max-w-md">
+            <div className="bg-theme-card rounded-lg border border-theme w-full max-w-md">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-primary">Edit Staff</h2>
@@ -393,7 +393,7 @@ export default function StaffPage() {
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       required
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     />
                   </div>
                   <div>
@@ -403,7 +403,7 @@ export default function StaffPage() {
                       value={editEmail}
                       onChange={(e) => setEditEmail(e.target.value)}
                       required
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     />
                   </div>
                   <div>
@@ -415,7 +415,7 @@ export default function StaffPage() {
                       value={editPassword}
                       onChange={(e) => setEditPassword(e.target.value)}
                       minLength={8}
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                       placeholder="Min 8 characters"
                     />
                   </div>
@@ -424,7 +424,7 @@ export default function StaffPage() {
                     <select
                       value={editRole}
                       onChange={(e) => setEditRole(e.target.value)}
-                      className="w-full px-4 py-2 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                      className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
                     >
                       {ROLE_OPTIONS.map((r) => (
                         <option key={r.value} value={r.value}>

@@ -76,9 +76,9 @@ export default function PlanSelectionModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-dark-card border border-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-theme-card border border-theme rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-gray-800">
+        <div className="p-6 border-b border-theme">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-100">{title}</h2>
@@ -86,7 +86,7 @@ export default function PlanSelectionModal({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-300 p-2 rounded-lg hover:bg-dark-lighter transition"
+              className="text-gray-500 hover:text-gray-300 p-2 rounded-lg hover:bg-theme-lighter transition"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -97,7 +97,7 @@ export default function PlanSelectionModal({
 
         {/* Billing Period Toggle */}
         <div className="px-6 pt-6">
-          <div className="flex items-center justify-center gap-2 p-1 bg-dark-lighter rounded-lg w-fit mx-auto">
+          <div className="flex items-center justify-center gap-2 p-1 bg-theme-lighter rounded-lg w-fit mx-auto">
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition ${
@@ -286,7 +286,7 @@ export default function PlanSelectionModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-800 bg-dark-lighter/50">
+        <div className="p-6 border-t border-theme bg-theme-lighter/50">
           <div className="flex items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
               You&apos;ll be redirected to Stripe for secure payment

@@ -71,7 +71,7 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
       <div className="max-w-5xl mx-auto p-8">
         {/* Header */}
@@ -82,15 +82,15 @@ export default function InvoicesPage() {
 
         {/* Invoices Table */}
         {invoices.length === 0 ? (
-          <div className="bg-dark-card p-12 rounded-lg border border-gray-800 text-center">
+          <div className="bg-theme-card p-12 rounded-lg border border-theme text-center">
             <p className="text-gray-400 text-lg">No invoices yet</p>
             <p className="text-gray-500 text-sm mt-2">Invoices will appear here once you have an active subscription.</p>
           </div>
         ) : (
-          <div className="bg-dark-card rounded-lg border border-gray-800 overflow-hidden">
+          <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-dark-lighter border-b border-gray-800">
+                <thead className="bg-theme-lighter border-b border-theme">
                   <tr>
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Date</th>
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Description</th>
@@ -102,7 +102,7 @@ export default function InvoicesPage() {
                 </thead>
                 <tbody>
                   {invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-gray-800 hover:bg-dark-lighter">
+                    <tr key={inv.id} className="border-b border-theme hover:bg-theme-lighter">
                       <td className="px-6 py-4 text-gray-100">
                         {new Date(inv.date).toLocaleDateString('en-US', {
                           month: 'short',
@@ -116,7 +116,7 @@ export default function InvoicesPage() {
                       </td>
                       <td className="px-6 py-4">{statusBadge(inv.status)}</td>
                       <td className="px-6 py-4">
-                        <span className="text-xs text-gray-500 bg-dark-lighter px-2 py-1 rounded">
+                        <span className="text-xs text-gray-500 bg-theme-lighter px-2 py-1 rounded">
                           {inv.type === 'stripe' ? 'Stripe' : 'Manual'}
                         </span>
                       </td>

@@ -125,43 +125,82 @@ export default function Walkthrough({ isOpen, onComplete, onSkip, isDemo }: Walk
 
     const padding = 16
     const tooltipWidth = 320
-    const tooltipHeight = 200
+    const tooltipHeight = 280
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    // For elements on the right side of screen (like nav menu, help button)
+    // Position tooltip below them instead of to the left to avoid going off-screen
+    const isNearRightEdge = targetRect.right > viewportWidth - tooltipWidth - padding * 2
+    const isNearTopEdge = targetRect.top < tooltipHeight + padding * 2
+
+    // Calculate centered horizontal position that stays in viewport
+    const getCenteredLeft = () => {
+      let left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2
+      // Ensure tooltip doesn't go off left edge
+      if (left < padding) left = padding
+      // Ensure tooltip doesn't go off right edge
+      if (left + tooltipWidth > viewportWidth - padding) {
+        left = viewportWidth - tooltipWidth - padding
+      }
+      return left
+    }
+
+    // For right-side elements, show below instead of left
+    if (step.position === 'left' && isNearRightEdge) {
+      return {
+        top: `${targetRect.bottom + padding}px`,
+        left: `${getCenteredLeft()}px`,
+        transform: 'none',
+      }
+    }
 
     switch (step.position) {
       case 'top':
         return {
-          top: `${targetRect.top - tooltipHeight - padding}px`,
-          left: `${targetRect.left + targetRect.width / 2}px`,
-          transform: 'translateX(-50%)',
+          top: `${Math.max(padding, targetRect.top - tooltipHeight - padding)}px`,
+          left: `${getCenteredLeft()}px`,
+          transform: 'none',
         }
       case 'bottom':
         return {
           top: `${targetRect.bottom + padding}px`,
-          left: `${targetRect.left + targetRect.width / 2}px`,
-          transform: 'translateX(-50%)',
+          left: `${getCenteredLeft()}px`,
+          transform: 'none',
         }
       case 'left':
         return {
-          top: `${targetRect.top + targetRect.height / 2}px`,
-          left: `${targetRect.left - tooltipWidth - padding}px`,
-          transform: 'translateY(-50%)',
+          top: `${Math.max(padding, targetRect.top + targetRect.height / 2 - tooltipHeight / 2)}px`,
+          left: `${Math.max(padding, targetRect.left - tooltipWidth - padding)}px`,
+          transform: 'none',
         }
       case 'right':
         return {
-          top: `${targetRect.top + targetRect.height / 2}px`,
-          left: `${targetRect.right + padding}px`,
-          transform: 'translateY(-50%)',
+          top: `${Math.max(padding, targetRect.top + targetRect.height / 2 - tooltipHeight / 2)}px`,
+          left: `${Math.min(viewportWidth - tooltipWidth - padding, targetRect.right + padding)}px`,
+          transform: 'none',
         }
       default:
         return {
           top: `${targetRect.bottom + padding}px`,
-          left: `${targetRect.left + targetRect.width / 2}px`,
-          transform: 'translateX(-50%)',
+          left: `${getCenteredLeft()}px`,
+          transform: 'none',
         }
     }
   }
 
   const getArrowPosition = () => {
+    if (!targetRect) return ''
+
+    const tooltipWidth = 320
+    const viewportWidth = window.innerWidth
+    const isNearRightEdge = targetRect.right > viewportWidth - tooltipWidth - 32
+
+    // If we repositioned a left tooltip to bottom, show bottom arrow
+    if (step.position === 'left' && isNearRightEdge) {
+      return 'top-[-8px] left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-primary'
+    }
+
     switch (step.position) {
       case 'top':
         return 'bottom-[-8px] left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-primary'

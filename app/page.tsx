@@ -774,7 +774,7 @@ export default function HomePage() {
             <div>
               <h4 className="text-gray-100 font-bold mb-4">Support</h4>
               <ul className="space-y-3 text-gray-400 text-sm">
-                <li><a href="mailto:support@clubcheckapp.com" className="hover:text-primary transition-colors">Email Support</a></li>
+                <li><a href="mailto:blueloomventuresllc@gmail.com" className="hover:text-primary transition-colors">Email Support</a></li>
                 <li><a href="#how-it-works" className="hover:text-primary transition-colors">How It Works</a></li>
               </ul>
             </div>
@@ -788,7 +788,7 @@ export default function HomePage() {
           </div>
           <div className="border-t border-gray-800/50 pt-8 text-center">
             <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} ClubCheck. All rights reserved. Built for real gyms.
+              © 2026 ClubCheck. Operated by BlueLoom Ventures LLC. All rights reserved.
             </p>
           </div>
         </div>

@@ -485,7 +485,7 @@ export async function sendFeedbackNotificationEmail(
 
     const { data, error } = await resend.emails.send({
       from: 'ClubCheck <noreply@clubcheckapp.com>',
-      to: 'feedback@clubcheckapp.com',
+      to: 'blueloomventuresllc@gmail.com',
       subject: `[Feedback] ${rating}/5 stars from ${ownerEmail}`,
       html: `<!DOCTYPE html>
 <html>

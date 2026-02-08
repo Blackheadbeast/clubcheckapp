@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
               <h2 className="text-xl font-semibold text-theme-heading mb-4">1. Agreement to Terms</h2>
               <p>
                 These Terms of Service (&quot;Terms&quot;) constitute a legally binding agreement between you (&quot;you,&quot; &quot;your,&quot;
-                or &quot;Customer&quot;) and ClubCheck, Inc. (&quot;ClubCheck,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) governing your access
+                or &quot;Customer&quot;) and BlueLoom Ventures LLC (d/b/a ClubCheck) (&quot;ClubCheck,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) governing your access
                 to and use of the ClubCheck gym management platform, including any associated software, mobile
                 applications, and services (collectively, the &quot;Service&quot;).
               </p>
@@ -138,7 +138,7 @@ export default function TermsOfServicePage() {
               <p>
                 Monthly subscriptions are non-refundable. Annual subscriptions may be refunded on a prorated
                 basis within the first 30 days if you are not satisfied with the Service. Contact
-                support@clubcheckapp.com for refund requests.
+                blueloomventuresllc@gmail.com for refund requests.
               </p>
             </section>
 
@@ -191,7 +191,7 @@ export default function TermsOfServicePage() {
                 non-transferable license to use the Service for your internal business purposes.
               </p>
               <p className="mt-4">
-                The ClubCheck name, logo, and product names are trademarks of ClubCheck, Inc. You may not use
+                The ClubCheck name, logo, and product names are trademarks of BlueLoom Ventures LLC (d/b/a ClubCheck) You may not use
                 these marks without our written permission.
               </p>
             </section>
@@ -364,10 +364,9 @@ export default function TermsOfServicePage() {
               <h2 className="text-xl font-semibold text-theme-heading mb-4">19. Contact Us</h2>
               <p>If you have questions about these Terms, please contact us:</p>
               <div className="mt-4 p-4 bg-theme-lighter rounded-lg">
-                <p><strong>ClubCheck, Inc.</strong></p>
-                <p>Email: legal@clubcheckapp.com</p>
-                <p>Support: support@clubcheckapp.com</p>
-                <p>Address: [Your Business Address]</p>
+                <p><strong>BlueLoom Ventures LLC (d/b/a ClubCheck)</strong></p>
+                <p>Email: blueloomventuresllc@gmail.com</p>
+                <p>Support: blueloomventuresllc@gmail.com</p>
               </div>
             </section>
           </div>
@@ -391,7 +390,7 @@ export default function TermsOfServicePage() {
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
           </div>
-          <p className="mt-4">&copy; {new Date().getFullYear()} ClubCheck, Inc. All rights reserved.</p>
+          <p className="mt-4">&copy; {new Date().getFullYear()} BlueLoom Ventures LLC (d/b/a ClubCheck) All rights reserved.</p>
         </div>
       </footer>
     </div>

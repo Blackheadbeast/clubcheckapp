@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold text-theme-heading mb-4">1. Introduction</h2>
               <p>
-                ClubCheck, Inc. (&quot;ClubCheck,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy.
+                BlueLoom Ventures LLC (d/b/a ClubCheck) (&quot;ClubCheck,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy.
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use
                 our gym management software-as-a-service platform (the &quot;Service&quot;).
               </p>
@@ -88,7 +88,7 @@ export default function PrivacyPolicyPage() {
               </ul>
               <p className="mt-4">
                 After account deletion, we may retain anonymized, aggregated data for analytical purposes.
-                You may request complete data deletion by contacting privacy@clubcheckapp.com.
+                You may request complete data deletion by contacting blueloomventuresllc@gmail.com.
               </p>
             </section>
 
@@ -171,7 +171,7 @@ export default function PrivacyPolicyPage() {
                 <li><strong>Opt-out:</strong> Unsubscribe from marketing communications.</li>
               </ul>
               <p className="mt-4">
-                To exercise these rights, contact us at privacy@clubcheckapp.com. We will respond within 30 days.
+                To exercise these rights, contact us at blueloomventuresllc@gmail.com. We will respond within 30 days.
               </p>
             </section>
 
@@ -195,7 +195,7 @@ export default function PrivacyPolicyPage() {
               <p>
                 ClubCheck is not intended for children under 13 years of age. We do not knowingly collect personal
                 information from children under 13. If you become aware that a child has provided us with personal
-                information, please contact us at privacy@clubcheckapp.com.
+                information, please contact us at blueloomventuresllc@gmail.com.
               </p>
             </section>
 
@@ -214,9 +214,8 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-xl font-semibold text-theme-heading mb-4">13. Contact Us</h2>
               <p>If you have questions about this Privacy Policy, please contact us:</p>
               <div className="mt-4 p-4 bg-theme-lighter rounded-lg">
-                <p><strong>ClubCheck, Inc.</strong></p>
-                <p>Email: privacy@clubcheckapp.com</p>
-                <p>Address: [Your Business Address]</p>
+                <p><strong>BlueLoom Ventures LLC (d/b/a ClubCheck)</strong></p>
+                <p>Email: blueloomventuresllc@gmail.com</p>
               </div>
             </section>
           </div>
@@ -240,7 +239,7 @@ export default function PrivacyPolicyPage() {
             <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
           </div>
-          <p className="mt-4">&copy; {new Date().getFullYear()} ClubCheck, Inc. All rights reserved.</p>
+          <p className="mt-4">&copy; {new Date().getFullYear()} BlueLoom Ventures LLC (d/b/a ClubCheck) All rights reserved.</p>
         </div>
       </footer>
     </div>

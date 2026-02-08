@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 
 export default function VerifyEmailPage() {
   const [resending, setResending] = useState(false)
@@ -38,12 +39,9 @@ export default function VerifyEmailPage() {
       <div className="w-full max-w-md">
         <div className="bg-theme-card border border-theme rounded-2xl p-8 text-center">
           {/* Logo */}
-          <Link href="/" className="inline-flex flex-col items-center gap-3 mb-6">
-            <div className="h-16 w-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-black font-bold text-3xl">C</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">ClubCheck</span>
-          </Link>
+          <div className="flex justify-center mb-6">
+            <Logo size="xl" linkToHome />
+          </div>
 
           <h1 className="text-2xl font-bold text-theme-heading mb-2">Check Your Email</h1>
           <p className="text-gray-400 mb-6">

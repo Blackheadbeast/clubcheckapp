@@ -52,6 +52,7 @@ model GymProfile {
   waiverEnabled        Boolean   @default(false)
   waiverText           String?
   theme                String    @default("dark")
+  walkthroughCompletedAt DateTime?
   owner                Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 

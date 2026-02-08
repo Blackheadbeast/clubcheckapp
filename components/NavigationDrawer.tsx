@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 interface NavigationDrawerProps {
@@ -223,12 +224,16 @@ export default function NavigationDrawer({
                 className="h-10 w-10 rounded-lg object-cover"
               />
             ) : (
-              <div className="h-10 w-10 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
-                <span className="text-black font-bold text-xl">C</span>
-              </div>
+              <Image
+                src="/logo.png"
+                alt="ClubCheck"
+                width={40}
+                height={40}
+                className="rounded-lg"
+              />
             )}
             <div>
-              <div className="font-semibold text-gray-100">{gymName || 'ClubCheck'}</div>
+              <div className="font-semibold text-theme-heading">{gymName || 'ClubCheck'}</div>
               {isDemo && (
                 <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded">
                   DEMO

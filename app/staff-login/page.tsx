@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 
 export default function StaffLoginPage() {
   const router = useRouter()
@@ -45,13 +46,10 @@ export default function StaffLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-3">
-            <div className="h-16 w-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-black font-bold text-3xl">C</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">ClubCheck</span>
-          </Link>
-          <h1 className="text-2xl font-bold text-theme-heading mt-4">Staff Login</h1>
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" linkToHome />
+          </div>
+          <h1 className="text-2xl font-bold text-theme-heading">Staff Login</h1>
           <p className="text-theme-secondary mt-2">Sign in to your staff account</p>
         </div>
 

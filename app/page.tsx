@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 
 // Gym logo placeholders for social proof
@@ -56,10 +57,14 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
-                  <span className="text-black font-bold text-xl">C</span>
-                </div>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/logo.png"
+                  alt="ClubCheck"
+                  width={40}
+                  height={40}
+                  className="rounded-xl"
+                />
                 <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
                   ClubCheck
                 </span>
@@ -741,10 +746,14 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
-                  <span className="text-black font-bold text-xl">C</span>
-                </div>
+              <div className="flex items-center gap-3 mb-4">
+                <Image
+                  src="/logo.png"
+                  alt="ClubCheck"
+                  width={40}
+                  height={40}
+                  className="rounded-xl"
+                />
                 <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
                   ClubCheck
                 </span>

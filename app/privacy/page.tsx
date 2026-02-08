@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 
 export default function PrivacyPolicyPage() {
   const lastUpdated = 'February 7, 2026'
@@ -10,12 +11,7 @@ export default function PrivacyPolicyPage() {
       {/* Header */}
       <header className="border-b border-theme bg-theme-card">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center">
-              <span className="text-black font-bold text-xl">C</span>
-            </div>
-            <span className="text-xl font-bold text-theme-heading">ClubCheck</span>
-          </Link>
+          <Logo size="md" linkToHome />
         </div>
       </header>
 

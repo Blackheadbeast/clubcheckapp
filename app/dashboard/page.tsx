@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import SetupWizard from '@/components/SetupWizard'
 import BillingStatusBanner from '@/components/BillingStatusBanner'
+import Walkthrough from '@/components/Walkthrough'
 import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 
 interface BillingAlert {
@@ -81,6 +82,8 @@ export default function DashboardPage() {
   const router = useRouter()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showWalkthrough, setShowWalkthrough] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     async function loadDashboard() {
@@ -94,6 +97,19 @@ export default function DashboardPage() {
 
         const dashboardData = await res.json()
         setData(dashboardData)
+
+        // Check if we should show the walkthrough
+        const walkthroughRes = await fetch('/api/walkthrough', { credentials: 'include' })
+        if (walkthroughRes.ok) {
+          const walkthroughData = await walkthroughRes.json()
+          if (walkthroughData.showWalkthrough) {
+            // Small delay to let the page render first
+            setTimeout(() => {
+              setShowWalkthrough(true)
+              setIsDemo(walkthroughData.isDemo)
+            }, 500)
+          }
+        }
       } catch (error) {
         console.error('Failed to load dashboard:', error)
         router.push('/login')
@@ -104,6 +120,24 @@ export default function DashboardPage() {
 
     loadDashboard()
   }, [router])
+
+  async function handleWalkthroughComplete() {
+    setShowWalkthrough(false)
+    // Save completion to server (for non-demo users)
+    await fetch('/api/walkthrough', {
+      method: 'POST',
+      credentials: 'include',
+    })
+  }
+
+  async function handleWalkthroughSkip() {
+    setShowWalkthrough(false)
+    // Save skip to server (for non-demo users)
+    await fetch('/api/walkthrough', {
+      method: 'POST',
+      credentials: 'include',
+    })
+  }
 
   async function handleDismissSetup() {
     try {
@@ -191,6 +225,14 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-theme">
       <Navbar />
       <BillingStatusBanner />
+
+      {/* Walkthrough Tour */}
+      <Walkthrough
+        isOpen={showWalkthrough}
+        onComplete={handleWalkthroughComplete}
+        onSkip={handleWalkthroughSkip}
+        isDemo={isDemo}
+      />
       <div className="max-w-7xl mx-auto p-8">
         {/* Billing Alerts Banner */}
         {data.billingAlerts && data.billingAlerts.length > 0 && (
@@ -282,7 +324,7 @@ export default function DashboardPage() {
         )}
 
         {/* Stats Grid with Sparklines */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-walkthrough="stats-cards">
           {/* Active Members */}
           <div className="bg-theme-card p-6 rounded-lg border border-theme">
             <div className="flex items-start justify-between">
@@ -342,6 +384,62 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" data-walkthrough="quick-actions">
+          <Link
+            href="/members"
+            className="bg-theme-card border border-theme rounded-xl p-5 hover:border-primary transition group"
+            data-walkthrough="members-link"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/20 rounded-xl group-hover:bg-primary/30 transition">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-theme-heading">Manage Members</div>
+                <div className="text-theme-muted text-sm">Add, edit, or view members</div>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            href="/checkin"
+            className="bg-theme-card border border-theme rounded-xl p-5 hover:border-green-500 transition group"
+            data-walkthrough="checkin-link"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-500/20 rounded-xl group-hover:bg-green-500/30 transition">
+                <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-theme-heading">Record Check-in</div>
+                <div className="text-theme-muted text-sm">QR, phone, or manual entry</div>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            href="/broadcast"
+            className="bg-theme-card border border-theme rounded-xl p-5 hover:border-blue-500 transition group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-500/20 rounded-xl group-hover:bg-blue-500/30 transition">
+                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-theme-heading">Send Broadcast</div>
+                <div className="text-theme-muted text-sm">Email all your members</div>
+              </div>
+            </div>
+          </Link>
+        </div>
+
         {/* Alerts */}
         {data.cardsExpiringSoon > 0 && (
           <div className="bg-yellow-900/20 border border-yellow-900 text-yellow-400 px-6 py-4 rounded-lg">
@@ -349,6 +447,18 @@ export default function DashboardPage() {
               {data.cardsExpiringSoon} member card{data.cardsExpiringSoon > 1 ? 's' : ''} expiring soon
             </p>
             <p className="text-sm mt-1">Check the members page to update payment methods</p>
+          </div>
+        )}
+
+        {/* Replay Walkthrough Button (for demo mode) */}
+        {data.setupProgress.isDemo && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setShowWalkthrough(true)}
+              className="text-gray-400 hover:text-primary text-sm underline transition"
+            >
+              Replay Feature Tour
+            </button>
           </div>
         )}
       </div>

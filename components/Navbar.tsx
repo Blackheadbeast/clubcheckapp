@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import HelpModal from './HelpModal'
 import DemoBanner from './DemoBanner'
 import NavigationDrawer from './NavigationDrawer'
@@ -73,11 +74,15 @@ export default function Navbar() {
                     className="h-8 w-8 rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="h-8 w-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
-                    <span className="text-black font-bold text-lg">C</span>
-                  </div>
+                  <Image
+                    src="/logo.png"
+                    alt="ClubCheck"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                  />
                 )}
-                <span className="text-lg font-semibold text-gray-100">
+                <span className="text-lg font-semibold text-theme-heading">
                   {gym?.name || 'ClubCheck'}
                 </span>
                 {isDemo && (
@@ -94,6 +99,7 @@ export default function Navbar() {
                 onClick={() => setShowHelp(true)}
                 className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-theme-lighter transition"
                 title="Help"
+                data-walkthrough="help-button"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -110,6 +116,7 @@ export default function Navbar() {
                 onClick={() => setShowDrawer(true)}
                 className="text-gray-400 hover:text-gray-100 p-2 rounded-lg hover:bg-theme-lighter transition"
                 aria-label="Open menu"
+                data-walkthrough="nav-menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

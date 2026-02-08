@@ -8,104 +8,89 @@ datasource db {
 }
 
 model Owner {
-  id                       String    @id @default(uuid())
-  email                    String    @unique
-  password                 String
-  phone                    String?
-  createdAt                DateTime  @default(now())
-
-  // Email verification
-  emailVerified            DateTime?
-  verificationToken        String?   @unique
-  verificationTokenExpiry  DateTime?
-
-  // Stripe billing
-  stripeCustomerId         String?
-  stripeSubscriptionId     String?
-  subscriptionStatus       String?
-  currentPeriodEnd         DateTime?
-  planType                 String    @default("starter")
-  trialEndsAt              DateTime? // Starts after email verification
-
-  members              Member[]
-  checkins             Checkin[]
-  gymProfile           GymProfile?
-  paymentRecords       PaymentRecord[]
-  billingEvents        BillingEvent[]
-  invoiceRecords       InvoiceRecord[]
-  referral             Referral?
-  prospects            Prospect[]
-  staff                Staff[]
-  feedback             Feedback[]
+  id                      String          @id @default(uuid())
+  email                   String          @unique
+  password                String
+  createdAt               DateTime        @default(now())
+  stripeCustomerId        String?
+  stripeSubscriptionId    String?
+  subscriptionStatus      String?
+  currentPeriodEnd        DateTime?
+  planType                String          @default("starter")
+  trialEndsAt             DateTime?
+  emailVerified           DateTime?
+  phone                   String?
+  verificationToken       String?         @unique
+  verificationTokenExpiry DateTime?
+  auditLogs               AuditLog[]
+  billingEvents           BillingEvent[]
+  checkins                Checkin[]
+  feedback                Feedback[]
+  gymProfile              GymProfile?
+  invoiceRecords          InvoiceRecord[]
+  members                 Member[]
+  paymentRecords          PaymentRecord[]
+  prospects               Prospect[]
+  referral                Referral?
+  staff                   Staff[]
 }
 
 model GymProfile {
-  id                    String   @id @default(uuid())
-  name                  String?
-  address               String?
-  logoUrl               String?
-  kioskPinHash          String?
-  billingMode           String   @default("stripe") // "stripe" | "external"
-  externalProviderName  String?
-  billingContactEmail   String?
-  freeUntil             DateTime?
-  setupDismissedAt      DateTime? // When user dismissed the setup wizard
-  waiverEnabled         Boolean  @default(false)
-  waiverText            String?  @db.Text
-  theme                 String   @default("dark") // "light" | "dark" | "auto"
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  ownerId               String   @unique
-  owner                 Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(uuid())
+  name                 String?
+  address              String?
+  logoUrl              String?
+  kioskPinHash         String?
+  billingMode          String    @default("stripe")
+  externalProviderName String?
+  billingContactEmail  String?
+  freeUntil            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  ownerId              String    @unique
+  setupDismissedAt     DateTime?
+  waiverEnabled        Boolean   @default(false)
+  waiverText           String?
+  theme                String    @default("dark")
+  owner                Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Member {
-  id                   String    @id @default(uuid())
+  id                   String          @id @default(uuid())
   name                 String
   email                String
   phone                String?
-  status               String    @default("active") // active | inactive | delinquent | paused
-  qrCode               String    @unique
-  createdAt            DateTime  @default(now())
-  lastCheckInAt        DateTime?
-
+  status               String          @default("active")
+  qrCode               String          @unique
+  createdAt            DateTime        @default(now())
   ownerId              String
-  owner                Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
   stripeCustomerId     String?
   stripeSubscriptionId String?
   subscriptionStatus   String?
   cardLast4            String?
   cardExpiryMonth      Int?
   cardExpiryYear       Int?
-
+  lastCheckInAt        DateTime?
+  waiverSignature      String?
   waiverSignedAt       DateTime?
-  waiverSignature      String?   // Typed name as signature
-
-  // Check-in streaks
-  currentStreak        Int       @default(0)
-  longestStreak        Int       @default(0)
-  lastStreakCheckDate  DateTime?
-
-  // Member portal access
-  accessToken          String?   @unique
+  accessToken          String?         @unique
   accessTokenExpiry    DateTime?
-
+  currentStreak        Int             @default(0)
+  lastStreakCheckDate  DateTime?
+  longestStreak        Int             @default(0)
   checkins             Checkin[]
+  owner                Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   paymentRecords       PaymentRecord[]
 }
 
 model Checkin {
   id         String   @id @default(uuid())
   timestamp  DateTime @default(now())
-  source     String?  // "qr" | "phone" | "kiosk" | "manual"
-  deviceName String?
-
   memberId   String
-  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
   ownerId    String
+  deviceName String?
+  source     String?
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   owner      Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
@@ -114,94 +99,103 @@ model PaymentRecord {
   amountCents Int
   currency    String   @default("usd")
   paidAt      DateTime @default(now())
-  method      String   // "cash" | "card" | "transfer" | "other"
+  method      String
   note        String?
-
   ownerId     String
-  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
   memberId    String?
-  member      Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member      Member?  @relation(fields: [memberId], references: [id])
+  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model BillingEvent {
   id         String    @id @default(uuid())
-  type       String    // "payment_failed" | "payment_succeeded" | "subscription_updated" | etc.
+  type       String
   message    String
   createdAt  DateTime  @default(now())
   resolvedAt DateTime?
-
   ownerId    String
   owner      Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model InvoiceRecord {
   id              String   @id @default(uuid())
-  type            String   // "stripe" | "manual"
+  type            String
   stripeInvoiceId String?  @unique
   amountCents     Int
-  status          String   // "paid" | "open" | "void" | "uncollectible"
+  status          String
   pdfUrl          String?
   hostedUrl       String?
   createdAt       DateTime @default(now())
-
   ownerId         String
   owner           Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Referral {
-  id                String    @id @default(uuid())
-  referralCode      String    @unique
+  id                String   @id @default(uuid())
+  referralCode      String   @unique
   referredByOwnerId String?
-  referredAt        DateTime  @default(now())
-  creditedMonths    Int       @default(0)
-
-  ownerId           String    @unique
-  owner             Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  referredAt        DateTime @default(now())
+  creditedMonths    Int      @default(0)
+  ownerId           String   @unique
+  owner             Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Prospect {
-  id          String    @id @default(uuid())
-  name        String
-  email       String
-  phone       String?
-  status      String    @default("new") // new | contacted | toured | converted | lost
-  source      String?   // walk-in | website | referral | social | other
-  notes       String?   @db.Text
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  contactedAt DateTime?
-  touredAt    DateTime?
-  convertedAt DateTime?
-
-  ownerId     String
-  owner       Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  convertedMemberId String? // Reference to member if converted
+  id                String    @id @default(uuid())
+  name              String
+  email             String
+  phone             String?
+  status            String    @default("new")
+  source            String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  contactedAt       DateTime?
+  touredAt          DateTime?
+  convertedAt       DateTime?
+  ownerId           String
+  convertedMemberId String?
+  owner             Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Staff {
-  id        String   @id @default(uuid())
-  name      String
-  email     String
-  password  String
-  role      String   @default("front_desk") // front_desk | manager | owner
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id          String    @id @default(uuid())
+  name        String
+  email       String
+  password    String
+  role        String    @default("front_desk")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
   lastLoginAt DateTime?
-
-  ownerId   String
-  owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  owner       Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([email, ownerId])
 }
 
 model Feedback {
   id        String   @id @default(uuid())
-  rating    Int      // 1-5 star rating
-  message   String?  @db.Text
+  rating    Int
+  message   String?
   createdAt DateTime @default(now())
-
   ownerId   String
   owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  description String
+  ipAddress   String?
+  userAgent   String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  actorType   String
+  actorId     String
+  actorEmail  String?
+  ownerId     String
+  owner       Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, createdAt])
+  @@index([action])
 }

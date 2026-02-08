@@ -38,13 +38,14 @@ export default function VerifyEmailPage() {
       <div className="w-full max-w-md">
         <div className="bg-theme-card border border-theme rounded-2xl p-8 text-center">
           {/* Logo */}
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl mb-6">
-            <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
+          <Link href="/" className="inline-flex flex-col items-center gap-3 mb-6">
+            <div className="h-16 w-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-black font-bold text-3xl">C</span>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">ClubCheck</span>
+          </Link>
 
-          <h1 className="text-2xl font-bold text-gray-100 mb-2">Check Your Email</h1>
+          <h1 className="text-2xl font-bold text-theme-heading mb-2">Check Your Email</h1>
           <p className="text-gray-400 mb-6">
             We&apos;ve sent you a verification link. Click the link in your email to activate your account and start your 14-day free trial.
           </p>

@@ -60,11 +60,16 @@ function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen bg-theme flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">ClubCheck</h1>
-          <p className="text-gray-400">Create your gym account</p>
+          <Link href="/" className="inline-flex flex-col items-center gap-3">
+            <div className="h-16 w-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-black font-bold text-3xl">C</span>
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">ClubCheck</h1>
+          </Link>
+          <p className="text-theme-secondary mt-2">Create your gym account</p>
         </div>
 
         <div className="bg-theme-card p-8 rounded-lg shadow-xl border border-theme">

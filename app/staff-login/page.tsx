@@ -41,19 +41,22 @@ export default function StaffLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-theme flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-block h-16 w-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center mb-4">
-            <span className="text-black font-bold text-3xl">C</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-100">Staff Login</h1>
-          <p className="text-gray-400 mt-2">Sign in to your staff account</p>
+          <Link href="/" className="inline-flex flex-col items-center gap-3">
+            <div className="h-16 w-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-black font-bold text-3xl">C</span>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">ClubCheck</span>
+          </Link>
+          <h1 className="text-2xl font-bold text-theme-heading mt-4">Staff Login</h1>
+          <p className="text-theme-secondary mt-2">Sign in to your staff account</p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-dark-card p-8 rounded-lg border border-gray-800">
+        <form onSubmit={handleSubmit} className="bg-theme-card p-8 rounded-lg border border-theme">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

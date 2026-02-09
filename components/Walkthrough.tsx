@@ -113,109 +113,125 @@ export default function Walkthrough({ isOpen, onComplete, onSkip, isDemo }: Walk
 
   if (!isOpen || !mounted) return null
 
-  const getTooltipPosition = () => {
+  const getTooltipPosition = (): { top: string; left: string; transform: string; actualPosition: string } => {
     if (!targetRect) {
       // Center of screen if no target found
       return {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
+        actualPosition: 'center',
       }
     }
 
-    const padding = 16
+    const padding = 20
     const tooltipWidth = 320
-    const tooltipHeight = 280
+    const tooltipHeight = 260 // Approximate height
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
 
-    // For elements on the right side of screen (like nav menu, help button)
-    // Position tooltip below them instead of to the left to avoid going off-screen
-    const isNearRightEdge = targetRect.right > viewportWidth - tooltipWidth - padding * 2
-    const isNearTopEdge = targetRect.top < tooltipHeight + padding * 2
-
-    // Calculate centered horizontal position that stays in viewport
-    const getCenteredLeft = () => {
-      let left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2
-      // Ensure tooltip doesn't go off left edge
-      if (left < padding) left = padding
-      // Ensure tooltip doesn't go off right edge
-      if (left + tooltipWidth > viewportWidth - padding) {
-        left = viewportWidth - tooltipWidth - padding
-      }
-      return left
+    // Helper to clamp left position within viewport
+    const clampLeft = (left: number) => {
+      return Math.max(padding, Math.min(left, viewportWidth - tooltipWidth - padding))
     }
 
-    // For right-side elements, show below instead of left
-    if (step.position === 'left' && isNearRightEdge) {
-      return {
-        top: `${targetRect.bottom + padding}px`,
-        left: `${getCenteredLeft()}px`,
-        transform: 'none',
-      }
+    // Helper to clamp top position within viewport
+    const clampTop = (top: number) => {
+      return Math.max(padding, Math.min(top, viewportHeight - tooltipHeight - padding))
     }
 
-    switch (step.position) {
+    // Calculate available space in each direction
+    const spaceTop = targetRect.top
+    const spaceBottom = viewportHeight - targetRect.bottom
+    const spaceLeft = targetRect.left
+    const spaceRight = viewportWidth - targetRect.right
+
+    // Determine best position based on available space
+    let actualPosition = step.position
+
+    // Check if preferred position has enough space, otherwise flip
+    if (step.position === 'top' && spaceTop < tooltipHeight + padding) {
+      actualPosition = 'bottom'
+    } else if (step.position === 'bottom' && spaceBottom < tooltipHeight + padding) {
+      actualPosition = 'top'
+    } else if (step.position === 'left' && spaceLeft < tooltipWidth + padding) {
+      actualPosition = spaceBottom > spaceTop ? 'bottom' : 'top'
+    } else if (step.position === 'right' && spaceRight < tooltipWidth + padding) {
+      actualPosition = spaceBottom > spaceTop ? 'bottom' : 'top'
+    }
+
+    // Calculate centered horizontal position
+    const centeredLeft = clampLeft(targetRect.left + targetRect.width / 2 - tooltipWidth / 2)
+
+    // Calculate centered vertical position
+    const centeredTop = clampTop(targetRect.top + targetRect.height / 2 - tooltipHeight / 2)
+
+    switch (actualPosition) {
       case 'top':
         return {
-          top: `${Math.max(padding, targetRect.top - tooltipHeight - padding)}px`,
-          left: `${getCenteredLeft()}px`,
+          top: `${clampTop(targetRect.top - tooltipHeight - padding)}px`,
+          left: `${centeredLeft}px`,
           transform: 'none',
+          actualPosition,
         }
       case 'bottom':
         return {
-          top: `${targetRect.bottom + padding}px`,
-          left: `${getCenteredLeft()}px`,
+          top: `${clampTop(targetRect.bottom + padding)}px`,
+          left: `${centeredLeft}px`,
           transform: 'none',
+          actualPosition,
         }
       case 'left':
         return {
-          top: `${Math.max(padding, targetRect.top + targetRect.height / 2 - tooltipHeight / 2)}px`,
-          left: `${Math.max(padding, targetRect.left - tooltipWidth - padding)}px`,
+          top: `${centeredTop}px`,
+          left: `${clampLeft(targetRect.left - tooltipWidth - padding)}px`,
           transform: 'none',
+          actualPosition,
         }
       case 'right':
         return {
-          top: `${Math.max(padding, targetRect.top + targetRect.height / 2 - tooltipHeight / 2)}px`,
-          left: `${Math.min(viewportWidth - tooltipWidth - padding, targetRect.right + padding)}px`,
+          top: `${centeredTop}px`,
+          left: `${clampLeft(targetRect.right + padding)}px`,
           transform: 'none',
+          actualPosition,
         }
       default:
         return {
-          top: `${targetRect.bottom + padding}px`,
-          left: `${getCenteredLeft()}px`,
+          top: `${clampTop(targetRect.bottom + padding)}px`,
+          left: `${centeredLeft}px`,
           transform: 'none',
+          actualPosition: 'bottom',
         }
     }
   }
 
-  const getArrowPosition = () => {
+  const getArrowPosition = (actualPosition: string) => {
     if (!targetRect) return ''
 
-    const tooltipWidth = 320
-    const viewportWidth = window.innerWidth
-    const isNearRightEdge = targetRect.right > viewportWidth - tooltipWidth - 32
-
-    // If we repositioned a left tooltip to bottom, show bottom arrow
-    if (step.position === 'left' && isNearRightEdge) {
-      return 'top-[-8px] left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-primary'
-    }
-
-    switch (step.position) {
+    switch (actualPosition) {
       case 'top':
+        // Arrow points down (at bottom of tooltip)
         return 'bottom-[-8px] left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-primary'
       case 'bottom':
+        // Arrow points up (at top of tooltip)
         return 'top-[-8px] left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-primary'
       case 'left':
+        // Arrow points right (at right of tooltip)
         return 'right-[-8px] top-1/2 -translate-y-1/2 border-t-8 border-b-8 border-l-8 border-t-transparent border-b-transparent border-l-primary'
       case 'right':
+        // Arrow points left (at left of tooltip)
         return 'left-[-8px] top-1/2 -translate-y-1/2 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-primary'
       default:
-        return ''
+        return 'top-[-8px] left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-primary'
     }
   }
 
-  const tooltipStyle = getTooltipPosition()
+  const tooltipPosition = getTooltipPosition()
+  const tooltipStyle = {
+    top: tooltipPosition.top,
+    left: tooltipPosition.left,
+    transform: tooltipPosition.transform,
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
@@ -238,11 +254,11 @@ export default function Walkthrough({ isOpen, onComplete, onSkip, isDemo }: Walk
 
       {/* Tooltip */}
       <div
-        className="absolute w-80 bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-primary rounded-xl p-5 shadow-2xl shadow-primary/20"
+        className="absolute w-80 max-w-[calc(100vw-40px)] bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-primary rounded-xl p-5 shadow-2xl shadow-primary/20"
         style={tooltipStyle}
       >
         {/* Arrow */}
-        <div className={`absolute w-0 h-0 ${getArrowPosition()}`} />
+        <div className={`absolute w-0 h-0 ${getArrowPosition(tooltipPosition.actualPosition)}`} />
 
         {/* Step indicator */}
         <div className="flex items-center justify-between mb-3">

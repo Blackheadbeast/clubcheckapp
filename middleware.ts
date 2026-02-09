@@ -21,8 +21,11 @@ const protectedPaths = [
 
 const authPaths = ["/login", "/signup", "/staff-login"];
 
-// Paths that unverified users can access
+// Paths that unverified users can access (requires auth but allows unverified)
 const verificationPaths = ["/verify-email"];
+
+// Paths that don't require auth at all (magic link verification)
+const publicVerificationPaths = ["/verify-email/"];
 
 function getSecret() {
   const s = process.env.JWT_SECRET;
@@ -51,9 +54,16 @@ export async function middleware(request: NextRequest) {
 
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
   const isVerificationPath = verificationPaths.some((p) => pathname.startsWith(p));
+  const isPublicVerificationPath = publicVerificationPaths.some((p) => pathname.startsWith(p) && pathname !== "/verify-email");
 
-  // Verification pages: require auth but allow unverified users
-  if (isVerificationPath) {
+  // Magic link verification (e.g., /verify-email/abc123) - allow without auth
+  // The token in the URL is the authentication
+  if (isPublicVerificationPath) {
+    return NextResponse.next();
+  }
+
+  // Verification pages (/verify-email only): require auth but allow unverified users
+  if (isVerificationPath && !isPublicVerificationPath) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));
     }

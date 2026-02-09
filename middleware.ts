@@ -15,6 +15,8 @@ const protectedPaths = [
   "/referrals",
   "/staff",
   "/setup-guide",
+  "/billing",
+  "/audit-logs",
 ];
 
 const authPaths = ["/login", "/signup", "/staff-login"];

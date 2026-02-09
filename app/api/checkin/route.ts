@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
 import { z } from 'zod'
+import { rateLimitResponse, CHECKIN_RATE_LIMIT, API_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -18,6 +19,18 @@ const checkinSchema = z.object({
 
 // POST - Check in a member
 export async function POST(request: NextRequest) {
+  // Rate limit check-ins to prevent abuse
+  const rateLimit = rateLimitResponse(request, 'checkin', CHECKIN_RATE_LIMIT)
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: 'Too many check-in requests. Please slow down.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rateLimit.retryAfter) },
+      }
+    )
+  }
+
   try {
     const owner = await getOwnerFromCookie()
     if (!owner) {
@@ -128,6 +141,18 @@ export async function POST(request: NextRequest) {
 
 // GET - Get check-ins with optional date range
 export async function GET(request: NextRequest) {
+  // Rate limit GET requests
+  const rateLimit = rateLimitResponse(request, 'checkin-list', API_RATE_LIMIT)
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rateLimit.retryAfter) },
+      }
+    )
+  }
+
   try {
     const owner = await getOwnerFromCookie()
     if (!owner) {

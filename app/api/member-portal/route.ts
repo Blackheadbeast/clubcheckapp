@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { rateLimitResponse, MEMBER_PORTAL_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,18 @@ const updateProfileSchema = z.object({
 
 // GET member portal data by access token
 export async function GET(request: NextRequest) {
+  // Rate limit portal access
+  const rateLimit = rateLimitResponse(request, 'member-portal', MEMBER_PORTAL_RATE_LIMIT)
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rateLimit.retryAfter) },
+      }
+    )
+  }
+
   try {
     const token = request.nextUrl.searchParams.get('token')
 
@@ -104,6 +117,18 @@ export async function GET(request: NextRequest) {
 
 // PATCH update member profile
 export async function PATCH(request: NextRequest) {
+  // Rate limit portal updates
+  const rateLimit = rateLimitResponse(request, 'member-portal-update', MEMBER_PORTAL_RATE_LIMIT)
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rateLimit.retryAfter) },
+      }
+    )
+  }
+
   try {
     const body = await request.json()
     const parsed = updateProfileSchema.safeParse(body)

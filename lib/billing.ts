@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { PLAN_LIMITS } from '@/lib/stripe'
 
 export type BillingStatus =
+  | 'unverified'    // Email not yet verified - no access
   | 'trialing'      // In 14-day trial period
   | 'active'        // Paid subscription active
   | 'past_due'      // Payment failed, in 7-day grace period
@@ -17,6 +18,7 @@ const TRIAL_DAYS = 14
 
 interface OwnerBillingData {
   id: string
+  emailVerified: Date | null
   subscriptionStatus: string | null
   currentPeriodEnd: Date | null
   trialEndsAt: Date | null
@@ -37,6 +39,19 @@ export function getBillingState(owner: OwnerBillingData): BillingState {
   const now = new Date()
   const planType = owner.planType || 'starter'
   const memberLimit = planType === 'pro' ? PLAN_LIMITS.pro : PLAN_LIMITS.starter
+
+  // Case 0: Email not verified - block all access
+  if (!owner.emailVerified) {
+    return {
+      status: 'unverified',
+      canWrite: false,
+      canRead: false,
+      message: 'Please verify your email to access ClubCheck.',
+      daysRemaining: null,
+      planType,
+      memberLimit,
+    }
+  }
 
   // Case 1: Active paid subscription
   if (owner.subscriptionStatus === 'active') {
@@ -186,6 +201,7 @@ export async function getOwnerBillingState(ownerId: string): Promise<BillingStat
     where: { id: ownerId },
     select: {
       id: true,
+      emailVerified: true,
       subscriptionStatus: true,
       currentPeriodEnd: true,
       trialEndsAt: true,

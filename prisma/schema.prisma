@@ -82,6 +82,10 @@ model Member {
   checkins             Checkin[]
   owner                Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   paymentRecords       PaymentRecord[]
+
+  @@index([ownerId, status])
+  @@index([ownerId, createdAt])
+  @@index([phone])
 }
 
 model Checkin {
@@ -93,6 +97,9 @@ model Checkin {
   source     String?
   member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   owner      Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, timestamp])
+  @@index([memberId, timestamp])
 }
 
 model PaymentRecord {
@@ -116,6 +123,8 @@ model BillingEvent {
   resolvedAt DateTime?
   ownerId    String
   owner      Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, createdAt])
 }
 
 model InvoiceRecord {
@@ -129,6 +138,8 @@ model InvoiceRecord {
   createdAt       DateTime @default(now())
   ownerId         String
   owner           Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, createdAt])
 }
 
 model Referral {
@@ -157,6 +168,9 @@ model Prospect {
   ownerId           String
   convertedMemberId String?
   owner             Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, status])
+  @@index([ownerId, createdAt])
 }
 
 model Staff {

@@ -3,6 +3,23 @@ import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
 
+// Simple in-memory cache for processed events (TTL: 5 minutes)
+// This prevents duplicate processing when Stripe retries
+const processedEvents = new Map<string, number>()
+const EVENT_TTL = 5 * 60 * 1000 // 5 minutes
+
+// Clean up old events periodically
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now()
+    for (const [id, timestamp] of processedEvents.entries()) {
+      if (now - timestamp > EVENT_TTL) {
+        processedEvents.delete(id)
+      }
+    }
+  }, 60000) // Every minute
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')!
@@ -19,6 +36,15 @@ export async function POST(request: NextRequest) {
     console.error('Webhook signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
+
+  // Idempotency check - skip if already processed
+  if (processedEvents.has(event.id)) {
+    console.log(`Skipping duplicate event: ${event.id}`)
+    return NextResponse.json({ received: true, duplicate: true })
+  }
+
+  // Mark as processing
+  processedEvents.set(event.id, Date.now())
 
   try {
     switch (event.type) {

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendVerificationEmail } from '@/lib/email'
 import { cookies } from 'next/headers'
 import { jwtVerify } from 'jose'
 import { randomBytes } from 'crypto'
+import { rateLimitResponse, EMAIL_RATE_LIMIT } from '@/lib/rate-limit'
 
 function getSecret() {
   const s = process.env.JWT_SECRET
@@ -11,7 +12,19 @@ function getSecret() {
   return new TextEncoder().encode(s)
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Rate limit to prevent email spam
+  const rateLimit = rateLimitResponse(request, 'resend-verification', EMAIL_RATE_LIMIT)
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      { error: 'Too many verification requests. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rateLimit.retryAfter) },
+      }
+    )
+  }
+
   try {
     // Get current user from cookie
     const cookieStore = await cookies()

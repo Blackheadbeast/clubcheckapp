@@ -26,7 +26,7 @@ const faqs = [
   {
     question: 'What do the member statuses mean?',
     answer:
-      'Active = can check in. Inactive = membership on hold. Paused = temporary pause. Delinquent = payment issues.',
+      'Active = can check in. Inactive = membership on hold. Paused = temporary pause. Overdue = payment past due.',
   },
   {
     question: 'How do I export my data?',

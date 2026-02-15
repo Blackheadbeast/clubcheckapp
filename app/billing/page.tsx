@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
+import PlanSelectionModal from '@/components/PlanSelectionModal'
 
 interface BillingData {
   planType: 'starter' | 'pro'
@@ -25,12 +28,22 @@ const savings = {
   pro: Math.round(prices.pro.monthly * 12 - prices.pro.yearly),
 }
 
-export default function BillingPage() {
+function BillingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [data, setData] = useState<BillingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const [upgrading, setUpgrading] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [showPlanModal, setShowPlanModal] = useState(false)
+
+  // Show success/canceled message from Stripe redirect
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      setSuccessMessage('Payment successful! Your subscription is now active.')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     async function loadBillingData() {
@@ -107,17 +120,40 @@ export default function BillingPage() {
     ? Math.max(0, Math.ceil((new Date(data.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null
 
-  const isTrialing = data.subscriptionStatus === 'trialing' || (!data.subscriptionStatus && daysRemaining !== null && daysRemaining > 0)
+  const isAppTrialing = !data.subscriptionStatus && daysRemaining !== null && daysRemaining > 0
+  const isSubscriptionTrialing = data.subscriptionStatus === 'trialing'
+  const isTrialing = isAppTrialing || isSubscriptionTrialing
 
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="billing" />
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-primary">Billing</h1>
           <p className="text-gray-400 mt-1">Manage your subscription and billing</p>
         </div>
+
+        {/* Success Banner */}
+        {successMessage && (
+          <div className="bg-green-900/20 border border-green-800 rounded-lg p-4 mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-green-400 text-sm font-medium">{successMessage}</p>
+            </div>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="text-green-400/60 hover:text-green-400 p-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Current Status Card */}
         <div className="bg-theme-card border border-theme rounded-xl p-6 mb-8">
@@ -132,7 +168,14 @@ export default function BillingPage() {
               </div>
             </div>
             <div className="text-right">
-              {isTrialing && daysRemaining !== null ? (
+              {isSubscriptionTrialing && daysRemaining !== null ? (
+                <span className="inline-flex items-center gap-2 bg-green-600/20 text-green-400 px-4 py-2 rounded-lg">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-medium">Active — billing starts in {daysRemaining} days</span>
+                </span>
+              ) : isAppTrialing && daysRemaining !== null ? (
                 <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 rounded-lg">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -159,8 +202,29 @@ export default function BillingPage() {
             </div>
           </div>
 
+          {/* Start Plan Early Button — visible during app trial only (not once Stripe subscription is set up) */}
+          {isAppTrialing && !data.isDemo && (
+            <div className="mt-6 pt-6 border-t border-theme">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-300 text-sm font-medium">Ready to commit?</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Choose a plan now — you won&apos;t be charged until your trial ends.</p>
+                </div>
+                <button
+                  onClick={() => setShowPlanModal(true)}
+                  className="bg-primary hover:bg-primary-dark text-black font-semibold py-2.5 px-5 rounded-lg transition whitespace-nowrap flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Start Plan Early
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Manage Subscription Button */}
-          {data.subscriptionStatus === 'active' && !data.isDemo && (
+          {(data.subscriptionStatus === 'active' || data.subscriptionStatus === 'trialing') && !data.isDemo && (
             <div className="mt-6 pt-6 border-t border-theme">
               <button
                 onClick={handleManageSubscription}
@@ -373,6 +437,27 @@ export default function BillingPage() {
           </div>
         )}
       </div>
+
+      <PlanSelectionModal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        title="Start Your Plan"
+        subtitle="Choose a plan — you won't be charged until your trial ends."
+      />
     </div>
+  )
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-theme flex items-center justify-center">
+          <div className="text-primary text-xl">Loading...</div>
+        </div>
+      }
+    >
+      <BillingContent />
+    </Suspense>
   )
 }

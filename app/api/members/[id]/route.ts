@@ -10,7 +10,7 @@ const updateMemberSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional().nullable(),
-  status: z.enum(['active', 'inactive', 'delinquent', 'paused']).optional(),
+  status: z.enum(['active', 'inactive', 'overdue', 'paused']).optional(),
 })
 
 // GET single member with check-in count

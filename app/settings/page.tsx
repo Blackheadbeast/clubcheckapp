@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 import SystemStatus from '@/components/SystemStatus'
 import { useTheme } from '@/components/ThemeProvider'
 import { Theme } from '@/lib/theme'
@@ -249,6 +250,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="settings" />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-primary mb-8">Settings</h1>

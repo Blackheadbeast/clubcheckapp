@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
 import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
 import { requireWriteAccess } from '@/lib/billing'
+import { generateUniqueGymCode } from '@/lib/gym-code'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -36,12 +37,23 @@ export async function GET() {
         subscriptionStatus: true,
         currentPeriodEnd: true,
         createdAt: true,
+        gymCode: true,
         gymProfile: true,
       },
     })
 
     if (!ownerData) {
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 })
+    }
+
+    // Auto-generate gym code for legacy owners
+    if (!ownerData.gymCode) {
+      const gymCode = await generateUniqueGymCode()
+      await prisma.owner.update({
+        where: { id: auth.ownerId },
+        data: { gymCode },
+      })
+      ownerData.gymCode = gymCode
     }
 
     // Get staff info if this is a staff login
@@ -62,6 +74,7 @@ export async function GET() {
         subscriptionStatus: ownerData.subscriptionStatus,
         currentPeriodEnd: ownerData.currentPeriodEnd,
         createdAt: ownerData.createdAt,
+        gymCode: ownerData.gymCode,
       },
       gym: ownerData.gymProfile
         ? {

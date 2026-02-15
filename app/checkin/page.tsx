@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 
 interface CheckinRecord {
   id: string
@@ -130,6 +131,7 @@ export default function CheckinPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="checkin" />
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex justify-between items-center mb-8">
           <div>

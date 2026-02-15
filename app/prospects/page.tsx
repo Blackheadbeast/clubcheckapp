@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 
 interface Prospect {
   id: string
@@ -234,6 +235,7 @@ export default function ProspectsPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="prospects" />
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">

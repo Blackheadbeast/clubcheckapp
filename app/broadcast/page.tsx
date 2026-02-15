@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 
 interface Counts {
   all: number
@@ -180,6 +181,7 @@ export default function BroadcastPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="broadcast" />
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">

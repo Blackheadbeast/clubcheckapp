@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 
 interface StaffMember {
   id: string
@@ -62,11 +63,11 @@ export default function StaffPage() {
       const data = await res.json()
       setStaff(data.staff)
 
-      // Get gym code (owner ID) from settings
+      // Get gym code from settings
       const settingsRes = await fetch('/api/settings', { credentials: 'include' })
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json()
-        setGymCode(settingsData.owner.id)
+        setGymCode(settingsData.owner.gymCode || settingsData.owner.id)
       }
     } catch (err) {
       console.error('Failed to load staff:', err)
@@ -192,6 +193,7 @@ export default function StaffPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="staff" />
       <div className="max-w-5xl mx-auto p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">

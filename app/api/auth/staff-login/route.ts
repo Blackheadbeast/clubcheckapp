@@ -40,12 +40,18 @@ export async function POST(request: NextRequest) {
 
     const { email, password, gymCode } = parsed.data
 
-    // Find owner by gym code (using owner ID as gym code for simplicity)
-    // In production, you might want a separate gym code field
-    const owner = await prisma.owner.findUnique({
-      where: { id: gymCode },
+    // Find owner by short gym code, with UUID fallback for legacy codes
+    let owner = await prisma.owner.findUnique({
+      where: { gymCode: gymCode.toUpperCase() },
       select: { id: true },
     })
+    if (!owner) {
+      // Fallback: try looking up by owner ID (legacy UUID gym codes)
+      owner = await prisma.owner.findUnique({
+        where: { id: gymCode },
+        select: { id: true },
+      })
+    }
 
     if (!owner) {
       return NextResponse.json(

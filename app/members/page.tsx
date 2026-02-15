@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 
 interface Member {
   id: string
@@ -15,6 +16,33 @@ interface Member {
   createdAt: string
   lastCheckInAt: string | null
   waiverSignedAt: string | null
+  billingEnabled: boolean
+  monthlyFeeCents: number | null
+  billingDayOfMonth: number | null
+  lastPaidAt: string | null
+}
+
+function getPaymentStatus(member: Member): 'paid' | 'due_soon' | 'overdue' | 'n/a' {
+  if (!member.billingEnabled || !member.billingDayOfMonth) return 'n/a'
+
+  const today = new Date()
+  const todayDay = today.getDate()
+  const billingDay = member.billingDayOfMonth
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+
+  if (member.lastPaidAt && new Date(member.lastPaidAt) >= startOfMonth) {
+    return 'paid'
+  }
+
+  if (todayDay > billingDay) {
+    return 'overdue'
+  }
+
+  if (billingDay - todayDay <= 3) {
+    return 'due_soon'
+  }
+
+  return 'due_soon'
 }
 
 type SortField = 'name' | 'email' | 'status' | 'createdAt' | 'lastCheckInAt'
@@ -122,7 +150,7 @@ export default function MembersPage() {
         body: JSON.stringify({ action: 'delete', ids }),
         credentials: 'include',
       })
-    } else if (['active', 'inactive', 'paused', 'delinquent'].includes(bulkAction)) {
+    } else if (['active', 'inactive', 'paused', 'overdue'].includes(bulkAction)) {
       await fetch('/api/members/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,7 +233,7 @@ export default function MembersPage() {
     const colors: Record<string, string> = {
       active: 'bg-green-900/20 text-green-400 border-green-900',
       inactive: 'bg-gray-800 text-gray-400 border-gray-700',
-      delinquent: 'bg-red-900/20 text-red-400 border-red-900',
+      overdue: 'bg-red-900/20 text-red-400 border-red-900',
       paused: 'bg-yellow-900/20 text-yellow-400 border-yellow-900',
     }
     return (
@@ -241,6 +269,7 @@ export default function MembersPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="members" />
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -343,7 +372,7 @@ export default function MembersPage() {
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="delinquent">Delinquent</option>
+            <option value="overdue">Overdue</option>
             <option value="paused">Paused</option>
           </select>
         </div>
@@ -361,7 +390,7 @@ export default function MembersPage() {
               <option value="active">Set Active</option>
               <option value="inactive">Set Inactive</option>
               <option value="paused">Set Paused</option>
-              <option value="delinquent">Set Delinquent</option>
+              <option value="overdue">Set Overdue</option>
               <option value="export">Export CSV</option>
               <option value="delete">Delete</option>
             </select>
@@ -417,6 +446,7 @@ export default function MembersPage() {
                     <th onClick={() => handleSort('status')} className="text-left px-4 py-4 text-gray-400 font-medium cursor-pointer hover:text-gray-200 select-none">
                       Status{sortIndicator('status')}
                     </th>
+                    <th className="text-left px-4 py-4 text-gray-400 font-medium">Payment</th>
                     {waiverEnabled && (
                       <th className="text-left px-4 py-4 text-gray-400 font-medium">
                         Waiver
@@ -449,6 +479,19 @@ export default function MembersPage() {
                       <td className="px-4 py-4 text-gray-400">{member.email}</td>
                       <td className="px-4 py-4 text-gray-400">{member.phone || '-'}</td>
                       <td className="px-4 py-4">{statusBadge(member.status)}</td>
+                      <td className="px-4 py-4">
+                        {(() => {
+                          const ps = getPaymentStatus(member)
+                          if (ps === 'n/a') return <span className="text-gray-600">-</span>
+                          const cfg: Record<string, { label: string; classes: string }> = {
+                            paid: { label: 'Paid', classes: 'bg-green-900/20 text-green-400 border-green-900' },
+                            due_soon: { label: 'Due Soon', classes: 'bg-yellow-900/20 text-yellow-400 border-yellow-900' },
+                            overdue: { label: 'Overdue', classes: 'bg-red-900/20 text-red-400 border-red-900' },
+                          }
+                          const c = cfg[ps]
+                          return <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${c.classes}`}>{c.label}</span>
+                        })()}
+                      </td>
                       {waiverEnabled && (
                         <td className="px-4 py-4">{waiverBadge(member.waiverSignedAt)}</td>
                       )}

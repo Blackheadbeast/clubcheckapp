@@ -70,6 +70,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // If owner is in an active trial, defer first charge until trial ends
+    const now = new Date()
+    const trialEnd =
+      ownerData.trialEndsAt && new Date(ownerData.trialEndsAt) > now
+        ? Math.floor(new Date(ownerData.trialEndsAt).getTime() / 1000)
+        : undefined
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -81,8 +88,13 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?canceled=true`,
+      ...(trialEnd && {
+        subscription_data: {
+          trial_end: trialEnd,
+        },
+      }),
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
       metadata: {
         ownerId: owner.ownerId,
         planType,

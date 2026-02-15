@@ -53,8 +53,8 @@ export function getBillingState(owner: OwnerBillingData): BillingState {
     }
   }
 
-  // Case 1: Active paid subscription
-  if (owner.subscriptionStatus === 'active') {
+  // Case 1: Active paid subscription (includes Stripe trialing — subscription set up, billing deferred)
+  if (owner.subscriptionStatus === 'active' || owner.subscriptionStatus === 'trialing') {
     const daysRemaining = owner.currentPeriodEnd
       ? Math.ceil((owner.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       : null

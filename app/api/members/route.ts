@@ -60,6 +60,10 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         lastCheckInAt: true,
         waiverSignedAt: true,
+        billingEnabled: true,
+        monthlyFeeCents: true,
+        billingDayOfMonth: true,
+        lastPaidAt: true,
       },
     })
 

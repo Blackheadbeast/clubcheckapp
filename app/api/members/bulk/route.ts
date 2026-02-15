@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 const bulkSchema = z.object({
   action: z.enum(['delete', 'status']),
   ids: z.array(z.string().uuid()).min(1, 'Select at least one member'),
-  status: z.enum(['active', 'inactive', 'delinquent', 'paused']).optional(),
+  status: z.enum(['active', 'inactive', 'overdue', 'paused']).optional(),
 }).refine(
   (data) => data.action !== 'status' || data.status !== undefined,
   { message: 'Status is required for status action' }

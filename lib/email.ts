@@ -473,6 +473,108 @@ export async function sendVerificationEmail(
   }
 }
 
+export async function sendBillingReminderEmail(
+  memberEmail: string,
+  memberName: string,
+  gymName: string,
+  amountCents: number,
+  billingDay: number,
+  paymentMethod: string,
+  paymentLink?: string | null,
+) {
+  try {
+    const resend = getResend()
+    const amount = (amountCents / 100).toFixed(2)
+
+    const today = new Date()
+    let dueDate = new Date(today.getFullYear(), today.getMonth(), billingDay)
+    if (dueDate < today) {
+      dueDate = new Date(today.getFullYear(), today.getMonth() + 1, billingDay)
+    }
+    const dueDateStr = dueDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    })
+
+    const methodLabels: Record<string, string> = {
+      cash: 'Cash',
+      zelle: 'Zelle',
+      venmo: 'Venmo',
+      card: 'Card',
+      bank_transfer: 'Bank Transfer',
+      other: 'Other',
+    }
+    const methodLabel = methodLabels[paymentMethod] || paymentMethod
+
+    const { data, error } = await resend.emails.send({
+      from: `${gymName} <noreply@clubcheckapp.com>`,
+      to: memberEmail,
+      subject: `${gymName} - Payment Reminder ($${amount} due ${dueDateStr})`,
+      html: `<!DOCTYPE html>
+<html>
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+  <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:#0a0a0a;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 20px;">
+      <tr><td align="center">
+        <table width="100%" style="max-width:600px;background:linear-gradient(to bottom,#1a1a1a,#171717);border-radius:16px;overflow:hidden;border:1px solid #2a2a2a;">
+          <tr><td style="padding:40px 40px 20px;text-align:center;">
+            <div style="display:inline-block;width:50px;height:50px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;margin-bottom:16px;">
+              <span style="color:#000;font-size:28px;font-weight:bold;line-height:50px;">C</span>
+            </div>
+            <h1 style="margin:0;color:#f59e0b;font-size:28px;font-weight:bold;">Payment Reminder</h1>
+          </td></tr>
+          <tr><td style="padding:20px 40px;">
+            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${memberName},</p>
+            <p style="color:#a3a3a3;font-size:16px;line-height:1.6;margin:0 0 30px;">
+              This is a friendly reminder that your <strong style="color:#e5e5e5;">${gymName}</strong> membership payment is coming up.
+            </p>
+            <div style="background-color:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin-bottom:30px;">
+              <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                  <td style="color:#a3a3a3;font-size:14px;padding:6px 0;">Amount Due:</td>
+                  <td style="color:#f59e0b;font-size:18px;font-weight:bold;text-align:right;">$${amount}</td>
+                </tr>
+                <tr>
+                  <td style="color:#a3a3a3;font-size:14px;padding:6px 0;">Due Date:</td>
+                  <td style="color:#e5e5e5;font-size:14px;font-weight:600;text-align:right;">${dueDateStr}</td>
+                </tr>
+                <tr>
+                  <td style="color:#a3a3a3;font-size:14px;padding:6px 0;">Payment Method:</td>
+                  <td style="color:#e5e5e5;font-size:14px;text-align:right;">${methodLabel}</td>
+                </tr>
+              </table>
+            </div>${paymentLink ? `
+            <div style="text-align:center;margin:30px 0 20px;">
+              <a href="${paymentLink}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 40px;border-radius:8px;">
+                Pay Now
+              </a>
+            </div>` : ''}
+            <p style="color:#737373;font-size:14px;line-height:1.6;margin:0;">
+              If you've already made this payment, please disregard this message.
+            </p>
+          </td></tr>
+          <tr><td style="padding:30px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+            <p style="color:#737373;font-size:12px;margin:0;">Powered by <span style="color:#f59e0b;font-weight:bold;">ClubCheck</span></p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`,
+    })
+
+    if (error) {
+      console.error('Billing reminder email error:', error)
+      return { success: false, error }
+    }
+    return { success: true, data }
+  } catch (error) {
+    console.error('Billing reminder email exception:', error)
+    return { success: false, error }
+  }
+}
+
 export async function sendFeedbackNotificationEmail(
   rating: number,
   message: string | null,

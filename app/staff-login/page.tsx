@@ -63,13 +63,14 @@ export default function StaffLoginPage() {
               <input
                 type="text"
                 value={gymCode}
-                onChange={(e) => setGymCode(e.target.value)}
+                onChange={(e) => setGymCode(e.target.value.toUpperCase())}
                 required
-                placeholder="Enter your gym's code"
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                placeholder="e.g. A3B7KP"
+                maxLength={36}
+                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary uppercase tracking-wider"
               />
               <p className="text-gray-500 text-xs mt-1">
-                Ask your gym owner for this code
+                6-character code from your gym owner
               </p>
             </div>
 

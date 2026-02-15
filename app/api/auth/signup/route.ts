@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { randomBytes } from "crypto";
 import { rateLimitResponse, SIGNUP_RATE_LIMIT } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/email";
+import { generateUniqueGymCode } from "@/lib/gym-code";
 
 const signupSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -84,6 +85,8 @@ export async function POST(request: NextRequest) {
     const verificationToken = randomBytes(32).toString("hex");
     const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    const gymCode = await generateUniqueGymCode();
+
     // Create owner (trial starts after email verification)
     const owner = await prisma.owner.create({
       data: {
@@ -92,6 +95,7 @@ export async function POST(request: NextRequest) {
         phone: parsed.data.phone || null,
         verificationToken,
         verificationTokenExpiry,
+        gymCode,
         // emailVerified: null - default
         // trialEndsAt: null - trial starts after verification
       },

@@ -22,6 +22,9 @@ model Owner {
   phone                   String?
   verificationToken       String?         @unique
   verificationTokenExpiry DateTime?
+  provider                String?
+  providerAccountId       String?
+  gymCode                 String?         @unique
   auditLogs               AuditLog[]
   billingEvents           BillingEvent[]
   checkins                Checkin[]
@@ -53,6 +56,7 @@ model GymProfile {
   waiverText           String?
   theme                String    @default("dark")
   walkthroughCompletedAt DateTime?
+  reminderDaysBefore     Int       @default(3)
   owner                Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
@@ -79,12 +83,20 @@ model Member {
   currentStreak        Int             @default(0)
   lastStreakCheckDate  DateTime?
   longestStreak        Int             @default(0)
+  monthlyFeeCents      Int?
+  billingDayOfMonth    Int?
+  paymentMethod        String?
+  billingEnabled       Boolean         @default(false)
+  lastReminderSentAt   DateTime?
+  lastPaidAt           DateTime?
+  paymentLink          String?
   checkins             Checkin[]
   owner                Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   paymentRecords       PaymentRecord[]
 
   @@index([ownerId, status])
   @@index([ownerId, createdAt])
+  @@index([ownerId, billingEnabled])
   @@index([phone])
 }
 

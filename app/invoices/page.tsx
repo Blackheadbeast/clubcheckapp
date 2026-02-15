@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 
 interface Invoice {
   id: string
@@ -73,6 +74,7 @@ export default function InvoicesPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="invoices" />
       <div className="max-w-5xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">

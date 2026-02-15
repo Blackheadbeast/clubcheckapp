@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import PageHelpCard from '@/components/PageHelpCard'
 
 type KioskState = 'loading' | 'set-pin' | 'enter-pin' | 'active'
 
@@ -315,6 +316,8 @@ export default function KioskPage() {
           Lock Kiosk
         </button>
       </div>
+
+      <PageHelpCard pageKey="kiosk" />
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
         {/* Feedback banner */}

@@ -34,13 +34,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 })
     }
 
-    // Get current member count
-    const memberCount = await prisma.member.count({
-      where: { ownerId: auth.ownerId, status: 'active' },
-    })
+    // Get current member count and raw owner fields for billing page
+    const [memberCount, owner] = await Promise.all([
+      prisma.member.count({
+        where: { ownerId: auth.ownerId, status: 'active' },
+      }),
+      prisma.owner.findUnique({
+        where: { id: auth.ownerId },
+        select: {
+          subscriptionStatus: true,
+          trialEndsAt: true,
+        },
+      }),
+    ])
 
     return NextResponse.json({
       ...billingState,
+      subscriptionStatus: owner?.subscriptionStatus || null,
+      trialEndsAt: owner?.trialEndsAt || null,
+      activeMembers: memberCount,
       memberCount,
       isDemo: false,
     })

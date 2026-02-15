@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 import SetupWizard from '@/components/SetupWizard'
 import BillingStatusBanner from '@/components/BillingStatusBanner'
 import Walkthrough from '@/components/Walkthrough'
@@ -224,6 +225,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="dashboard" />
       <BillingStatusBanner />
 
       {/* Walkthrough Tour */}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import PageHelpCard from '@/components/PageHelpCard'
 import {
   LineChart,
   Line,
@@ -100,6 +101,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-theme">
       <Navbar />
+      <PageHelpCard pageKey="analytics" />
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">

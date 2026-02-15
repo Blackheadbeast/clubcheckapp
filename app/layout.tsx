@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import FeedbackButton from "@/components/FeedbackButton";
 import ThemeProvider from "@/components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: 'ClubCheck - Gym Management Made Simple',
@@ -62,6 +63,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <FeedbackButton />
+           <Analytics />
         </ThemeProvider>
       </body>
     </html>

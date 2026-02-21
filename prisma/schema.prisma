@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Owner {
@@ -35,29 +34,30 @@ model Owner {
   paymentRecords          PaymentRecord[]
   prospects               Prospect[]
   referral                Referral?
+  salesReferral           SalesReferral?
   staff                   Staff[]
 }
 
 model GymProfile {
-  id                   String    @id @default(uuid())
-  name                 String?
-  address              String?
-  logoUrl              String?
-  kioskPinHash         String?
-  billingMode          String    @default("stripe")
-  externalProviderName String?
-  billingContactEmail  String?
-  freeUntil            DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  ownerId              String    @unique
-  setupDismissedAt     DateTime?
-  waiverEnabled        Boolean   @default(false)
-  waiverText           String?
-  theme                String    @default("dark")
+  id                     String    @id @default(uuid())
+  name                   String?
+  address                String?
+  logoUrl                String?
+  kioskPinHash           String?
+  billingMode            String    @default("stripe")
+  externalProviderName   String?
+  billingContactEmail    String?
+  freeUntil              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  ownerId                String    @unique
+  setupDismissedAt       DateTime?
+  waiverEnabled          Boolean   @default(false)
+  waiverText             String?
+  theme                  String    @default("dark")
   walkthroughCompletedAt DateTime?
   reminderDaysBefore     Int       @default(3)
-  owner                Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner                  Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Member {
@@ -83,12 +83,12 @@ model Member {
   currentStreak        Int             @default(0)
   lastStreakCheckDate  DateTime?
   longestStreak        Int             @default(0)
-  monthlyFeeCents      Int?
   billingDayOfMonth    Int?
-  paymentMethod        String?
   billingEnabled       Boolean         @default(false)
-  lastReminderSentAt   DateTime?
   lastPaidAt           DateTime?
+  lastReminderSentAt   DateTime?
+  monthlyFeeCents      Int?
+  paymentMethod        String?
   paymentLink          String?
   checkins             Checkin[]
   owner                Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -198,6 +198,35 @@ model Staff {
   owner       Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([email, ownerId])
+}
+
+model SalesRep {
+  id                String          @id @default(uuid())
+  name              String
+  email             String          @unique
+  password          String
+  referralCode      String          @unique
+  commissionPercent Float           @default(10)
+  active            Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  lastLoginAt       DateTime?
+  salesReferrals    SalesReferral[]
+}
+
+model SalesReferral {
+  id             String    @id @default(uuid())
+  salesRepId     String
+  ownerId        String    @unique
+  status         String    @default("signed_up")
+  createdAt      DateTime  @default(now())
+  verifiedAt     DateTime?
+  trialStartedAt DateTime?
+  paidAt         DateTime?
+  owner          Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  salesRep       SalesRep  @relation(fields: [salesRepId], references: [id], onDelete: Cascade)
+
+  @@index([salesRepId, status])
+  @@index([salesRepId, createdAt])
 }
 
 model Feedback {

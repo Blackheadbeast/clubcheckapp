@@ -57,12 +57,12 @@ export default function HomePage() {
             >
               Start 14-Day Free Trial
             </Link>
-            <Link
-              href="/api/demo/login"
+            <a
+              href="mailto:blueloomventuresllc@gmail.com?subject=ClubCheck Demo Request"
               className="text-gray-300 hover:text-gray-100 font-medium px-8 py-3.5 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors text-base"
             >
-              View Live Demo
-            </Link>
+              Book a Demo
+            </a>
           </div>
           <p className="text-gray-500 text-sm mt-5">
             No credit card required. Cancel anytime.
@@ -459,7 +459,7 @@ export default function HomePage() {
               <div className="space-y-2">
                 <Link href="/signup" className="block text-gray-500 hover:text-gray-300 transition-colors">Sign Up</Link>
                 <Link href="/login" className="block text-gray-500 hover:text-gray-300 transition-colors">Log In</Link>
-                <Link href="/api/demo/login" className="block text-gray-500 hover:text-gray-300 transition-colors">Demo</Link>
+                <a href="mailto:blueloomventuresllc@gmail.com?subject=ClubCheck Demo Request" className="block text-gray-500 hover:text-gray-300 transition-colors">Book a Demo</a>
               </div>
               <div className="space-y-2">
                 <Link href="/privacy" className="block text-gray-500 hover:text-gray-300 transition-colors">Privacy</Link>

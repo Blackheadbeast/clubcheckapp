@@ -62,6 +62,16 @@ export async function POST(request: Request) {
       },
     })
 
+    // Update sales referral status if this owner was referred by a sales rep
+    await prisma.salesReferral.updateMany({
+      where: { ownerId: owner.id, status: "signed_up" },
+      data: {
+        status: "trialing",
+        verifiedAt: new Date(),
+        trialStartedAt: new Date(),
+      },
+    });
+
     // Create JWT and set cookie to log them in (with emailVerified: true)
     const jwtToken = await new SignJWT({
       ownerId: owner.id,

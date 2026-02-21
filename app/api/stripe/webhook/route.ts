@@ -187,6 +187,12 @@ export async function POST(request: NextRequest) {
           })
 
           if (owner) {
+            // Update sales referral status to paid on first payment
+            await prisma.salesReferral.updateMany({
+              where: { ownerId: owner.id, status: { in: ['trialing', 'verified'] } },
+              data: { status: 'paid', paidAt: new Date() },
+            });
+
             // Resolve any open payment_failed events
             await prisma.billingEvent.updateMany({
               where: {
@@ -274,6 +280,12 @@ export async function POST(request: NextRequest) {
         })
 
         if (owner) {
+          // Update sales referral status to churned
+          await prisma.salesReferral.updateMany({
+            where: { ownerId: owner.id },
+            data: { status: 'churned' },
+          });
+
           await prisma.billingEvent.create({
             data: {
               ownerId: owner.id,

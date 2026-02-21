@@ -8,15 +8,17 @@ export const ROLE_PERMISSIONS = {
   owner: ['all'],
   manager: ['members', 'prospects', 'checkin', 'kiosk', 'analytics', 'broadcast', 'invoices'],
   front_desk: ['members.view', 'checkin', 'kiosk'],
+  sales_rep: [],
 } as const;
 
-export type StaffRole = 'owner' | 'manager' | 'front_desk';
+export type StaffRole = 'owner' | 'manager' | 'front_desk' | 'sales_rep';
 
 export interface AuthPayload {
   ownerId: string;
   staffId?: string;
   role?: StaffRole;
   emailVerified?: boolean;
+  salesRepId?: string;
 }
 
 function getSecret() {
@@ -81,6 +83,15 @@ export function requirePermission(
   }
 
   return { allowed: true };
+}
+
+export async function getSalesRepFromCookie(): Promise<AuthPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("sales-auth-token")?.value;
+  if (!token) return null;
+  const payload = await verifyToken(token);
+  if (!payload?.salesRepId) return null;
+  return payload;
 }
 
 /** Extract owner from a NextRequest object (for API route handlers) */

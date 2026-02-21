@@ -67,16 +67,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate referral code if provided
+    // Validate referral code if provided (check gym referrals first, then sales reps)
     let referredByOwnerId: string | null = null;
+    let salesRepId: string | null = null;
     if (referralCode) {
+      const trimmedCode = referralCode.trim().toUpperCase();
       const referrerReferral = await prisma.referral.findUnique({
-        where: { referralCode: referralCode.trim().toUpperCase() },
+        where: { referralCode: trimmedCode },
       });
       if (referrerReferral) {
         referredByOwnerId = referrerReferral.ownerId;
+      } else {
+        // Check if it's a sales rep referral code
+        const salesRep = await prisma.salesRep.findUnique({
+          where: { referralCode: trimmedCode },
+        });
+        if (salesRep && salesRep.active) {
+          salesRepId = salesRep.id;
+        }
       }
-      // If code doesn't exist, we silently ignore it (don't block signup)
+      // If code doesn't exist in either, we silently ignore it (don't block signup)
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -121,6 +131,17 @@ export async function POST(request: NextRequest) {
         referredAt: new Date(),
       },
     });
+
+    // Create sales referral record if signup came from a sales rep
+    if (salesRepId) {
+      await prisma.salesReferral.create({
+        data: {
+          salesRepId,
+          ownerId: owner.id,
+          status: "signed_up",
+        },
+      });
+    }
 
     // Send verification email (non-blocking)
     sendVerificationEmail(owner.email, verificationToken).catch((err) => {

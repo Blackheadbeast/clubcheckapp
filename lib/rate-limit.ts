@@ -165,6 +165,12 @@ export const BILLING_RATE_LIMIT = {
   maxRequests: 10,          // 10 billing requests per minute
 }
 
+// Sales demo session generation
+export const SALES_DEMO_RATE_LIMIT = {
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 20,           // 20 demo sessions per hour per rep
+}
+
 // Helper to get client IP from request
 export function getClientIP(request: Request): string {
   // Check common headers for proxied requests

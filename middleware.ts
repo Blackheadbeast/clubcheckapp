@@ -17,6 +17,7 @@ const protectedPaths = [
   "/setup-guide",
   "/billing",
   "/audit-logs",
+  "/admin",
 ];
 
 const authPaths = ["/login", "/signup", "/staff-login"];
@@ -27,6 +28,12 @@ const verificationPaths = ["/verify-email"];
 // Paths that don't require auth at all (magic link verification)
 const publicVerificationPaths = ["/verify-email/"];
 
+// Sales rep protected paths (require sales-auth-token)
+const salesProtectedPaths = ["/sales/dashboard", "/sales/demo", "/sales/settings"];
+
+// Sales auth page (redirect to dashboard if already logged in)
+const salesAuthPaths = ["/sales/login"];
+
 function getSecret() {
   const s = process.env.JWT_SECRET;
   if (!s) throw new Error("JWT_SECRET is not set");
@@ -35,8 +42,45 @@ function getSecret() {
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value;
+  const salesToken = request.cookies.get("sales-auth-token")?.value;
   const { pathname } = request.nextUrl;
 
+  // --- Sales Auth Pages ---
+  const isSalesAuthPage = salesAuthPaths.some((p) => pathname === p);
+  if (isSalesAuthPage) {
+    if (salesToken) {
+      try {
+        const { payload } = await jwtVerify(salesToken, getSecret());
+        if (payload.salesRepId) {
+          return NextResponse.redirect(new URL("/sales/dashboard", request.url));
+        }
+      } catch {
+        // Invalid token — let them access login
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // --- Sales Protected Pages ---
+  const isSalesProtected = salesProtectedPaths.some((p) => pathname.startsWith(p));
+  if (isSalesProtected) {
+    if (!salesToken) {
+      return NextResponse.redirect(new URL("/sales/login", request.url));
+    }
+    try {
+      const { payload } = await jwtVerify(salesToken, getSecret());
+      if (!payload.salesRepId) {
+        return NextResponse.redirect(new URL("/sales/login", request.url));
+      }
+    } catch {
+      const response = NextResponse.redirect(new URL("/sales/login", request.url));
+      response.cookies.delete("sales-auth-token");
+      return response;
+    }
+    return NextResponse.next();
+  }
+
+  // --- Owner Auth Pages ---
   // Check auth pages first (before protected check) to avoid /staff-login matching /staff
   const isAuthPage = authPaths.some((p) => pathname === p);
   if (isAuthPage) {
@@ -121,5 +165,7 @@ export const config = {
     "/login",
     "/signup",
     "/staff-login",
+    "/sales/:path*",
+    "/admin/:path*",
   ],
 };

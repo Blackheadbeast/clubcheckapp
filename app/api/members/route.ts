@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     let emailSent = false
     try {
       const { sendMemberWelcomeEmail } = await import('@/lib/email')
-      const emailResult = await sendMemberWelcomeEmail(member.email, member.name, qrCodeUrl)
+      const emailResult = await sendMemberWelcomeEmail(member.email, member.name, qrCodeUrl, member.accessToken || undefined)
       emailSent = emailResult.success
       if (!emailResult.success) {
         console.error('Failed to send welcome email:', emailResult.error)

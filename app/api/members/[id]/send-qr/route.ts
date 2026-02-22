@@ -21,7 +21,7 @@ export async function POST(
 
     const member = await prisma.member.findFirst({
       where: { id, ownerId: owner.ownerId },
-      select: { name: true, email: true, qrCode: true },
+      select: { name: true, email: true, qrCode: true, accessToken: true },
     })
 
     if (!member) {
@@ -39,7 +39,8 @@ export async function POST(
       member.email,
       member.name,
       qrCodeUrl,
-      'Your ClubCheck QR Code'
+      'Your ClubCheck QR Code',
+      member.accessToken || undefined
     )
 
     if (!result.success) {

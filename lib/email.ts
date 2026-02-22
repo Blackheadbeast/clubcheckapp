@@ -16,7 +16,8 @@ export async function sendQrCodeEmail(
   memberEmail: string,
   memberName: string,
   qrCodeDataUrl: string,
-  subject: string
+  subject: string,
+  portalToken?: string
 ) {
   try {
     const resend = getResend()
@@ -31,7 +32,7 @@ export async function sendQrCodeEmail(
       attachments: [
         { filename: 'qr-code.png', content: buffer },
       ],
-      html: buildQrEmailHtml(memberName, subject.includes('Welcome')),
+      html: buildQrEmailHtml(memberName, subject.includes('Welcome'), portalToken),
     })
 
     if (error) {
@@ -45,11 +46,19 @@ export async function sendQrCodeEmail(
   }
 }
 
-function buildQrEmailHtml(memberName: string, isWelcome: boolean): string {
+function buildQrEmailHtml(memberName: string, isWelcome: boolean, portalToken?: string): string {
   const heading = isWelcome ? 'Welcome to ClubCheck!' : 'Your QR Code'
   const intro = isWelcome
     ? "You've been added to the gym! Your personal QR code for check-ins is attached to this email."
     : "Here's your updated QR code for check-ins. It's attached to this email."
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.clubcheckapp.com'
+  const portalSection = portalToken ? `
+            <div style="text-align:center;margin:24px 0;">
+              <a href="${baseUrl}/member/${portalToken}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 32px;border-radius:8px;">
+                Open My Member Portal
+              </a>
+              <p style="color:#737373;font-size:12px;margin:10px 0 0;">View your QR code, check-in history, and streaks</p>
+            </div>` : ''
 
   return `<!DOCTYPE html>
 <html>
@@ -74,7 +83,7 @@ function buildQrEmailHtml(memberName: string, isWelcome: boolean): string {
                 <li><strong>Save it to your phone</strong> (photo gallery or favorites)</li>
                 <li><strong>Show it at the front desk</strong> when you arrive</li>
               </ol>
-            </div>
+            </div>${portalSection}
             <div style="background-color:rgba(245,158,11,0.05);border-radius:8px;padding:16px;margin-bottom:20px;">
               <p style="color:#f59e0b;font-size:14px;margin:0;font-weight:bold;">Your QR code is attached as "qr-code.png"</p>
             </div>
@@ -299,7 +308,8 @@ export async function sendOwnerWelcomeEmail(ownerEmail: string) {
 export async function sendMemberWelcomeEmail(
   memberEmail: string,
   memberName: string,
-  qrCodeDataUrl: string
+  qrCodeDataUrl: string,
+  portalToken?: string
 ) {
   try {
     const resend = getResend()
@@ -363,7 +373,14 @@ export async function sendMemberWelcomeEmail(
                             📎 Your QR code is attached as &quot;qr-code.png&quot;
                           </p>
                         </div>
-                        
+                        ${portalToken ? `
+                        <div style="text-align: center; margin: 24px 0;">
+                          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.clubcheckapp.com'}/member/${portalToken}" style="display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 16px; font-weight: bold; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                            Open My Member Portal
+                          </a>
+                          <p style="color: #737373; font-size: 12px; margin: 10px 0 0;">View your QR code, check-in history, and streaks</p>
+                        </div>
+                        ` : ''}
                         <p style="color: #737373; font-size: 14px; line-height: 1.6; margin: 0;">
                           <strong>Tip:</strong> Add this QR code to your phone&apos;s home screen for quick access!
                         </p>

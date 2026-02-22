@@ -42,10 +42,14 @@ export async function POST() {
     return NextResponse.json({ success: true })
   }
 
-  // Update gym profile
-  await prisma.gymProfile.update({
+  // Update or create gym profile
+  await prisma.gymProfile.upsert({
     where: { ownerId: auth.ownerId },
-    data: { walkthroughCompletedAt: new Date() },
+    create: {
+      ownerId: auth.ownerId,
+      walkthroughCompletedAt: new Date(),
+    },
+    update: { walkthroughCompletedAt: new Date() },
   })
 
   return NextResponse.json({ success: true })

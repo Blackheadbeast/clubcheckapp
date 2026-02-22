@@ -38,33 +38,43 @@ function BillingContent() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [showPlanModal, setShowPlanModal] = useState(false)
 
-  // Show success/canceled message from Stripe redirect
+  async function loadBillingData() {
+    try {
+      const res = await fetch('/api/billing-status', { credentials: 'include' })
+      if (!res.ok) {
+        router.push('/login')
+        return
+      }
+      const billingData = await res.json()
+      setData(billingData)
+      if (billingData.billingPeriod) {
+        setBillingPeriod(billingData.billingPeriod)
+      }
+    } catch (error) {
+      console.error('Failed to load billing data:', error)
+      router.push('/login')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Show success/canceled message from Stripe redirect and re-fetch data
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setSuccessMessage('Payment successful! Your subscription is now active.')
+      setUpgrading(null)
+      // Re-fetch after a short delay to allow Stripe webhook to process
+      const timer = setTimeout(() => {
+        loadBillingData()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+    if (searchParams.get('canceled') === 'true') {
+      setUpgrading(null)
     }
   }, [searchParams])
 
   useEffect(() => {
-    async function loadBillingData() {
-      try {
-        const res = await fetch('/api/billing-status', { credentials: 'include' })
-        if (!res.ok) {
-          router.push('/login')
-          return
-        }
-        const billingData = await res.json()
-        setData(billingData)
-        if (billingData.billingPeriod) {
-          setBillingPeriod(billingData.billingPeriod)
-        }
-      } catch (error) {
-        console.error('Failed to load billing data:', error)
-        router.push('/login')
-      } finally {
-        setLoading(false)
-      }
-    }
     loadBillingData()
   }, [router])
 

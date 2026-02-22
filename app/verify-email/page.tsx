@@ -1,13 +1,34 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
 
 export default function VerifyEmailPage() {
+  const router = useRouter()
   const [resending, setResending] = useState(false)
   const [resent, setResent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Poll every 5 seconds to check if email was verified (e.g. on another device)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/auth/check-verified', { credentials: 'include' })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.verified) {
+            router.push('/dashboard')
+          }
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [router])
 
   async function handleResend() {
     setResending(true)

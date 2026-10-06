@@ -58,6 +58,17 @@ const nextConfig = {
     ]
   },
 
+  // Old URLs from before the navigation was reorganised
+  async redirects() {
+    return [
+      { source: '/prospects', destination: '/leads', permanent: false },
+      { source: '/analytics', destination: '/reports/financial', permanent: false },
+      { source: '/reports', destination: '/reports/financial', permanent: false },
+      { source: '/broadcast', destination: '/communication/campaigns', permanent: false },
+      { source: '/invoices', destination: '/settings/invoices', permanent: false },
+    ]
+  },
+
   // Performance optimizations
   compress: true,
 

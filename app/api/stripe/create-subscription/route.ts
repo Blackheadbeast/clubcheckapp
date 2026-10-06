@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
           trial_end: trialEnd,
         },
       }),
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/subscription?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/subscription?canceled=true`,
       metadata: {
         ownerId: owner.ownerId,
         planType,

@@ -1,134 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getOwnerFromCookie, isOwnerRole } from '@/lib/auth'
-import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
-import { z } from 'zod'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
+import { ApiError, assertOwned, handler, notFound } from '@/lib/api'
+import { ROLES } from '@/lib/permissions'
+import { staffSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const updateStaffSchema = z.object({
-  name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
-  password: z.string().min(8).optional(),
-  role: z.enum(['front_desk', 'manager']).optional(),
-  active: z.boolean().optional(),
+export const PATCH = handler({ permission: 'staff.manage', write: true, body: staffSchema.partial() }, async ({ ownerId, params, body, actor, audit }) => {
+  const before = await prisma.staff.findFirst({ where: { id: params.id, ownerId } })
+  if (!before) throw notFound('Staff member')
+  // Nobody locks themselves out or quietly changes their own access.
+  if (actor.type === 'staff' && actor.id === before.id && (body.active === false || (body.role && body.role !== before.role))) {
+    throw new ApiError(403, "You can't change your own role or deactivate yourself.", 'self_change')
+  }
+  await assertOwned(ownerId, 'location', body.locationId, 'Location')
+  if (body.email && body.email !== before.email) {
+    const clash = await prisma.staff.findFirst({ where: { ownerId, email: body.email, id: { not: before.id } } })
+    if (clash) throw new ApiError(409, 'A staff member with this email already exists.', 'duplicate_email')
+  }
+  const { password, ...rest } = body
+  const staff = await prisma.staff.update({
+    where: { id: before.id },
+    data: { ...rest, ...(password && { password: await bcrypt.hash(password, 10) }) },
+    select: { id: true, name: true, role: true, active: true },
+  })
+  const changes = [
+    body.role && body.role !== before.role && `role ${ROLES[before.role as keyof typeof ROLES]?.label || before.role} → ${ROLES[staff.role as keyof typeof ROLES].label}`,
+    body.active !== undefined && body.active !== before.active && (staff.active ? 'reactivated' : 'deactivated'),
+    password && 'password reset',
+  ].filter(Boolean)
+  await audit('staff_update', `Updated ${staff.name}${changes.length ? `: ${changes.join(', ')}` : ''}`, {
+    entityType: 'staff', entityId: staff.id, before: { role: before.role, active: before.active }, after: { role: staff.role, active: staff.active },
+  })
+  return staff
 })
 
-// PATCH update staff (owner only)
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await getOwnerFromCookie()
-    const { id } = await params
-
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isOwnerRole(auth)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
-
-    if (isDemoOwner(auth.ownerId)) {
-      return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403 })
-    }
-
-    const body = await request.json()
-    const parsed = updateStaffSchema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0].message },
-        { status: 400 }
-      )
-    }
-
-    // Check if staff exists and belongs to owner
-    const existing = await prisma.staff.findFirst({
-      where: { id, ownerId: auth.ownerId },
-    })
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
-    }
-
-    // Build update data
-    const updateData: Record<string, unknown> = { ...parsed.data }
-
-    // Hash password if provided
-    if (parsed.data.password) {
-      updateData.password = await bcrypt.hash(parsed.data.password, 10)
-    }
-
-    // Check for email uniqueness if changing email
-    if (parsed.data.email && parsed.data.email !== existing.email) {
-      const emailExists = await prisma.staff.findFirst({
-        where: {
-          email: parsed.data.email,
-          ownerId: auth.ownerId,
-          id: { not: id },
-        },
-      })
-      if (emailExists) {
-        return NextResponse.json(
-          { error: 'A staff member with this email already exists' },
-          { status: 400 }
-        )
-      }
-    }
-
-    const staff = await prisma.staff.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        active: true,
-        createdAt: true,
-        lastLoginAt: true,
-      },
-    })
-
-    return NextResponse.json({ staff })
-  } catch (error) {
-    console.error('Update staff error:', error)
-    return NextResponse.json({ error: 'Failed to update staff' }, { status: 500 })
-  }
-}
-
-// DELETE staff (owner only)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const auth = await getOwnerFromCookie()
-    const { id } = await params
-
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isOwnerRole(auth)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
-
-    if (isDemoOwner(auth.ownerId)) {
-      return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403 })
-    }
-
-    await prisma.staff.delete({
-      where: { id, ownerId: auth.ownerId },
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Delete staff error:', error)
-    return NextResponse.json({ error: 'Failed to delete staff' }, { status: 500 })
-  }
-}
+export const DELETE = handler({ permission: 'staff.manage', write: true }, async ({ ownerId, params, actor, audit }) => {
+  const staff = await prisma.staff.findFirst({ where: { id: params.id, ownerId } })
+  if (!staff) throw notFound('Staff member')
+  if (actor.type === 'staff' && actor.id === staff.id) throw new ApiError(403, "You can't delete your own account.", 'self_change')
+  await prisma.staff.delete({ where: { id: staff.id } })
+  await audit('staff_delete', `Removed ${staff.name}`, { entityType: 'staff', entityId: staff.id })
+  return { deleted: true }
+})

@@ -16,6 +16,15 @@
     --color-text-success: 22 101 52;   /* #166534 green-800 */
     --color-text-danger: 153 27 27;    /* #991b1b red-800 */
     --color-text-warning: 146 64 14;   /* #92400e amber-800 */
+    --color-accent: 245 158 11;        /* amber-500: fills */
+    --color-accent-fg: 23 23 23;       /* text on accent fills */
+    --color-accent-text: 180 83 9;     /* amber-700: accent-coloured text on light surfaces */
+    /* Chart series: fixed order, validated for colour-blind separation on this surface */
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --chart-grid: #e7e5e4;
   }
 
   .dark {
@@ -31,12 +40,43 @@
     --color-text-success: 74 222 128;  /* #4ade80 green-400 */
     --color-text-danger: 248 113 113;  /* #f87171 red-400 */
     --color-text-warning: 251 191 36;  /* #fbbf24 amber-400 */
+    --color-accent: 245 158 11;
+    --color-accent-fg: 23 23 23;
+    --color-accent-text: 251 191 36;   /* amber-400 */
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --chart-grid: #2e2e2e;
   }
 }
 
 body {
   background-color: rgb(var(--color-bg));
   color: rgb(var(--color-text));
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Design-system primitives used by components/ui.tsx */
+@layer components {
+  .ui-input {
+    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg shadow-card outline-none transition
+      placeholder:text-fg-subtle focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .ui-focus {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Theme-aware utility classes */

@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { can, type Permission } from "@/lib/permissions";
+import { legacyRequirement, REQUIREMENT_HEADER } from "@/lib/route-permissions";
 
 const protectedPaths = [
   "/dashboard",
   "/members",
+  "/memberships",
+  "/attendance",
+  "/leads",
   "/prospects",
+  "/schedule",
   "/broadcast",
+  "/communication",
   "/checkin",
+  "/pos",
+  "/reports",
+  "/locations",
   "/settings",
   "/kiosk",
   "/invoices",
@@ -18,6 +28,19 @@ const protectedPaths = [
   "/billing",
   "/audit-logs",
   "/admin",
+];
+
+// API routes that authenticate some other way (signatures, secrets, member tokens, their own cookies).
+const publicApiPrefixes = [
+  "/api/stripe/webhook",
+  "/api/webhooks/",
+  "/api/cron/",
+  "/api/member-portal",
+  "/api/portal/",
+  "/api/waiver/",
+  "/api/auth/",
+  "/api/sales/",
+  "/api/admin/",
 ];
 
 const authPaths = ["/login", "/signup", "/staff-login"];
@@ -44,6 +67,36 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value;
   const salesToken = request.cookies.get("sales-auth-token")?.value;
   const { pathname } = request.nextUrl;
+
+  // --- API routes ---
+  if (pathname.startsWith("/api/")) {
+    // Never trust a client-supplied copy of our internal header.
+    const headers = new Headers(request.headers);
+    headers.delete(REQUIREMENT_HEADER);
+    const isPublic = publicApiPrefixes.some((p) => pathname.startsWith(p));
+    const requirement = isPublic ? null : legacyRequirement(pathname, request.method);
+    if (requirement && requirement !== "any") {
+      headers.set(REQUIREMENT_HEADER, requirement);
+      // Fast rejection from the token; lib/auth.ts repeats the check against the live staff record.
+      if (token) {
+        try {
+          const { payload } = await jwtVerify(token, getSecret());
+          const isStaff = !!payload.staffId;
+          const allowed =
+            requirement === "owner" ? !isStaff : !isStaff || can(payload.role as string, requirement as Permission);
+          if (!allowed) {
+            return NextResponse.json(
+              { error: "You do not have permission to do that.", code: "forbidden" },
+              { status: 403 }
+            );
+          }
+        } catch {
+          // Invalid token: the route will answer 401.
+        }
+      }
+    }
+    return NextResponse.next({ request: { headers } });
+  }
 
   // --- Sales Auth Pages ---
   const isSalesAuthPage = salesAuthPaths.some((p) => pathname === p);
@@ -148,24 +201,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/members/:path*",
-    "/prospects/:path*",
-    "/broadcast/:path*",
-    "/checkin/:path*",
-    "/settings/:path*",
-    "/kiosk/:path*",
-    "/invoices/:path*",
-    "/analytics/:path*",
-    "/referrals/:path*",
-    "/staff/:path*",
-    "/setup-guide/:path*",
-    "/verify-email/:path*",
-    "/login",
-    "/signup",
-    "/staff-login",
-    "/sales/:path*",
-    "/admin/:path*",
-  ],
+  // Everything except Next internals and static files.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|mp4|webmanifest|txt|xml)$).*)"],
 };

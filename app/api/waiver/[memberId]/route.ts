@@ -47,12 +47,11 @@ export async function GET(
     return NextResponse.json({
       memberId: member.id,
       memberName: member.name,
-      memberEmail: member.email,
+      // The email is deliberately not returned: the signer must type it to prove who they are.
       gymName: gymProfile.name || 'Your Gym',
       waiverText: gymProfile.waiverText,
       alreadySigned: !!member.waiverSignedAt,
       signedAt: member.waiverSignedAt,
-      signature: member.waiverSignature,
     })
   } catch (error) {
     console.error('Get waiver error:', error)

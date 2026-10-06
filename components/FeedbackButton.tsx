@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import FeedbackModal from './FeedbackModal'
 
 export default function FeedbackButton() {
   const [showModal, setShowModal] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const pathname = usePathname()
+  // Member-facing and full-screen surfaces: staff feedback does not belong there.
+  const hidden = ['/member/', '/kiosk', '/waiver/'].some((p) => pathname?.startsWith(p))
 
   useEffect(() => {
     // Check if user is authenticated by looking for auth cookie
@@ -22,6 +26,7 @@ export default function FeedbackButton() {
     checkAuth()
   }, [])
 
+  if (hidden) return null
   // Only show for authenticated users
   if (!isAuthenticated) return null
 

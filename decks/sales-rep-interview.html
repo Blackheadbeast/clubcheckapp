@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClubCheck — Sales Rep Overview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    padding: 60px 80px;
+    flex-direction: column;
+    justify-content: center;
+    position: absolute;
+    inset: 0;
+  }
+  .slide.active { display: flex; }
+
+  /* Nav */
+  .nav {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 999px;
+    padding: 10px 24px;
+    z-index: 100;
+  }
+  .nav button {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 8px;
+    transition: color .2s, background .2s;
+  }
+  .nav button:hover { color: #fff; background: #2a2a2a; }
+  .nav .counter { color: #666; font-size: 13px; min-width: 50px; text-align: center; }
+
+  /* Dots */
+  .dots {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #444;
+    transition: background .2s, width .2s;
+    cursor: pointer;
+  }
+  .dot.active { background: #f59e0b; width: 18px; border-radius: 4px; }
+
+  /* Slide styles */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #f59e0b;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-size: clamp(28px, 3.5vw, 48px);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 24px;
+  }
+  .sub {
+    font-size: clamp(16px, 1.8vw, 22px);
+    color: #999;
+    line-height: 1.5;
+    max-width: 680px;
+  }
+
+  /* Cards */
+  .cards {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .card {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 28px 32px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .card-value {
+    font-size: clamp(24px, 3vw, 40px);
+    font-weight: 800;
+    color: #fff;
+  }
+  .card-sub {
+    font-size: 13px;
+    color: #666;
+    margin-top: 6px;
+  }
+  .card.amber { border-color: #f59e0b44; }
+  .card.amber .card-value { color: #f59e0b; }
+  .card.green { border-color: #22c55e44; }
+  .card.green .card-value { color: #22c55e; }
+  .card.blue { border-color: #3b82f644; }
+  .card.blue .card-value { color: #60a5fa; }
+  .card.purple { border-color: #a855f744; }
+  .card.purple .card-value { color: #c084fc; }
+
+  /* List */
+  ul.clean { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  ul.clean li {
+    display: flex; align-items: flex-start; gap: 12px;
+    font-size: clamp(15px, 1.6vw, 19px);
+    color: #ccc;
+  }
+  ul.clean li .icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Two-column */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+
+  /* Commission boxes */
+  .comm-box {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .comm-box h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #fff;
+  }
+  .comm-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #1f1f1f;
+    font-size: 14px;
+  }
+  .comm-row:last-child { border-bottom: none; }
+  .comm-row .period { color: #888; }
+  .comm-row .pct { font-weight: 700; }
+  .pct.high { color: #f59e0b; }
+  .pct.mid { color: #fb923c; }
+  .pct.low { color: #60a5fa; }
+
+  /* Highlight pill */
+  .pill {
+    display: inline-block;
+    background: #1a1a0a;
+    border: 1px solid #f59e0b44;
+    color: #f59e0b;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-top: 12px;
+  }
+
+  /* Slide 1 hero gradient */
+  .hero-accent {
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, #f59e0b18 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Slide 6 — access paths */
+  .access-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 12px; }
+  .access-card {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .access-card .role { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+  .access-card .url {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 14px;
+    color: #f59e0b;
+    background: #1a1500;
+    border: 1px solid #f59e0b33;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+  .access-card .note { font-size: 13px; color: #666; }
+  .access-card.sales { border-color: #a855f744; }
+  .access-card.sales .role { color: #c084fc; }
+  .access-card.owner { border-color: #22c55e44; }
+  .access-card.owner .role { color: #4ade80; }
+  .access-card.admin { border-color: #f59e0b44; }
+  .access-card.admin .role { color: #f59e0b; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- SLIDE 1: INTRO -->
+  <div class="slide active">
+    <div class="hero-accent"></div>
+    <div class="tag">ClubCheck — Sales Overview</div>
+    <h1>Sell the gym software<br>gyms actually want.</h1>
+    <p class="sub">ClubCheck is a modern gym management platform — check-ins, members, billing, analytics — built for small to mid-size gyms.</p>
+    <div class="cards" style="margin-top:40px;">
+      <div class="card amber">
+        <div class="card-label">Starter Plan</div>
+        <div class="card-value">$49.99<span style="font-size:18px;font-weight:400;color:#888">/mo</span></div>
+        <div class="card-sub">Up to 75 members</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">Pro Plan</div>
+        <div class="card-value">$99.99<span style="font-size:18px;font-weight:400;color:#888">/mo</span></div>
+        <div class="card-sub">Up to 150 members</div>
+      </div>
+      <div class="card blue">
+        <div class="card-label">Annual (any plan)</div>
+        <div class="card-value">Save $100–200</div>
+        <div class="card-sub">Paid upfront — big incentive to close</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: WHAT YOU'RE SELLING -->
+  <div class="slide">
+    <div class="tag">The Product</div>
+    <h2>What ClubCheck does for a gym</h2>
+    <div class="two-col" style="margin-top:16px;">
+      <ul class="clean">
+        <li><span class="icon">📲</span> QR code & kiosk check-ins — no apps needed</li>
+        <li><span class="icon">👥</span> Full member management — profiles, streaks, notes</li>
+        <li><span class="icon">📢</span> Broadcast messaging to all members</li>
+        <li><span class="icon">📋</span> Digital waivers on sign-up</li>
+      </ul>
+      <ul class="clean">
+        <li><span class="icon">📊</span> Analytics & attendance tracking</li>
+        <li><span class="icon">💳</span> Invoicing & prospect pipeline</li>
+        <li><span class="icon">🌙</span> Light / dark / auto theme</li>
+        <li><span class="icon">🔒</span> Staff roles — owner, manager, front desk</li>
+      </ul>
+    </div>
+    <p class="sub" style="margin-top:28px; font-size:15px;">14-day free trial. No credit card needed to start. Easy to get a gym owner in the door.</p>
+  </div>
+
+  <!-- SLIDE 3: YOUR COMMISSION -->
+  <div class="slide">
+    <div class="tag">Commission Structure</div>
+    <h2>Two ways to earn</h2>
+    <div class="two-col" style="margin-top:16px;">
+      <div class="comm-box">
+        <h3>Option A — Front-Loaded</h3>
+        <div class="comm-row"><span class="period">Months 1–3</span><span class="pct high">100% of monthly fee</span></div>
+        <div class="comm-row"><span class="period">Months 4–9</span><span class="pct mid">50% of monthly fee</span></div>
+        <div class="comm-row"><span class="period">After month 9</span><span class="pct" style="color:#555">Commission ends</span></div>
+        <div class="pill">Best if closing fast / high volume</div>
+      </div>
+      <div class="comm-box">
+        <h3>Option B — Long-Tail</h3>
+        <div class="comm-row"><span class="period">Months 1–18</span><span class="pct low">30% of monthly fee</span></div>
+        <div class="comm-row"><span class="period">After month 18</span><span class="pct" style="color:#555">Commission ends</span></div>
+        <div style="margin-top:48px"></div>
+        <div class="pill">Best for steady recurring income</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: WHAT YOU CAN EARN -->
+  <div class="slide">
+    <div class="tag">Earning Potential</div>
+    <h2>What the numbers look like</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:16px;">
+      <div>
+        <p style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#f59e0b;margin-bottom:10px;">Option A — Front-Loaded (9 months)</p>
+        <div class="cards" style="flex-direction:column;gap:10px;">
+          <div class="card amber" style="padding:18px 24px;">
+            <div class="card-label">Starter · $49.99/mo</div>
+            <div class="card-value" style="font-size:28px;">~$300</div>
+            <div class="card-sub">$150 (mo 1–3) + $150 (mo 4–9)</div>
+          </div>
+          <div class="card amber" style="padding:18px 24px;">
+            <div class="card-label">Pro · $99.99/mo</div>
+            <div class="card-value" style="font-size:28px;">~$600</div>
+            <div class="card-sub">$300 (mo 1–3) + $300 (mo 4–9)</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#60a5fa;margin-bottom:10px;">Option B — Long-Tail (18 months)</p>
+        <div class="cards" style="flex-direction:column;gap:10px;">
+          <div class="card blue" style="padding:18px 24px;">
+            <div class="card-label">Starter · $49.99/mo</div>
+            <div class="card-value" style="font-size:28px;">~$270</div>
+            <div class="card-sub">30% × $49.99 × 18 months</div>
+          </div>
+          <div class="card blue" style="padding:18px 24px;">
+            <div class="card-label">Pro · $99.99/mo</div>
+            <div class="card-value" style="font-size:28px;">~$540</div>
+            <div class="card-sub">30% × $99.99 × 18 months</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cards" style="margin-top:14px;">
+      <div class="card green" style="padding:16px 20px;">
+        <div class="card-label">10-Customer Milestone Bonus</div>
+        <div class="card-value" style="font-size:26px;">+$500 cash</div>
+        <div class="card-sub">One-time when 10 customers are actively paying</div>
+      </div>
+      <div class="card purple" style="padding:16px 20px;">
+        <div class="card-label">Annual Plan Bonus</div>
+        <div class="card-value" style="font-size:26px;">+$49.99 or +$99.99</div>
+        <div class="card-sub">Extra 1 month's fee when a customer pays upfront for the year — on top of your commission</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: YOUR TOOLS -->
+  <div class="slide">
+    <div class="tag">Sales Rep Portal</div>
+    <h2>Everything you need to sell</h2>
+    <div class="two-col" style="margin-top:16px;">
+      <ul class="clean">
+        <li><span class="icon">🔗</span> Unique referral link — every signup auto-attributed to you</li>
+        <li><span class="icon">📷</span> QR code — drop it on an iPad at a gym or print it out</li>
+        <li><span class="icon">📈</span> Live funnel dashboard — see signed up → verified → trialing → paid</li>
+      </ul>
+      <ul class="clean">
+        <li><span class="icon">🎬</span> One-click demo mode — launch a live demo gym for a prospect</li>
+        <li><span class="icon">📋</span> Full referral history — gym name, email, status, dates</li>
+        <li><span class="icon">⚙️</span> Settings to update your profile & password</li>
+      </ul>
+    </div>
+    <p class="sub" style="margin-top:28px; font-size:14px;">No commission is owed on unpaid or refunded charges. Payments made within 15 business days after month end.</p>
+  </div>
+
+  <!-- SLIDE 6: HOW TO ACCESS -->
+  <div class="slide">
+    <div class="tag">Access Guide</div>
+    <h2>Where to go</h2>
+    <div class="access-grid">
+      <div class="access-card sales">
+        <div class="role">Sales Rep</div>
+        <div class="url">clubcheckapp.com/sales/login</div>
+        <div class="note">Your portal — dashboard, referral link, QR code, demo launcher, funnel tracking</div>
+      </div>
+      <div class="access-card owner">
+        <div class="role">Gym Owner</div>
+        <div class="url">clubcheckapp.com/login</div>
+        <div class="note">What your prospects see after signing up — full gym management dashboard</div>
+      </div>
+      <div class="access-card admin">
+        <div class="role">Admin (Internal)</div>
+        <div class="url">clubcheckapp.com/admin</div>
+        <div class="note">Creates & manages sales rep accounts, views all reps & analytics</div>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:28px; font-size:14px; color:#666;">Sales rep accounts are created by admin — you'll be given credentials on onboarding. Choose your commission option at that time (can't be changed later).</p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button onclick="prev()">←</button>
+  <div class="dots" id="dots"></div>
+  <span class="counter" id="counter">1 / 6</span>
+  <button onclick="next()">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide')
+  const dotsContainer = document.getElementById('dots')
+  const counter = document.getElementById('counter')
+  let current = 0
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div')
+    d.className = 'dot' + (i === 0 ? ' active' : '')
+    d.onclick = () => goTo(i)
+    dotsContainer.appendChild(d)
+  })
+
+  function goTo(n) {
+    slides[current].classList.remove('active')
+    document.querySelectorAll('.dot')[current].classList.remove('active')
+    current = (n + slides.length) % slides.length
+    slides[current].classList.add('active')
+    document.querySelectorAll('.dot')[current].classList.add('active')
+    counter.textContent = `${current + 1} / ${slides.length}`
+  }
+
+  function next() { goTo(current + 1) }
+  function prev() { goTo(current - 1) }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next()
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev()
+  })
+</script>
+</body>
+</html>

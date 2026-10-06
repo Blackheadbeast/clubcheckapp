@@ -1,123 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getOwnerFromCookie, isOwnerRole } from '@/lib/auth'
-import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
-import { requireWriteAccess } from '@/lib/billing'
-import { z } from 'zod'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
+import { ApiError, assertOwned, handler } from '@/lib/api'
+import { ROLES } from '@/lib/permissions'
+import { staffSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const createStaffSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['front_desk', 'manager']),
+export const GET = handler({ permission: 'staff.manage' }, async ({ ownerId }) => {
+  const [staff, owner] = await Promise.all([
+    prisma.staff.findMany({
+      where: { ownerId },
+      orderBy: [{ active: 'desc' }, { name: 'asc' }],
+      select: { id: true, name: true, email: true, role: true, active: true, createdAt: true, lastLoginAt: true, phone: true, title: true, bio: true, color: true, isCoach: true, locationId: true, location: { select: { name: true } } },
+    }),
+    prisma.owner.findUnique({ where: { id: ownerId }, select: { gymCode: true, email: true } }),
+  ])
+  const upcoming = await prisma.classSession.groupBy({ by: ['coachId'], where: { ownerId, status: 'scheduled', startsAt: { gte: new Date(), lt: new Date(Date.now() + 7 * 86_400_000) }, coachId: { not: null } }, _count: { _all: true } })
+  return {
+    staff: staff.map((s) => ({ ...s, roleLabel: ROLES[s.role as keyof typeof ROLES]?.label || s.role, classesThisWeek: upcoming.find((u) => u.coachId === s.id)?._count._all || 0 })),
+    gymCode: owner?.gymCode || null,
+    ownerEmail: owner?.email,
+  }
 })
 
-// GET all staff (owner only)
-export async function GET() {
-  try {
-    const auth = await getOwnerFromCookie()
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Only owners can view staff
-    if (!isOwnerRole(auth)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
-
-    const staff = await prisma.staff.findMany({
-      where: { ownerId: auth.ownerId },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        active: true,
-        createdAt: true,
-        lastLoginAt: true,
-      },
-    })
-
-    return NextResponse.json({ staff })
-  } catch (error) {
-    console.error('Get staff error:', error)
-    return NextResponse.json({ error: 'Failed to fetch staff' }, { status: 500 })
-  }
-}
-
-// POST create staff (owner only)
-export async function POST(request: NextRequest) {
-  try {
-    const auth = await getOwnerFromCookie()
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!isOwnerRole(auth)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
-
-    if (isDemoOwner(auth.ownerId)) {
-      return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403 })
-    }
-
-    // Check billing status allows writes
-    const writeAccess = await requireWriteAccess(auth.ownerId)
-    if (!writeAccess.allowed) {
-      return NextResponse.json({ error: writeAccess.error }, { status: writeAccess.status })
-    }
-
-    const body = await request.json()
-    const parsed = createStaffSchema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0].message },
-        { status: 400 }
-      )
-    }
-
-    const { name, email, password, role } = parsed.data
-
-    // Check if email already exists for this owner
-    const existing = await prisma.staff.findFirst({
-      where: { email, ownerId: auth.ownerId },
-    })
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'A staff member with this email already exists' },
-        { status: 400 }
-      )
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    const staff = await prisma.staff.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        ownerId: auth.ownerId,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        active: true,
-        createdAt: true,
-      },
-    })
-
-    return NextResponse.json({ staff })
-  } catch (error) {
-    console.error('Create staff error:', error)
-    return NextResponse.json({ error: 'Failed to create staff' }, { status: 500 })
-  }
-}
+export const POST = handler({ permission: 'staff.manage', write: true, body: staffSchema.required({ password: true }) }, async ({ ownerId, body, audit }) => {
+  await assertOwned(ownerId, 'location', body.locationId, 'Location')
+  const clash = await prisma.staff.findFirst({ where: { ownerId, email: body.email } })
+  if (clash) throw new ApiError(409, 'A staff member with this email already exists.', 'duplicate_email')
+  const { password, ...rest } = body
+  const staff = await prisma.staff.create({ data: { ownerId, ...rest, password: await bcrypt.hash(password, 10) }, select: { id: true, name: true, role: true } })
+  await audit('staff_create', `Added ${staff.name} as ${ROLES[staff.role as keyof typeof ROLES].label}`, { entityType: 'staff', entityId: staff.id })
+  return staff
+})

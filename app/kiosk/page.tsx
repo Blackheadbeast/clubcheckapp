@@ -180,9 +180,20 @@ export default function KioskPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setFeedback({ type: 'error', message: data.error || 'Check-in failed' })
+        // The kiosk is self-service: never show account details, just send them to the desk.
+        const blocked = ['member_frozen', 'member_cancelled', 'member_inactive', 'member_archived', 'multiple_matches'].includes(data.code)
+        setFeedback({ type: 'error', message: blocked ? 'Please see the front desk to check in.' : data.error || 'Check-in failed' })
       } else {
-        setFeedback({ type: 'success', message: `${data.member.name} checked in!` })
+        const result = data.data
+        const first = result.member.name.split(' ')[0]
+        setFeedback({
+          type: 'success',
+          message: result.duplicate
+            ? `You're already checked in, ${first}!`
+            : result.attended
+              ? `Welcome, ${first}! Checked in for ${result.attended.name}.`
+              : `Welcome, ${first}! You're checked in.`,
+        })
         setManualInput('')
       }
 

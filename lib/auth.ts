@@ -1,17 +1,21 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
-// Role permissions
-export const ROLE_PERMISSIONS = {
-  owner: ['all'],
-  manager: ['members', 'prospects', 'checkin', 'kiosk', 'analytics', 'broadcast', 'invoices'],
-  front_desk: ['members.view', 'checkin', 'kiosk'],
-  sales_rep: [],
-} as const;
+import { can, isRole, type Permission } from "./permissions";
+import { REQUIREMENT_HEADER } from "./route-permissions";
 
-export type StaffRole = 'owner' | 'manager' | 'front_desk' | 'sales_rep';
+export type StaffRole =
+  | 'owner'
+  | 'admin'
+  | 'manager'
+  | 'front_desk'
+  | 'coach'
+  | 'trainer'
+  | 'sales'
+  | 'accountant'
+  | 'sales_rep';
 
 export interface AuthPayload {
   ownerId: string;
@@ -45,21 +49,52 @@ export async function verifyToken(token: string): Promise<AuthPayload | null> {
   }
 }
 
+/**
+ * The signed-in session, or null. For staff sessions this re-reads the staff
+ * record, so a deactivated account or a changed role takes effect at once
+ * rather than when the 7-day token expires. On legacy API routes it also
+ * enforces the permission the middleware attached to the request.
+ */
 export async function getOwnerFromCookie(): Promise<AuthPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth-token")?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const payload = await verifyToken(token);
+  if (!payload?.ownerId) return null;
+
+  let role: StaffRole = 'owner';
+  const { prisma } = await import("./prisma");
+  if (!payload.staffId) {
+    // A token must not outlive the account it was issued for.
+    const owner = await prisma.owner.findUnique({ where: { id: payload.ownerId }, select: { id: true } });
+    if (!owner) return null;
+  } else {
+    const staff = await prisma.staff.findFirst({
+      where: { id: payload.staffId, ownerId: payload.ownerId },
+      select: { role: true, active: true },
+    });
+    if (!staff || !staff.active || !isRole(staff.role) || staff.role === 'owner') return null;
+    role = staff.role;
+    payload.role = role;
+  }
+
+  const required = (await headers()).get(REQUIREMENT_HEADER);
+  if (required && required !== 'any') {
+    if (required === 'owner') {
+      if (payload.staffId) return null;
+    } else if (!can(role, required as Permission)) {
+      return null;
+    }
+  }
+  return payload;
 }
 
-export function hasPermission(role: StaffRole | undefined, permission: string): boolean {
-  if (!role) return true; // Owner login (no role = full access)
-  const perms = ROLE_PERMISSIONS[role] as readonly string[];
-  if (perms.includes('all')) return true;
-  if (perms.includes(permission)) return true;
-  // Check for partial permissions (e.g., 'members.view' matches 'members')
-  if (perms.some((p: string) => permission.startsWith(p.split('.')[0]))) return true;
-  return false;
+/**
+ * Token-only permission check. The role in the token can be up to 7 days stale,
+ * so API routes use lib/api.ts, which re-reads the staff record on every request.
+ */
+export function hasPermission(role: StaffRole | undefined, permission: Permission): boolean {
+  return can(role ?? 'owner', permission);
 }
 
 export function isOwnerRole(auth: AuthPayload | null): boolean {
@@ -72,13 +107,13 @@ export function isOwnerRole(auth: AuthPayload | null): boolean {
  */
 export function requirePermission(
   auth: AuthPayload | null,
-  permission: string
+  permission: Permission
 ): { allowed: true } | { allowed: false; error: string; status: number } {
   if (!auth) {
     return { allowed: false, error: 'Unauthorized', status: 401 };
   }
 
-  if (!hasPermission(auth.role, permission)) {
+  if (auth.salesRepId || !hasPermission(auth.staffId ? auth.role : 'owner', permission)) {
     return { allowed: false, error: 'Access denied', status: 403 };
   }
 

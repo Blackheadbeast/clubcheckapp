@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getOwnerFromCookie, isOwnerRole } from '@/lib/auth'
+import { getActor } from '@/lib/api'
+import { can } from '@/lib/permissions'
 import { getAuditLogs, type AuditAction } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
-  const auth = await getOwnerFromCookie()
-  if (!auth) {
+  const session = await getActor()
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
-  // Only owners can view audit logs
-  if (!isOwnerRole(auth)) {
+  if (!can(session.actor.role, 'audit.view')) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
+  const auth = session.auth
 
   const searchParams = request.nextUrl.searchParams
   const page = parseInt(searchParams.get('page') || '1', 10)

@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClubCheck
 
-## Getting Started
+Fitness business management for gyms and studios: members and memberships, billing, class scheduling and
+booking with waitlists, front-desk and kiosk check-in, leads, point of sale, messaging and automations,
+reporting, staff roles, multiple locations and a mobile member portal.
 
-First, run the development server:
+Next.js 14 (App Router) · Prisma · PostgreSQL · Tailwind.
+
+## Local setup
 
 ```bash
+npm install
+npm run db:dev                                  # starts a local Postgres (prisma dev)
+DATABASE_URL="postgres://postgres:postgres@localhost:51214/template1?sslmode=disable" npx prisma db push
+npm run seed                                    # demo gym with ~14 months of data
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.development.local` with the local `DATABASE_URL` (and `DATABASE_POOL_MAX=1`) so `next dev`, the seed and
+the tests use the local database instead of the one in `.env`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Demo sign-ins (password `clubcheck-demo`):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Owner: `owner@ironharbor.test` at `/login`
+- Staff at `/staff-login`, gym code `IRONHB`: `renee@` (admin), `theo@` (manager), `jasmine@` (front desk),
+  `marcus@` (coach), `tyrell@` (trainer), `bianca@` (sales), `walter@` (accountant), all `@ironharbor.test`
+- Kiosk PIN `1234`
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | What it does |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm test` | Vitest. Refuses to run unless the database is local |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run seed` | Rebuild the demo gym (local database only) |
+| `npx tsx scripts/backfill-platform.ts` | Upgrade existing accounts to the platform data model (dry run by default) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is put together, the rules that matter, what is not
+built yet, and how to release to an existing database.

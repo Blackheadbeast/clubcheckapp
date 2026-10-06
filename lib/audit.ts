@@ -1,7 +1,7 @@
 import { prisma } from './prisma'
 import type { AuthPayload } from './auth'
 
-export type AuditAction =
+type KnownAuditAction =
   // Authentication
   | 'login'
   | 'logout'
@@ -35,6 +35,9 @@ export type AuditAction =
   | 'export_data'
   | 'broadcast_send'
 
+// New code logs dotted actions such as "membership.cancel"; the union above is the legacy set.
+export type AuditAction = KnownAuditAction | (string & {})
+
 interface AuditLogInput {
   action: AuditAction
   description: string
@@ -45,6 +48,10 @@ interface AuditLogInput {
   ipAddress?: string
   userAgent?: string
   metadata?: Record<string, unknown>
+  entityType?: string
+  entityId?: string
+  before?: unknown
+  after?: unknown
 }
 
 /**
@@ -63,6 +70,10 @@ export async function createAuditLog(input: AuditLogInput): Promise<void> {
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,
         metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        before: input.before === undefined ? undefined : (input.before as object),
+        after: input.after === undefined ? undefined : (input.after as object),
       },
     })
   } catch (error) {
@@ -172,7 +183,7 @@ export async function getAuditLogs(
  * Get human-readable label for audit action
  */
 export function getActionLabel(action: AuditAction): string {
-  const labels: Record<AuditAction, string> = {
+  const labels: Record<KnownAuditAction, string> = {
     login: 'Login',
     logout: 'Logout',
     login_failed: 'Failed Login',
@@ -199,7 +210,7 @@ export function getActionLabel(action: AuditAction): string {
     export_data: 'Data Exported',
     broadcast_send: 'Broadcast Sent',
   }
-  return labels[action] || action
+  return labels[action as KnownAuditAction] || action
 }
 
 /**

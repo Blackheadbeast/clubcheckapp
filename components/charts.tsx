@@ -31,7 +31,7 @@ function ChartFrame({ label, table, children, height }: { label: string; table: 
   return (
     <div>
       <div className="mb-1 flex justify-end">
-        <button type="button" onClick={() => setShowTable((s) => !s)} aria-pressed={showTable} className="ui-focus inline-flex items-center gap-1 rounded text-xs text-fg-subtle hover:text-fg">
+        <button type="button" onClick={() => setShowTable((s) => !s)} aria-pressed={showTable} className="ui-hit ui-focus inline-flex items-center gap-1 rounded text-xs text-fg-subtle hover:text-fg">
           <Table2 className="h-3.5 w-3.5" aria-hidden />
           {showTable ? 'Show chart' : 'Show table'}
         </button>

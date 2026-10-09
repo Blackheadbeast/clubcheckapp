@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import PageHelpCard from '@/components/PageHelpCard'
+import { StackedTable } from '@/components/ui'
 
 interface Invoice {
   id: string
@@ -91,7 +92,7 @@ export default function InvoicesPage() {
         ) : (
           <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <StackedTable className="w-full">
                 <thead className="bg-theme-lighter border-b border-theme">
                   <tr>
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Date</th>
@@ -152,7 +153,7 @@ export default function InvoicesPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </StackedTable>
             </div>
           </div>
         )}

@@ -8,6 +8,12 @@ export default function FeedbackButton() {
   const [showModal, setShowModal] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const pathname = usePathname()
+  // On a phone the floating button would sit on top of lists, so the menu drawer opens this instead.
+  useEffect(() => {
+    const open = () => setShowModal(true)
+    window.addEventListener('clubcheck:feedback', open)
+    return () => window.removeEventListener('clubcheck:feedback', open)
+  }, [])
   // Member-facing and full-screen surfaces: staff feedback does not belong there.
   const hidden = ['/member/', '/kiosk', '/waiver/', '/book/'].some((p) => pathname?.startsWith(p))
 
@@ -37,7 +43,7 @@ export default function FeedbackButton() {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="fixed bottom-20 right-4 z-20 rounded-full border border-line bg-surface p-3 text-fg-muted shadow-raised transition hover:text-fg hover:shadow-pop lg:bottom-6 lg:right-6"
+        className="fixed bottom-6 right-6 z-20 hidden rounded-full border border-line bg-surface p-3 text-fg-muted shadow-raised transition hover:text-fg hover:shadow-pop lg:block"
         title="Send feedback"
         aria-label="Send feedback"
       >

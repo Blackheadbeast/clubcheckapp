@@ -14,6 +14,8 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  type RefObject,
+  type TableHTMLAttributes,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
@@ -56,7 +58,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       className={cn(
         'ui-focus inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100',
-        size === 'sm' ? 'h-8 px-2.5 text-xs' : size === 'lg' ? 'h-11 px-5 text-sm' : 'h-9 px-3.5 text-sm',
+        size === 'sm' ? 'ui-tap-sm h-8 px-2.5 text-xs' : size === 'lg' ? 'h-11 px-5 text-sm' : 'ui-tap h-9 px-3.5 text-sm',
         BUTTON_VARIANTS[variant],
         className
       )}
@@ -79,7 +81,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       title={label}
-      className={cn('ui-focus inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition hover:bg-subtle hover:text-fg disabled:opacity-40', className)}
+      className={cn('ui-tap-icon ui-focus inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition hover:bg-subtle hover:text-fg disabled:opacity-40', className)}
       {...props}
     >
       {children}
@@ -284,7 +286,7 @@ export function PageHeader({ title, description, actions, back }: { title: React
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <div className="min-w-0">
-        {back && <div className="mb-1.5">{back}</div>}
+        {back && <div className="ui-back mb-1.5">{back}</div>}
         <h1 className="ui-page-title truncate">{title}</h1>
         {description && <p className="mt-1.5 max-w-3xl text-[0.9375rem] leading-6 text-fg-muted">{description}</p>}
       </div>
@@ -336,12 +338,58 @@ export function Tabs<T extends string>({
 // Tables
 // ---------------------------------------------------------------------------
 
-export function Table({ children, className }: { children: ReactNode; className?: string }) {
+// On a phone a table is drawn as a list of cards: one card per row, each value beside its column
+// name. The column names come from the header row, so pages do not have to describe a table twice.
+// `primary` is the column (counted from 0) that becomes the card's title; it defaults to the first
+// column that has a heading. `stack={false}` keeps a real grid (a matrix has no sensible card form).
+function useStackedTable(ref: RefObject<HTMLTableElement>, primary: number | undefined, enabled: boolean) {
+  useEffect(() => {
+    const table = ref.current
+    if (!table || !enabled) return
+    let queued = false
+    const label = () => {
+      queued = false
+      const heads = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead th'))
+      const names = heads.map((th) => (th.dataset.label ?? th.textContent ?? '').replace(/[↑↓]/g, '').trim())
+      const title = primary ?? names.findIndex((n) => n !== '')
+      for (const row of Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody tr, tfoot tr'))) {
+        let col = 0
+        for (const cell of Array.from(row.cells)) {
+          const span = cell.colSpan || 1
+          const name = span > 1 ? '' : names[col] || ''
+          const role = span > 1 ? 'wide' : col === title ? 'title' : name ? 'field' : 'bare'
+          const text = (cell.textContent || '').trim()
+          const empty = role === 'field' && (text === '' || text === '—' || text === '-') && !cell.querySelector('input,select,button,a,img,svg')
+          if (cell.dataset.label !== name) cell.dataset.label = name
+          if (cell.dataset.cell !== role) cell.dataset.cell = role
+          if ((cell.dataset.empty === '1') !== empty) { if (empty) cell.dataset.empty = '1'; else delete cell.dataset.empty }
+          col += span
+        }
+      }
+    }
+    const queue = () => { if (!queued) { queued = true; requestAnimationFrame(label) } }
+    label()
+    const observer = new MutationObserver(queue)
+    observer.observe(table, { childList: true, subtree: true, characterData: true })
+    return () => observer.disconnect()
+  }, [ref, primary, enabled])
+}
+
+export function Table({ children, className, primary, stack = true }: { children: ReactNode; className?: string; primary?: number; stack?: boolean }) {
+  const ref = useRef<HTMLTableElement>(null)
+  useStackedTable(ref, primary, stack)
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="w-full min-w-max border-collapse text-left text-sm">{children}</table>
+      <table ref={ref} className={cn('w-full min-w-max border-collapse text-left text-sm', stack && 'ui-stack')}>{children}</table>
     </div>
   )
+}
+
+/** For pages that write their own `<table>`: the same phone layout as `Table`. */
+export function StackedTable({ primary, className, children, ...rest }: { primary?: number } & TableHTMLAttributes<HTMLTableElement>) {
+  const ref = useRef<HTMLTableElement>(null)
+  useStackedTable(ref, primary, true)
+  return <table ref={ref} className={cn('ui-stack', className)} {...rest}>{children}</table>
 }
 
 export function Th({ children, className, align }: { children?: ReactNode; className?: string; align?: 'right' }) {
@@ -521,8 +569,8 @@ export function Stat({
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 truncate text-sm font-medium text-fg-muted">{label}</p>
-        {icon && <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', STAT_TONES[tone])} aria-hidden>{icon}</span>}
+        <p className="min-w-0 text-[0.8125rem] font-medium leading-5 text-fg-muted sm:truncate sm:text-sm">{label}</p>
+        {icon && <span className={cn('hidden h-8 w-8 shrink-0 min-[400px]:flex items-center justify-center rounded-lg', STAT_TONES[tone])} aria-hidden>{icon}</span>}
       </div>
       <p className={cn('ui-kpi', icon ? 'mt-1' : 'mt-2')}>{value}</p>
       <p className="mt-1.5 flex min-h-[1.25rem] flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-fg-muted">

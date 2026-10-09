@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Navbar from '@/components/Navbar'
+import { StackedTable } from '@/components/ui'
 
 interface AuditLog {
   id: string
@@ -209,7 +210,7 @@ export default function AuditLogsPage() {
           <>
             <div className="bg-theme-card border border-theme rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <StackedTable className="w-full">
                   <thead className="bg-theme-lighter border-b border-theme">
                     <tr>
                       <th className="text-left px-6 py-3 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
@@ -274,7 +275,7 @@ export default function AuditLogsPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </StackedTable>
               </div>
             </div>
 

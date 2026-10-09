@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
 import QRCode from 'qrcode'
+import { StackedTable } from '@/components/ui'
 
 interface Referral {
   id: string
@@ -222,7 +223,7 @@ export default function SalesDashboardPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <StackedTable className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-theme-secondary border-b border-theme">
                     <th className="pb-3 pr-4">Gym</th>
@@ -255,7 +256,7 @@ export default function SalesDashboardPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </StackedTable>
             </div>
           )}
         </div>

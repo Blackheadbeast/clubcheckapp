@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import PageHelpCard from '@/components/PageHelpCard'
+import { StackedTable } from '@/components/ui'
 
 interface ReferralData {
   referralCode: string
@@ -226,7 +227,7 @@ export default function ReferralsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <StackedTable className="w-full">
                 <thead className="bg-theme-lighter">
                   <tr>
                     <th className="text-left px-6 py-3 text-gray-400 text-sm font-medium">Gym</th>
@@ -281,7 +282,7 @@ export default function ReferralsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </StackedTable>
             </div>
           )}
         </div>

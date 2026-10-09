@@ -186,15 +186,15 @@ export default function DashboardPage() {
                       return (
                         <li key={`c-${c.id}`}>
                           <Link href={`/schedule?session=${c.id}`} className={cn('ui-focus flex items-center gap-3 px-4 py-3 transition hover:bg-subtle/60 sm:gap-4 sm:px-6', over && 'opacity-60')}>
-                            <span className="w-[4.5rem] shrink-0 text-right"><span className="tabular block whitespace-nowrap text-sm font-semibold text-fg-heading">{time(c.startsAt)}</span>{live && <span className="mt-0.5 inline-flex items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Now</span>}</span>
+                            <span className="w-16 shrink-0 text-right sm:w-[4.5rem]"><span className="tabular block whitespace-nowrap text-sm font-semibold text-fg-heading">{time(c.startsAt)}</span>{live && <span className="mt-0.5 inline-flex items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Now</span>}</span>
                             <span className="h-10 w-1 shrink-0 rounded-full" style={{ background: c.color }} aria-hidden />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-semibold text-fg-heading">{c.name}</span>
                               <span className="block truncate text-xs text-fg-muted">Class{c.coach ? ` · ${c.coach.name}` : ' · no coach assigned'}{c.room ? ` · ${c.room}` : c.location ? ` · ${c.location}` : ''}</span>
                             </span>
                             {c.waitlisted > 0 && <Badge tone="amber" className="hidden sm:inline-flex">{c.waitlisted} waiting</Badge>}
-                            <span className="w-24 shrink-0 sm:w-32">
-                              <span className="flex items-baseline justify-between text-xs"><span className="tabular font-semibold text-fg-heading">{c.booked}/{c.capacity}</span><span className="text-fg-muted">{over || live ? `${c.checkedIn} in` : c.spotsLeft === 0 ? 'Full' : `${c.spotsLeft} left`}</span></span>
+                            <span className="w-14 shrink-0 sm:w-32">
+                              <span className="flex items-baseline justify-between text-xs"><span className="tabular font-semibold text-fg-heading">{c.booked}/{c.capacity}</span><span className="hidden text-fg-muted sm:inline">{over || live ? `${c.checkedIn} in` : c.spotsLeft === 0 ? 'Full' : `${c.spotsLeft} left`}</span></span>
                               <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-subtle" role="img" aria-label={`${c.booked} of ${c.capacity} booked`}><span className={cn('block h-full rounded-full', fill >= 100 ? 'bg-amber-500' : 'bg-emerald-500')} style={{ width: `${fill}%` }} /></span>
                             </span>
                           </Link>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                     return (
                       <li key={`a-${a.id}`}>
                         <Link href={`/appointments?open=${a.id}`} className={cn('ui-focus flex items-center gap-3 px-4 py-3 transition hover:bg-subtle/60 sm:gap-4 sm:px-6', over && a.status !== 'booked' && 'opacity-60')}>
-                          <span className="w-[4.5rem] shrink-0 text-right"><span className="tabular block whitespace-nowrap text-sm font-semibold text-fg-heading">{time(a.startsAt)}</span>{live && <span className="mt-0.5 inline-flex items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Now</span>}</span>
+                          <span className="w-16 shrink-0 text-right sm:w-[4.5rem]"><span className="tabular block whitespace-nowrap text-sm font-semibold text-fg-heading">{time(a.startsAt)}</span>{live && <span className="mt-0.5 inline-flex items-center gap-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Now</span>}</span>
                           <span className="h-10 w-1 shrink-0 rounded-full" style={{ background: a.type.color || 'rgb(var(--color-text-muted))' }} aria-hidden />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold text-fg-heading">{a.member.name}</span>

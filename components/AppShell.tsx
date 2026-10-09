@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   FileSignature, Wallet,
-  BarChart3, Bell, Building2, CalendarDays, ChevronDown, CreditCard, LayoutDashboard, LogOut, MapPin, Megaphone, Menu,
+  BarChart3, Bell, Building2, CalendarDays, ChevronDown, CreditCard, LayoutDashboard, LogOut, MapPin, Megaphone, Menu, MessageSquare,
   ScanLine, Search, Settings, ShoppingBag, Target, UserCog, Users, X, Moon, Sun, CalendarClock, Dumbbell } from 'lucide-react'
 import type { Permission } from '@/lib/permissions'
 import { api, useApi, useDebounced } from '@/lib/client'
@@ -634,10 +634,13 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="ui-fade absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" onClick={() => setDrawer(false)} aria-hidden />
           <aside className="ui-rise absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-nav shadow-pop">
-            <button type="button" aria-label="Close menu" onClick={() => setDrawer(false)} className="absolute right-2 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg text-nav-text outline-none hover:bg-nav-raised hover:text-nav-heading focus-visible:ring-2 focus-visible:ring-accent/70">
+            <button type="button" aria-label="Close menu" onClick={() => setDrawer(false)} className="absolute right-2 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-lg text-nav-text outline-none hover:bg-nav-raised hover:text-nav-heading focus-visible:ring-2 focus-visible:ring-accent/70">
               <X className="h-4 w-4" />
             </button>
             <div className="min-h-0 flex-1"><Sidebar onNavigate={() => setDrawer(false)} /></div>
+            <button type="button" onClick={() => { setDrawer(false); window.dispatchEvent(new Event('clubcheck:feedback')) }} className="flex min-h-11 items-center gap-3 border-t border-nav-line px-5 text-left text-sm font-medium text-nav-text outline-none hover:bg-nav-raised hover:text-nav-heading focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70">
+              <MessageSquare className="h-4 w-4" aria-hidden />Send feedback
+            </button>
             {locations.length > 1 && (
               <label className="block border-t border-nav-line p-3 text-xs font-medium text-nav-text sm:hidden">
                 Location

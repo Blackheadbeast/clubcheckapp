@@ -50,22 +50,22 @@ export default function TransactionsPage() {
           <EmptyState icon={<Receipt className="h-5 w-5" />} title="No transactions match" description="Payments appear here when you sell a membership, take a payment or ring up a sale." />
         ) : (
           <>
-            <Table>
-              <thead><tr><Th>Date</Th><Th>Member</Th><Th className="hidden sm:table-cell">Type</Th><Th className="hidden md:table-cell">Method</Th><Th className="hidden md:table-cell">Invoice</Th><Th>Status</Th><Th align="right">Amount</Th><Th className="hidden md:table-cell">ID</Th><Th /></tr></thead>
+            <Table primary={1}>
+              <thead><tr><Th>Date</Th><Th>Member</Th><Th>Type</Th><Th>Method</Th><Th>Invoice</Th><Th>Status</Th><Th align="right">Amount</Th><Th>ID</Th><Th /></tr></thead>
               <tbody>
                 {data.map((t) => (
                   <tr key={t.id}>
-                    <Td className="text-fg-muted">{dateTime(t.createdAt)}<span className="block text-xs sm:hidden">{titleCase(t.type)} · {titleCase(t.method)}</span></Td>
+                    <Td className="text-fg-muted">{dateTime(t.createdAt)}</Td>
                     <Td>{t.member ? <Link href={`/members/${t.member.id}?tab=billing`} className="ui-focus rounded font-medium text-fg-heading hover:underline">{t.member.name}</Link> : <span className="text-fg-subtle">Walk-in</span>}</Td>
-                    <Td className="hidden sm:table-cell">{titleCase(t.type)}</Td>
-                    <Td className="hidden text-fg-muted md:table-cell">{titleCase(t.method)}</Td>
-                    <Td className="hidden md:table-cell">{t.invoice ? <Link href={`/billing/invoices?invoice=${t.invoice.id}`} className="ui-focus rounded text-fg-muted hover:underline">{t.invoice.number}</Link> : '—'}</Td>
+                    <Td>{titleCase(t.type)}</Td>
+                    <Td className="text-fg-muted">{titleCase(t.method)}</Td>
+                    <Td>{t.invoice ? <Link href={`/billing/invoices?invoice=${t.invoice.id}`} className="ui-focus rounded text-fg-muted hover:underline">{t.invoice.number}</Link> : '—'}</Td>
                     <Td>
                       <StatusBadge status={t.type === 'payment' && t.status === 'succeeded' && t.refundedCents > 0 ? (t.refundedCents >= t.amountCents ? 'refunded' : 'partially_refunded') : t.status} />
                       {(t.failureReason || t.note) && <span className="ml-2 max-w-[12rem] truncate align-middle text-xs text-fg-subtle">{t.failureReason || t.note}</span>}
                     </Td>
                     <Td align="right" className={t.type === 'refund' ? 'text-amber-700 dark:text-amber-400' : t.status === 'failed' ? 'text-fg-subtle line-through' : 'font-medium'}>{t.type === 'refund' ? '−' : ''}{money(t.amountCents)}</Td>
-                    <Td className="hidden font-mono text-xs text-fg-subtle md:table-cell">{t.id.slice(0, 8)}</Td>
+                    <Td className="font-mono text-xs text-fg-subtle">{t.id.slice(0, 8)}</Td>
                     <Td align="right">{t.type === 'payment' && t.status === 'succeeded' && t.refundedCents < t.amountCents && can('billing.refund') && <Button size="sm" onClick={() => setRefund({ id: t.id, amountCents: t.amountCents, refundedCents: t.refundedCents, method: t.method })}>Refund</Button>}</Td>
                   </tr>
                 ))}

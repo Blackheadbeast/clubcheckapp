@@ -514,6 +514,12 @@ The look of the product comes from one place; pages do not carry their own colou
   (`SectionTabs`), shown only when the person may open more than one of them. An entry is hidden when the
   role cannot open it; this is presentation only, every API still checks the permission itself. On a phone
   the sidebar is a drawer and a bottom bar holds the four most used areas plus "More".
+- **Phones** (under 640px, rules at the end of `app/globals.css`): fields are 16px text and 44px tall, buttons
+  44px (`ui-tap`), small buttons and icon buttons 40px. `Table` (and `StackedTable` for hand-written tables)
+  draws each row as a card with every value beside its column name; the names are read from the header row, so
+  a page describes its table once. `primary={n}` picks the column used as the card title, `stack={false}` keeps
+  a grid. Small controls that must stay small take `ui-hit` for a larger touch area. Dialogs are bottom sheets.
+  The floating feedback button is desktop only; on a phone it is "Send feedback" in the menu drawer.
 - **Older pages** (landing, sign-in, sales, admin, kiosk, the first Settings tab) still use some earlier
   class names (`text-gray-*`, `bg-theme*`). Those are re-pointed to the tokens in `app/globals.css`. Pages
   drawn on a fixed dark background (landing, not-found) carry `keep-dark` so they read correctly in either theme.

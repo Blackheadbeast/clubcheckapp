@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
+import { StackedTable } from '@/components/ui'
 
 interface SalesRepData {
   id: string
@@ -301,7 +302,7 @@ export default function AdminPage() {
               <p className="text-theme-secondary">Loading...</p>
             ) : (
               <div className="bg-theme-card rounded-lg border border-theme overflow-hidden">
-                <table className="w-full text-sm">
+                <StackedTable className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-theme-secondary border-b border-theme">
                       <th className="px-4 py-3">Name</th>
@@ -339,7 +340,7 @@ export default function AdminPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </StackedTable>
                 {reps.length === 0 && (
                   <p className="text-center text-theme-secondary py-8">No sales reps yet</p>
                 )}
@@ -391,7 +392,7 @@ export default function AdminPage() {
               {analytics.topPerformers.length === 0 ? (
                 <p className="text-theme-secondary text-center py-4">No data yet</p>
               ) : (
-                <table className="w-full text-sm">
+                <StackedTable className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-theme-secondary border-b border-theme">
                       <th className="pb-3 pr-4">#</th>
@@ -412,7 +413,7 @@ export default function AdminPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </StackedTable>
               )}
             </div>
           </div>

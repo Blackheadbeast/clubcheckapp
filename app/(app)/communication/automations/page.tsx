@@ -105,7 +105,7 @@ export default function AutomationsPage() {
                     <p className="mt-0.5 text-sm text-fg-muted">When: {t?.description || a.trigger}{t?.condition && a.conditions?.[t.condition.key] ? ` (${a.conditions[t.condition.key]} ${unit(t.condition.key)})` : ''}</p>
                     <p className="text-sm text-fg-muted">Then: {a.channel === 'sms' ? 'text' : a.channel === 'both' ? 'email and text' : 'email'} the {t?.audience || 'member'} {delayLabel(a.delayMinutes).toLowerCase()}</p>
                   </button>
-                  <button type="button" role="switch" aria-checked={a.isActive} aria-label={`${a.name} is ${a.isActive ? 'on' : 'off'}`} onClick={() => toggle(a)} className={cn('ui-focus relative h-6 w-11 shrink-0 rounded-full transition', a.isActive ? 'bg-emerald-500' : 'bg-line')}>
+                  <button type="button" role="switch" aria-checked={a.isActive} aria-label={`${a.name} is ${a.isActive ? 'on' : 'off'}`} onClick={() => toggle(a)} className={cn('ui-hit ui-focus relative h-6 w-11 shrink-0 rounded-full transition', a.isActive ? 'bg-emerald-500' : 'bg-line')}>
                     <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', a.isActive ? 'left-[22px]' : 'left-0.5')} />
                   </button>
                 </div>

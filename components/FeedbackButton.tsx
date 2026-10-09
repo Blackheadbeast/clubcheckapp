@@ -9,11 +9,13 @@ export default function FeedbackButton() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const pathname = usePathname()
   // Member-facing and full-screen surfaces: staff feedback does not belong there.
-  const hidden = ['/member/', '/kiosk', '/waiver/'].some((p) => pathname?.startsWith(p))
+  const hidden = ['/member/', '/kiosk', '/waiver/', '/book/'].some((p) => pathname?.startsWith(p))
 
   useEffect(() => {
     // Check if user is authenticated by looking for auth cookie
     async function checkAuth() {
+      // Nothing to ask on pages where the button is never shown (the member app, booking pages, sign-in).
+      if (isAuthenticated || hidden || ['/sign/', '/login', '/signup', '/staff-login', '/privacy', '/terms'].some((p) => pathname?.startsWith(p)) || pathname === '/') return
       try {
         const res = await fetch('/api/billing-status', { credentials: 'include' })
         if (res.ok) {
@@ -24,7 +26,8 @@ export default function FeedbackButton() {
       }
     }
     checkAuth()
-  }, [])
+    // Asked again as the page changes, so signing in is noticed without a reload; once known, never again.
+  }, [pathname, hidden, isAuthenticated])
 
   if (hidden) return null
   // Only show for authenticated users
@@ -34,10 +37,11 @@ export default function FeedbackButton() {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="fixed bottom-6 right-6 z-40 bg-primary hover:bg-primary-dark text-black p-3 rounded-full shadow-lg transition-all hover:scale-105 group"
-        title="Send Feedback"
+        className="fixed bottom-20 right-4 z-20 rounded-full border border-line bg-surface p-3 text-fg-muted shadow-raised transition hover:text-fg hover:shadow-pop lg:bottom-6 lg:right-6"
+        title="Send feedback"
+        aria-label="Send feedback"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -45,7 +49,7 @@ export default function FeedbackButton() {
             d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
           />
         </svg>
-        <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-theme-card border border-gray-700 text-gray-100 text-sm px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-theme-card border border-line text-gray-100 text-sm px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Send Feedback
         </span>
       </button>

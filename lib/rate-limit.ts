@@ -173,15 +173,16 @@ export const SALES_DEMO_RATE_LIMIT = {
 
 // Helper to get client IP from request
 export function getClientIP(request: Request): string {
-  // Check common headers for proxied requests
+  // The address the hosting platform itself saw the connection come from. These headers are set
+  // by the platform and cannot be supplied by the caller.
+  const trusted = request.headers.get('x-vercel-forwarded-for') || request.headers.get('x-real-ip')
+  if (trusted) return trusted.split(',')[0].trim()
+
+  // Otherwise the forwarded chain. Its first entry is whatever the caller claimed, which is right
+  // behind a proxy that overwrites the header and is all there is in development.
   const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) {
     return forwarded.split(',')[0].trim()
-  }
-
-  const realIP = request.headers.get('x-real-ip')
-  if (realIP) {
-    return realIP
   }
 
   // Fallback - in serverless this might not be accurate

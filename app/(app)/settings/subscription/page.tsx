@@ -141,8 +141,8 @@ function BillingContent() {
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary">Billing</h1>
-          <p className="text-gray-400 mt-1">Manage your subscription and billing</p>
+          <h1 className="ui-page-title">ClubCheck plan</h1>
+          <p className="text-gray-400 mt-1">What your gym pays ClubCheck: your plan, your card and your invoices.</p>
         </div>
 
         {/* Success Banner */}
@@ -222,7 +222,7 @@ function BillingContent() {
                 </div>
                 <button
                   onClick={() => setShowPlanModal(true)}
-                  className="bg-primary hover:bg-primary-dark text-black font-semibold py-2.5 px-5 rounded-lg transition whitespace-nowrap flex items-center gap-2"
+                  className="ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-2.5 px-5 rounded-lg transition whitespace-nowrap flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -341,7 +341,7 @@ function BillingContent() {
               <button
                 onClick={() => handleSubscribe('starter')}
                 disabled={upgrading !== null}
-                className="w-full bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-3 px-4 rounded-lg border border-gray-700 transition disabled:opacity-50"
+                className="w-full bg-theme-lighter hover:bg-line text-gray-100 font-semibold py-3 px-4 rounded-lg border border-line transition disabled:opacity-50"
               >
                 {upgrading === 'starter' ? 'Processing...' : 'Downgrade to Starter'}
               </button>
@@ -412,7 +412,7 @@ function BillingContent() {
               <button
                 onClick={() => handleSubscribe('pro')}
                 disabled={upgrading !== null}
-                className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50"
+                className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-4 rounded-lg transition disabled:opacity-50"
               >
                 {upgrading === 'pro' ? 'Processing...' : 'Upgrade to Pro'}
               </button>

@@ -10,7 +10,7 @@ import { Db, ActorRef, GymSettings, getGymSettings, logActivity } from './core'
 import { memberBalance } from './payments'
 import { LIVE_STATUSES } from './memberships'
 
-export const CHECKIN_SOURCES = ['qr', 'phone', 'kiosk', 'manual', 'search', 'barcode'] as const
+export const CHECKIN_SOURCES = ['qr', 'phone', 'kiosk', 'manual', 'search', 'barcode', 'member_app'] as const
 
 /** Statuses that may not check in without a staff override. */
 const BLOCKED: Record<string, string> = {
@@ -110,6 +110,14 @@ export async function checkInMember(db: Db, input: CheckInInput) {
   const settings = await getGymSettings(input.ownerId, db)
   const now = new Date()
 
+  // A membership that is only valid at certain locations does not open the door at the others.
+  if (input.locationId && !input.force) {
+    const memberships = await db.membership.findMany({ where: { memberId: member.id, ownerId: input.ownerId, status: { in: ['active', 'trial'] } }, select: { plan: { select: { name: true, locationIds: true } } } })
+    if (memberships.length > 0 && memberships.every((m) => m.plan.locationIds.length > 0 && !m.plan.locationIds.includes(input.locationId!))) {
+      throw new ApiError(422, `${member.name}'s ${memberships[0].plan.name} is not valid at this location.`, 'wrong_location', { memberId: member.id, canOverride: true })
+    }
+  }
+
   // A double scan or double tap should not create two visits.
   const recent = await db.checkin.findFirst({
     where: { memberId: member.id, timestamp: { gt: new Date(now.getTime() - 2 * 60_000) } },
@@ -145,6 +153,8 @@ export async function checkInMember(db: Db, input: CheckInInput) {
   })
   if (booking) {
     await db.booking.update({ where: { id: booking.id }, data: { status: 'attended', checkedInAt: now } })
+    const { bookingEvent } = await import('./events')
+    await bookingEvent(db, input.ownerId, 'booking.checked_in', booking.id)
   }
   return { member, checkin, duplicate: false, streak, attended: booking ? { sessionId: booking.sessionId, name: className! } : null }
 }

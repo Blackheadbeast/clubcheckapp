@@ -64,7 +64,7 @@ export default function SalesLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
                 placeholder="you@example.com"
               />
             </div>
@@ -80,7 +80,7 @@ export default function SalesLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
                 placeholder="••••••••"
               />
             </div>
@@ -94,7 +94,7 @@ export default function SalesLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Logging in...' : 'Log In'}
             </button>

@@ -228,15 +228,16 @@ export default function SettingsPage() {
     }
   }
 
+  // Hooks run on every render, so this one sits above the early return below.
+  const { theme, setTheme } = useTheme()
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-primary text-xl">Loading...</div>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="text-fg-muted">Loading...</div>
       </div>
     )
   }
-
-  const { theme, setTheme } = useTheme()
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'gym', label: 'Gym Info' },
@@ -248,20 +249,20 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-theme">
+    <div className="min-h-full">
       <Navbar />
       <PageHelpCard pageKey="settings" />
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-primary mb-8">Settings</h1>
+      <div className="ui-rise mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-6"><h1 className="ui-page-title">Business settings</h1><p className="mt-1.5 text-[0.9375rem] leading-6 text-fg-muted">Your gym's details, your account, the check-in kiosk, the waiver and how ClubCheck looks.</p></div>
 
         {/* Message */}
         {message && (
           <div
             className={`mb-6 px-4 py-3 rounded-lg ${
               message.type === 'success'
-                ? 'bg-green-900/20 border border-green-800 text-green-400'
-                : 'bg-red-900/20 border border-red-800 text-red-400'
+                ? 'border border-emerald-500/25 bg-emerald-500/10 text-sm font-medium text-emerald-700 dark:text-emerald-400'
+                : 'border border-red-500/25 bg-red-500/10 text-sm font-medium text-red-700 dark:text-red-400'
             }`}
           >
             {message.text}
@@ -269,7 +270,7 @@ export default function SettingsPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-theme pb-2">
+        <div role="tablist" aria-label="Settings sections" className="mb-6 flex flex-wrap gap-1 rounded-xl bg-subtle p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -277,10 +278,12 @@ export default function SettingsPage() {
                 setActiveTab(tab.id)
                 setMessage(null)
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`ui-focus min-h-10 rounded-lg px-3.5 text-sm font-medium transition ${
                 activeTab === tab.id
-                  ? 'bg-primary text-black'
-                  : 'text-gray-400 hover:text-gray-100 hover:bg-theme-lighter'
+                  ? 'bg-surface text-fg-heading shadow-card'
+                  : 'text-fg-muted hover:text-fg-heading'
               }`}
             >
               {tab.label}
@@ -290,42 +293,42 @@ export default function SettingsPage() {
 
         {/* Gym Info Tab */}
         {activeTab === 'gym' && (
-          <form onSubmit={handleSaveGym} className="bg-theme-card p-6 rounded-lg border border-theme">
-            <h2 className="text-xl font-semibold text-gray-100 mb-6">Gym Information</h2>
+          <form onSubmit={handleSaveGym} className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+            <h2 className="ui-section-title mb-5 text-lg">Gym Information</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Gym Name</label>
+                <label className="ui-label mb-1.5 block">Gym Name</label>
                 <input
                   type="text"
                   value={gymName}
                   onChange={(e) => setGymName(e.target.value)}
                   placeholder="Your Gym Name"
-                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="ui-input h-10"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Address</label>
+                <label className="ui-label mb-1.5 block">Address</label>
                 <textarea
                   value={gymAddress}
                   onChange={(e) => setGymAddress(e.target.value)}
                   placeholder="123 Main St, City, State 12345"
                   rows={2}
-                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary resize-none"
+                  className="ui-input resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Logo URL</label>
+                <label className="ui-label mb-1.5 block">Logo URL</label>
                 <input
                   type="url"
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
                   placeholder="https://example.com/logo.png"
-                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="ui-input h-10"
                 />
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="mt-1.5 text-sm text-fg-muted">
                   Enter a URL to your gym&apos;s logo. Recommended size: 200x200px.
                 </p>
                 {logoUrl && (
@@ -333,12 +336,12 @@ export default function SettingsPage() {
                     <img
                       src={logoUrl}
                       alt="Logo preview"
-                      className="h-12 w-12 rounded-lg object-cover border border-gray-700"
+                      className="h-12 w-12 rounded-lg object-cover border border-line"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
-                    <span className="text-gray-400 text-sm">Preview</span>
+                    <span className="text-sm text-fg-muted">Preview</span>
                   </div>
                 )}
               </div>
@@ -347,7 +350,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="mt-6 bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
+              className="ui-focus mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition hover:brightness-[1.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -358,18 +361,18 @@ export default function SettingsPage() {
         {activeTab === 'account' && (
           <div className="space-y-6">
             {/* Account Info */}
-            <div className="bg-theme-card p-6 rounded-lg border border-theme">
-              <h2 className="text-xl font-semibold text-gray-100 mb-6">Account Information</h2>
+            <div className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+              <h2 className="ui-section-title mb-5 text-lg">Account Information</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
-                  <div className="text-gray-100">{data?.owner.email}</div>
+                  <label className="ui-label mb-1.5 block">Email</label>
+                  <div className="text-fg-heading">{data?.owner.email}</div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Member Since</label>
-                  <div className="text-gray-100">
+                  <label className="ui-label mb-1.5 block">Member Since</label>
+                  <div className="text-fg-heading">
                     {data?.owner.createdAt
                       ? new Date(data.owner.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -381,8 +384,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Plan</label>
-                  <div className="text-gray-100 capitalize">{data?.owner.planType || 'Starter'}</div>
+                  <label className="ui-label mb-1.5 block">Plan</label>
+                  <div className="capitalize text-fg-heading">{data?.owner.planType || 'Starter'}</div>
                 </div>
               </div>
             </div>
@@ -390,42 +393,42 @@ export default function SettingsPage() {
             {/* Change Password */}
             <form
               onSubmit={handleChangePassword}
-              className="bg-theme-card p-6 rounded-lg border border-theme"
+              className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
             >
-              <h2 className="text-xl font-semibold text-gray-100 mb-6">Change Password</h2>
+              <h2 className="ui-section-title mb-5 text-lg">Change Password</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="ui-label mb-1.5 block">
                     Current Password
                   </label>
                   <input
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="ui-input h-10"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+                  <label className="ui-label mb-1.5 block">New Password</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="ui-input h-10"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="ui-label mb-1.5 block">
                     Confirm New Password
                   </label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="ui-input h-10"
                   />
                 </div>
               </div>
@@ -433,7 +436,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving || !currentPassword || !newPassword}
-                className="mt-6 bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
+                className="ui-focus mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition hover:brightness-[1.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? 'Changing...' : 'Change Password'}
               </button>
@@ -443,28 +446,28 @@ export default function SettingsPage() {
 
         {/* Billing Tab */}
         {activeTab === 'billing' && (
-          <form onSubmit={handleSaveBilling} className="bg-theme-card p-6 rounded-lg border border-theme">
-            <h2 className="text-xl font-semibold text-gray-100 mb-6">Billing Settings</h2>
+          <form onSubmit={handleSaveBilling} className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+            <h2 className="ui-section-title mb-5 text-lg">Billing Settings</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Billing Mode</label>
+                <label className="ui-label mb-1.5 block">Billing Mode</label>
                 <select
                   value={billingMode}
                   onChange={(e) => setBillingMode(e.target.value)}
-                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="ui-input h-10"
                 >
                   <option value="stripe">Stripe (Automatic)</option>
                   <option value="external">External Provider</option>
                 </select>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="mt-1.5 text-sm text-fg-muted">
                   Choose how you process member payments.
                 </p>
               </div>
 
               {billingMode === 'external' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="ui-label mb-1.5 block">
                     External Provider Name
                   </label>
                   <input
@@ -472,13 +475,13 @@ export default function SettingsPage() {
                     value={externalProviderName}
                     onChange={(e) => setExternalProviderName(e.target.value)}
                     placeholder="e.g., Square, PayPal, etc."
-                    className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="ui-input h-10"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="ui-label mb-1.5 block">
                   Billing Contact Email
                 </label>
                 <input
@@ -486,20 +489,20 @@ export default function SettingsPage() {
                   value={billingContactEmail}
                   onChange={(e) => setBillingContactEmail(e.target.value)}
                   placeholder="billing@yourgym.com"
-                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                  className="ui-input h-10"
                 />
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="mt-1.5 text-sm text-fg-muted">
                   Where billing-related notifications should be sent.
                 </p>
               </div>
 
               {/* Subscription Info */}
               {data?.owner.subscriptionStatus && (
-                <div className="mt-6 pt-6 border-t border-theme">
-                  <h3 className="text-lg font-medium text-gray-100 mb-4">Current Subscription</h3>
+                <div className="mt-6 border-t border-line pt-6">
+                  <h3 className="ui-section-title mb-4">Current Subscription</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm text-gray-400">Status</div>
+                      <div className="text-sm text-fg-muted">Status</div>
                       <div
                         className={`font-medium capitalize ${
                           data.owner.subscriptionStatus === 'active'
@@ -513,8 +516,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-400">Next Billing Date</div>
-                      <div className="text-gray-100">
+                      <div className="text-sm text-fg-muted">Next Billing Date</div>
+                      <div className="text-fg-heading">
                         {data.owner.currentPeriodEnd
                           ? new Date(data.owner.currentPeriodEnd).toLocaleDateString()
                           : '-'}
@@ -528,7 +531,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="mt-6 bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
+              className="ui-focus mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition hover:brightness-[1.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -537,15 +540,15 @@ export default function SettingsPage() {
 
         {/* Waiver Tab */}
         {activeTab === 'waiver' && (
-          <form onSubmit={handleSaveWaiver} className="bg-theme-card p-6 rounded-lg border border-theme">
-            <h2 className="text-xl font-semibold text-gray-100 mb-6">Liability Waiver</h2>
+          <form onSubmit={handleSaveWaiver} className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+            <h2 className="ui-section-title mb-5 text-lg">Liability Waiver</h2>
 
             <div className="space-y-6">
               {/* Enable Toggle */}
-              <div className="flex items-center justify-between p-4 bg-theme-lighter rounded-lg border border-gray-700">
+              <div className="flex items-center justify-between rounded-xl border border-line bg-subtle/60 p-4">
                 <div>
-                  <h3 className="font-medium text-gray-100">Enable Digital Waiver</h3>
-                  <p className="text-gray-500 text-sm mt-1">
+                  <h3 className="font-medium text-fg-heading">Enable Digital Waiver</h3>
+                  <p className="mt-1.5 text-sm text-fg-muted">
                     Require members to sign a liability waiver before their first check-in
                   </p>
                 </div>
@@ -556,13 +559,13 @@ export default function SettingsPage() {
                     onChange={(e) => setWaiverEnabled(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-line peer-focus-visible:ring-2 peer-focus-visible:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                 </label>
               </div>
 
               {/* Waiver Text */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="ui-label mb-1.5 block">
                   Waiver Text
                 </label>
                 <textarea
@@ -579,9 +582,9 @@ RELEASE AND WAIVER: I hereby release and waive any claims against [Gym Name], it
 MEDICAL CONDITIONS: I confirm that I have no medical conditions that would prevent me from safely participating in physical exercise, or I have obtained clearance from a medical professional.
 
 I have read this waiver in its entirety and understand that I am giving up substantial rights by signing it."
-                  className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary resize-none font-mono text-sm"
+                  className="ui-input resize-none font-mono"
                 />
-                <p className="text-gray-500 text-sm mt-2">
+                <p className="mt-2 text-sm text-fg-muted">
                   This text will be shown to members when they sign the waiver. Make sure to include all
                   necessary legal language for your jurisdiction.
                 </p>
@@ -589,9 +592,9 @@ I have read this waiver in its entirety and understand that I am giving up subst
 
               {/* Preview Info */}
               {waiverEnabled && (
-                <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
-                  <h3 className="font-medium text-primary mb-2">How it works</h3>
-                  <ul className="text-gray-400 text-sm space-y-1">
+                <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
+                  <h3 className="mb-2 font-medium text-fg-heading">How it works</h3>
+                  <ul className="space-y-1 text-sm text-fg-muted">
                     <li>1. Each member gets a unique waiver signing link</li>
                     <li>2. You can send the link from the member details page</li>
                     <li>3. Members sign by typing their name and verifying their email</li>
@@ -604,7 +607,7 @@ I have read this waiver in its entirety and understand that I am giving up subst
             <button
               type="submit"
               disabled={saving}
-              className="mt-6 bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
+              className="ui-focus mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition hover:brightness-[1.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Waiver Settings'}
             </button>
@@ -613,12 +616,12 @@ I have read this waiver in its entirety and understand that I am giving up subst
 
         {/* Appearance Tab */}
         {activeTab === 'appearance' && (
-          <div className="bg-theme-card p-6 rounded-lg border border-theme">
-            <h2 className="text-xl font-semibold text-gray-100 mb-6">Appearance</h2>
+          <div className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+            <h2 className="ui-section-title mb-5 text-lg">Appearance</h2>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-4">Theme</label>
+                <label className="ui-label mb-3 block">Theme</label>
                 <div className="grid grid-cols-3 gap-4">
                   {(['light', 'dark', 'auto'] as Theme[]).map((option) => (
                     <button
@@ -627,8 +630,8 @@ I have read this waiver in its entirety and understand that I am giving up subst
                       onClick={() => setTheme(option)}
                       className={`p-4 rounded-xl border-2 transition flex flex-col items-center gap-3 ${
                         theme === option
-                          ? 'border-primary bg-primary/10'
-                          : 'border-gray-700 hover:border-gray-600'
+                          ? 'border-accent bg-accent/10'
+                          : 'border-line hover:border-fg-muted/40'
                       }`}
                     >
                       <div
@@ -651,23 +654,23 @@ I have read this waiver in its entirety and understand that I am giving up subst
                           </svg>
                         )}
                         {option === 'auto' && (
-                          <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-6 h-6 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                           </svg>
                         )}
                       </div>
                       <div className="text-center">
-                        <div className={`font-medium capitalize ${theme === option ? 'text-primary' : 'text-gray-100'}`}>
+                        <div className={`font-medium capitalize ${'text-fg-heading'}`}>
                           {option}
                         </div>
-                        <div className="text-gray-500 text-xs mt-1">
+                        <div className="mt-1.5 text-xs text-fg-muted">
                           {option === 'light' && 'Always light'}
                           {option === 'dark' && 'Always dark'}
                           {option === 'auto' && 'Match system'}
                         </div>
                       </div>
                       {theme === option && (
-                        <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                        <div className="w-5 h-5 bg-accent rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
@@ -678,8 +681,8 @@ I have read this waiver in its entirety and understand that I am giving up subst
                 </div>
               </div>
 
-              <div className="p-4 bg-theme-lighter rounded-lg border border-gray-700">
-                <p className="text-gray-400 text-sm">
+              <div className="rounded-xl border border-line bg-subtle/60 p-4">
+                <p className="text-sm text-fg-muted">
                   Your theme preference is saved automatically and synced across devices.
                 </p>
               </div>
@@ -693,18 +696,18 @@ I have read this waiver in its entirety and understand that I am giving up subst
             <SystemStatus />
 
             {/* Environment Info */}
-            <div className="bg-theme-card p-6 rounded-lg border border-theme">
+            <div className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
               <h3 className="text-lg font-semibold mb-4">Environment</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-400">Mode:</span>
-                  <span className="ml-2 text-gray-100">
+                  <span className="text-fg-muted">Mode:</span>
+                  <span className="ml-2 text-fg-heading">
                     {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Owner ID:</span>
-                  <span className="ml-2 text-gray-100 font-mono text-xs">
+                  <span className="text-fg-muted">Owner ID:</span>
+                  <span className="ml-2 font-mono text-xs text-fg-heading">
                     {data?.owner.id.slice(0, 8)}...
                   </span>
                 </div>

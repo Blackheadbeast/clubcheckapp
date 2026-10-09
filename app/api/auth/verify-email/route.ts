@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getTrialEndDate } from '@/lib/billing'
 import { SignJWT } from 'jose'
 import { cookies } from 'next/headers'
+import { passwordVersion } from '@/lib/auth'
 
 function getSecret() {
   const s = process.env.JWT_SECRET
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
     const jwtToken = await new SignJWT({
       ownerId: owner.id,
       emailVerified: true,
+      pv: passwordVersion(owner.password),
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()

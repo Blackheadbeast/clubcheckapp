@@ -4,9 +4,12 @@ import { randomBytes, randomUUID } from 'crypto'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { ApiError, assertOwned, badRequest, notFound } from '@/lib/api'
+import { checkMemberLimit } from '@/lib/billing'
 import { memberStatusValues } from '@/lib/format'
 import { optionalText } from '@/lib/schemas'
 import { Db, ActorRef, logActivity } from './core'
+import { memberEvent } from './events'
 import { LIVE_STATUSES } from './memberships'
 
 export const memberFieldsSchema = z.object({
@@ -34,7 +37,8 @@ export type MemberFields = z.infer<typeof memberFieldsSchema>
 
 /** Translate validated form fields into Prisma column values. */
 export function memberData(fields: Partial<MemberFields>) {
-  const { dateOfBirth, ...rest } = fields
+  // SMS consent is not an ordinary field: it is changed through setSmsConsent so every change is recorded.
+  const { dateOfBirth, smsOptIn: _consent, ...rest } = fields
   return {
     ...rest,
     ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth ? new Date(`${dateOfBirth}T00:00:00.000Z`) : null }),
@@ -42,7 +46,7 @@ export function memberData(fields: Partial<MemberFields>) {
 }
 
 /** Build the directory filter from query parameters. Shared by the list and the CSV export. */
-export function memberWhere(ownerId: string, query: URLSearchParams): Prisma.MemberWhereInput {
+export function memberWhere(ownerId: string, query: URLSearchParams, home?: Prisma.MemberWhereInput): Prisma.MemberWhereInput {
   const and: Prisma.MemberWhereInput[] = []
   const status = query.get('status')
   const where: Prisma.MemberWhereInput = { ownerId, archivedAt: status === 'archived' ? { not: null } : null }
@@ -64,8 +68,10 @@ export function memberWhere(ownerId: string, query: URLSearchParams): Prisma.Mem
 
   const tagId = query.get('tagId')
   if (tagId) and.push({ tags: { some: { tagId } } })
+  // The caller passes the location rule for the person asking (see homeScope); the raw parameter is only a fallback.
   const locationId = query.get('locationId')
-  if (locationId) where.homeLocationId = locationId
+  if (home) and.push(home)
+  else if (locationId) where.homeLocationId = locationId
   const coachId = query.get('coachId')
   if (coachId) where.assignedStaffId = coachId
 
@@ -114,7 +120,95 @@ export async function createMember(db: Db, ownerId: string, fields: Pick<MemberF
     data: { ownerId, qrCode: newQrCode(), ...newAccessToken(), status: extra.status || 'active', ...memberData(fields), name: fields.name, email: fields.email },
   })
   await logActivity(db, { ownerId, memberId: member.id, type: 'joined', title: 'Joined', detail: fields.leadSource ? `Source: ${fields.leadSource}` : undefined, actor })
+  await memberEvent(db, ownerId, 'member.created', member.id)
+  // Anything the gym requires of every new member is given to them now; they are told how to sign it once this is saved.
+  const { assignSignupDocuments } = await import('./documents')
+  await assignSignupDocuments(db, ownerId, member.id, actor)
+  if (fields.smsOptIn) {
+    const { setSmsConsent } = await import('./sms')
+    await setSmsConsent(db, { ownerId, memberId: member.id, scope: 'operational', optedIn: true, source: 'staff', method: 'Recorded when the member was added', actorName: actor?.name })
+    return { ...member, smsOptIn: true }
+  }
   return member
+}
+
+/**
+ * Add a member the way the directory does: the plan's member limit, ownership of anything named,
+ * one live member per email address, then the welcome email. Used by the staff app and the public API.
+ */
+export async function addMember(ownerId: string, fields: MemberFields, actor?: ActorRef, opts: { welcomeEmail?: boolean } = {}) {
+  const limit = await checkMemberLimit(ownerId)
+  if (!limit.allowed) throw new ApiError(403, limit.error, 'member_limit')
+  await assertOwned(ownerId, 'location', fields.homeLocationId, 'Location')
+  await assertOwned(ownerId, 'staff', fields.assignedStaffId, 'Coach')
+  const duplicate = await prisma.member.findFirst({ where: { ownerId, email: fields.email, archivedAt: null }, select: { id: true, name: true } })
+  if (duplicate) throw new ApiError(409, `${duplicate.name} already uses that email address.`, 'duplicate_email', { memberId: duplicate.id })
+  const member = await prisma.$transaction((db) => createMember(db, ownerId, fields, actor))
+  await import('./documents').then((d) => d.emailNewDocuments(ownerId, member.id)).catch(() => {})
+
+  // Welcome email with their QR code. Delivery problems never fail the request.
+  let emailSent = false
+  if (opts.welcomeEmail !== false) {
+    try {
+      const QRCode = (await import('qrcode')).default
+      const qrCodeUrl = await QRCode.toDataURL(member.qrCode, { width: 300, margin: 2 })
+      const { sendMemberWelcomeEmail } = await import('@/lib/email')
+      emailSent = (await sendMemberWelcomeEmail(member.email, member.name, qrCodeUrl, member.accessToken || undefined)).success
+    } catch (error) {
+      console.error('Welcome email failed:', error)
+    }
+  }
+  return { member, emailSent }
+}
+
+export const memberUpdateSchema = memberFieldsSchema.partial().extend({
+  status: z.enum(['active', 'trial', 'past_due', 'frozen', 'cancelled', 'inactive']).optional(),
+  archived: z.boolean().optional(),
+})
+
+/** Edit a member's profile, set a status by hand (only for someone with no membership), archive or restore. */
+export async function updateMember(ownerId: string, id: string, input: z.infer<typeof memberUpdateSchema>, opts: { actor?: ActorRef; mayArchive: boolean }) {
+  const before = await prisma.member.findFirst({ where: { id, ownerId }, include: { _count: { select: { memberships: true } } } })
+  if (!before) throw notFound('Member')
+  const { status, archived, ...fields } = input
+  if (archived !== undefined && !opts.mayArchive) throw new ApiError(403, 'You do not have permission to archive members.', 'forbidden')
+  if (status && before._count.memberships > 0) {
+    throw badRequest("This member's status follows their membership. Freeze or cancel the membership instead.", 'status_derived')
+  }
+  await assertOwned(ownerId, 'location', fields.homeLocationId, 'Location')
+  await assertOwned(ownerId, 'staff', fields.assignedStaffId, 'Coach')
+  if (fields.email && fields.email !== before.email) {
+    const clash = await prisma.member.findFirst({ where: { ownerId, email: fields.email, archivedAt: null, id: { not: before.id } }, select: { name: true } })
+    if (clash) throw new ApiError(409, `${clash.name} already uses that email address.`, 'duplicate_email')
+  }
+
+  const member = await prisma.$transaction(async (db) => {
+    await db.member.update({
+      where: { id: before.id },
+      data: {
+        ...memberData(fields),
+        ...(status && { status }),
+        ...(archived !== undefined && { archivedAt: archived ? new Date() : null }),
+      },
+    })
+    if (fields.smsOptIn !== undefined && fields.smsOptIn !== before.smsOptIn) {
+      // Recorded with who changed it. Opting someone back in after they replied STOP is refused.
+      const { setSmsConsent } = await import('./sms')
+      await setSmsConsent(db, { ownerId, memberId: before.id, scope: 'operational', optedIn: fields.smsOptIn, source: 'staff', method: 'Changed on the member profile', actorName: opts.actor?.name })
+    }
+    if (status && status !== before.status) {
+      await logActivity(db, { ownerId, memberId: before.id, type: 'status_changed', title: `Status changed to ${status.replace('_', ' ')}`, actor: opts.actor })
+    }
+    const archiving = archived !== undefined && !!before.archivedAt !== archived
+    if (archiving) {
+      await logActivity(db, { ownerId, memberId: before.id, type: archived ? 'archived' : 'restored', title: archived ? 'Archived' : 'Restored from archive', actor: opts.actor })
+    }
+    // One event for the request: archived if that is what it did, otherwise updated.
+    await memberEvent(db, ownerId, archiving && archived ? 'member.archived' : 'member.updated', before.id)
+    return db.member.findUniqueOrThrow({ where: { id: before.id } })
+  })
+  const changed = Object.keys(fields).filter((k) => String((before as any)[k] ?? '') !== String((member as any)[k] ?? ''))
+  return { before, member, changed, archived }
 }
 
 /** Open-invoice balance per member, for a page of the directory. */

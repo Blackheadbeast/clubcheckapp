@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { createToken } from "@/lib/auth";
+import { createToken, passwordVersion } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { rateLimitResponse, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+import { recordFailedSignIn, signInBlocked } from "@/lib/login-attempts";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -41,11 +42,21 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = parsed.data.email.toLowerCase().trim();
     const { password } = parsed.data;
 
+    // Too many wrong passwords for this address, counted across every server instance.
+    if (await signInBlocked("owner", normalizedEmail)) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": "900" } }
+      );
+    }
+
     const owner = await prisma.owner.findUnique({
       where: { email: normalizedEmail },
     });
 
     if (!owner) {
+      // Counted the same as a wrong password, so the answer does not reveal which addresses exist.
+      await recordFailedSignIn("owner", normalizedEmail);
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -54,6 +65,7 @@ export async function POST(request: NextRequest) {
 
     const valid = await bcrypt.compare(password, owner.password);
     if (!valid) {
+      await recordFailedSignIn("owner", normalizedEmail);
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -61,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isVerified = !!owner.emailVerified;
-    const token = await createToken({ ownerId: owner.id, emailVerified: isVerified });
+    const token = await createToken({ ownerId: owner.id, emailVerified: isVerified, pv: passwordVersion(owner.password) });
 
     // ✅ Next.js 15: cookies() is async and MUST be awaited
     const cookieStore = await cookies();

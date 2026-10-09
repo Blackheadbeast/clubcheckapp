@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getOwnerFromCookie } from '@/lib/auth'
+import { createToken, getOwnerFromCookie, passwordVersion } from '@/lib/auth'
 import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
@@ -59,7 +59,17 @@ export async function POST(request: NextRequest) {
       data: { password: hashedPassword },
     })
 
-    return NextResponse.json({ success: true })
+    // Changing the password ends every session that began under the old one. This device gets a
+    // new session so the person who just changed it is not signed out with everyone else.
+    const response = NextResponse.json({ success: true })
+    response.cookies.set('auth-token', await createToken({ ownerId: owner.ownerId, emailVerified: owner.emailVerified, pv: passwordVersion(hashedPassword) }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+    return response
   } catch (error) {
     console.error('Change password error:', error)
     return NextResponse.json({ error: 'Failed to change password' }, { status: 500 })

@@ -5,6 +5,7 @@ import { resolveRange } from '@/lib/dates'
 import { checkInMember, findMembers, memberCard } from '@/lib/services/checkin'
 import { getGymSettings } from '@/lib/services/core'
 import { CHECKIN_RATE_LIMIT } from '@/lib/rate-limit'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -26,6 +27,8 @@ export const POST = handler(
   { permission: 'attendance.manage', write: true, body: checkinSchema, rateLimit: { key: 'checkin', ...CHECKIN_RATE_LIMIT } },
   async ({ ownerId, body, actor, can }) => {
     await assertOwned(ownerId, 'location', body.locationId, 'Location')
+    // Staff tied to one location always check people in there, whatever the request says.
+    const scope = await effectiveLocation(ownerId, actor, body.locationId)
     let memberId = body.memberId
     if (!memberId) {
       const matches = await findMembers(ownerId, (body.qrCode || body.phoneNumber)!, 5)
@@ -42,7 +45,7 @@ export const POST = handler(
 
     const source = body.source || (body.qrCode ? 'qr' : body.phoneNumber ? 'phone' : 'manual')
     const result = await prisma.$transaction((db) =>
-      checkInMember(db, { ownerId, memberId: memberId!, source, locationId: body.locationId, deviceName: body.deviceName, force: body.force, actor })
+      checkInMember(db, { ownerId, memberId: memberId!, source, locationId: scope.locationId, deviceName: body.deviceName, force: body.force, actor })
     )
     const card = await memberCard(ownerId, result.member.id)
     return {
@@ -58,14 +61,15 @@ export const POST = handler(
 )
 
 // GET /api/checkin?range=today&locationId=&page= - the check-in log
-export const GET = handler({ permission: ['attendance.manage', 'members.view'] }, async ({ ownerId, query }) => {
+export const GET = handler({ permission: ['attendance.manage', 'members.view'] }, async ({ ownerId, query, actor }) => {
   const { page, pageSize, skip, take } = paging(query, 50)
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const settings = await getGymSettings(ownerId)
   const range = resolveRange(query.get('range') || 'today', query.get('from'), query.get('to'), settings.timezone)
   const where = {
     ownerId,
     timestamp: { gte: range.start, lt: range.end },
-    ...(query.get('locationId') && { locationId: query.get('locationId')! }),
+    ...(scope.locationId && { locationId: scope.locationId }),
     ...(query.get('type') && { type: query.get('type')! }),
   }
   const [checkins, total] = await Promise.all([

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
+import { recordFailedSignIn, signInBlocked } from '@/lib/login-attempts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -11,6 +13,10 @@ export async function GET(
 ) {
   try {
     const { memberId } = await params
+    // A public page: one visitor does not get to walk through IDs.
+    if (!checkRateLimit(`waiver:${getClientIP(request)}`, { windowMs: 60_000, maxRequests: 30 }).allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
+    }
 
     const member = await prisma.member.findUnique({
       where: { id: memberId },
@@ -66,14 +72,27 @@ export async function POST(
 ) {
   try {
     const { memberId } = await params
-    const body = await request.json()
-    const { signature, email } = body
+    if (!checkRateLimit(`waiver-sign:${getClientIP(request)}`, { windowMs: 60_000, maxRequests: 10 }).allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
+    }
+    const body = await request.json().catch(() => null)
+    const signature = body?.signature
+    const email = body?.email
 
-    if (!signature || !email) {
+    // Both are text, and a signature is a small drawing or a typed name: not megabytes of anything.
+    if (typeof signature !== 'string' || typeof email !== 'string' || !signature || !email) {
       return NextResponse.json(
         { error: 'Signature and email are required' },
         { status: 400 }
       )
+    }
+    if (signature.length > 300_000 || email.length > 320) {
+      return NextResponse.json({ error: 'That signature is too large.' }, { status: 400 })
+    }
+    // The email is what proves who is signing. Guesses at it are counted per member, across every
+    // server instance, and stop after ten in a quarter of an hour.
+    if (await signInBlocked('waiver', memberId)) {
+      return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
     }
 
     const member = await prisma.member.findUnique({
@@ -101,6 +120,7 @@ export async function POST(
 
     // Verify email matches
     if (member.email.toLowerCase() !== email.toLowerCase()) {
+      await recordFailedSignIn('waiver', memberId)
       return NextResponse.json(
         { error: 'Email does not match our records' },
         { status: 400 }

@@ -6,18 +6,20 @@ import { resolveRange } from '@/lib/dates'
 import { formatMoney } from '@/lib/format'
 import { checkout } from '@/lib/services/pos'
 import { getGymSettings } from '@/lib/services/core'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = handler({ permission: ['pos.sell', 'pos.manage'] }, async ({ ownerId, query }) => {
+export const GET = handler({ permission: ['pos.sell', 'pos.manage'] }, async ({ ownerId, query, actor }) => {
   const { page, pageSize, skip, take } = paging(query)
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const settings = await getGymSettings(ownerId)
   const range = query.get('range') ? resolveRange(query.get('range'), query.get('from'), query.get('to'), settings.timezone) : null
   const search = (query.get('search') || '').trim()
   const where: Prisma.OrderWhereInput = {
     ownerId,
     ...(range && { createdAt: { gte: range.start, lt: range.end } }),
-    ...(query.get('locationId') && { locationId: query.get('locationId')! }),
+    ...(scope.locationId && { locationId: scope.locationId }),
     ...(search && { OR: [{ number: { contains: search, mode: 'insensitive' } }, { member: { name: { contains: search, mode: 'insensitive' } } }] }),
   }
   const [orders, total, sums] = await Promise.all([
@@ -45,7 +47,9 @@ export const POST = handler({ permission: 'pos.sell', write: true, body: checkou
   await assertOwned(ownerId, 'location', body.locationId, 'Location')
   // Ad-hoc discounts need the same authority as refunds; coupons are fine for anyone at the till.
   const discountCents = can('billing.refund') ? body.discountCents : 0
-  const result = await prisma.$transaction((db) => checkout(db, { ownerId, ...body, discountCents, actor }), { timeout: 20_000 })
+  // A sale rung up by staff locked to a location is recorded there.
+  const till = await effectiveLocation(ownerId, actor, body.locationId)
+  const result = await prisma.$transaction((db) => checkout(db, { ownerId, ...body, ...(till.locked && { locationId: till.locationId }), discountCents, actor }), { timeout: 20_000 })
   await audit('order.create', `Sale ${result.order.number} for ${formatMoney(result.totals.totalCents)}`, { entityType: 'order', entityId: result.order.id })
   return { id: result.order.id, number: result.order.number, ...result.totals }
 })

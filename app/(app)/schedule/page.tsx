@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, UserRound } from 'lucide-react'
 import { api, ClientError, qs, useApi } from '@/lib/client'
 import { addDaysToDate, zonedParts, zonedToUtc } from '@/lib/dates'
 import { useLookups } from '@/lib/hooks'
@@ -10,6 +10,7 @@ import { useSession } from '@/components/Session'
 import { Button, Card, ConfirmModal, EmptyState, ErrorState, Page, PageHeader, Select, Spinner, cn, useToast } from '@/components/ui'
 import type { SessionSummary } from '@/components/schedule/BookClassModal'
 import { SessionDrawer, SessionFormModal, type SessionDraft } from '@/components/schedule/SessionModals'
+import { AppointmentDetailModal, BookAppointmentModal } from '@/components/appointments/AppointmentModals'
 
 type View = 'day' | 'week' | 'month' | 'agenda'
 const VIEWS: { key: View; label: string }[] = [{ key: 'day', label: 'Day' }, { key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: 'agenda', label: 'Agenda' }]
@@ -26,6 +27,19 @@ const pad = (n: number) => String(n).padStart(2, '0')
 const dayLabel = (date: string, options: Intl.DateTimeFormatOptions) => {
   const [y, m, d] = date.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { ...options, timeZone: 'UTC' })
+}
+
+interface CalendarAppointment { id: string; status: string; startsAt: string; endsAt: string; type: { id: string; name: string; color: string }; staff: { id: string; name: string }; member: { id: string; name: string }; location: { id: string; name: string } | null }
+const APPT = 'appt:'
+const isAppointment = (item: { id: string }) => item.id.startsWith(APPT)
+
+/** Show an appointment on the same grid as classes. It is one person with one coach, so it is always "1/1". */
+function asCalendarItem(a: CalendarAppointment): SessionSummary {
+  return {
+    id: APPT + a.id, title: a.member.name, classType: { id: a.type.id, name: a.type.name, color: a.type.color, category: 'appointment' }, coach: a.staff, location: a.location, room: null,
+    startsAt: a.startsAt, endsAt: a.endsAt, status: ['cancelled', 'late_cancelled'].includes(a.status) ? 'cancelled' : 'scheduled', cancelReason: null, scheduleId: null,
+    capacity: 1, waitlistCapacity: 0, booked: 1, spotsLeft: 0, waitlisted: 0, attended: a.status === 'completed' ? 1 : 0, noShow: a.status === 'no_show' ? 1 : 0,
+  } as SessionSummary
 }
 
 interface Placed extends SessionSummary {
@@ -86,6 +100,10 @@ function Calendar() {
   const [classTypeId, setClassTypeId] = useState(params.get('classTypeId') || '')
   const [coachId, setCoachId] = useState('')
   const [showCancelled, setShowCancelled] = useState(false)
+  const [show, setShow] = useState<'all' | 'classes' | 'appointments'>('all')
+  const [appointmentId, setAppointmentId] = useState<string | null>(null)
+  const [bookingAppointment, setBookingAppointment] = useState(false)
+  const seeAppointments = can('appointments.view')
   const [openId, setOpenId] = useState<string | null>(params.get('session'))
   const [draft, setDraft] = useState<Partial<SessionDraft> | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -109,7 +127,10 @@ function Calendar() {
   const to = zonedToUtc(addDaysToDate(first, days), '00:00', tz).toISOString()
 
   const { data, error, loading, refreshing, reload } = useApi<SessionSummary[]>(`/api/schedule/sessions${qs({ from, to, locationId, classTypeId, coachId, cancelled: showCancelled ? 1 : null })}`)
-  const byDay = useMemo(() => place(data || [], tz), [data, tz])
+  const appointments = useApi<CalendarAppointment[]>(seeAppointments && show !== 'classes' && !classTypeId ? `/api/appointments${qs({ from, to, locationId, staffId: coachId, status: showCancelled ? null : 'active' })}` : null)
+  const items = useMemo(() => [...(show === 'appointments' ? [] : data || []), ...(appointments.data || []).map(asCalendarItem)], [data, appointments.data, show])
+  const byDay = useMemo(() => place(items, tz), [items, tz])
+  const reloadAll = () => { reload(); appointments.reload() }
 
   const step = (direction: 1 | -1) => {
     if (view === 'month') {
@@ -127,7 +148,7 @@ function Calendar() {
     setDraft({ date: date || (dates.includes(today) ? today : dates[0]), startTime: startTime || '09:00', classTypeId: classTypeId || undefined, coachId: coachId || undefined })
     setFormOpen(true)
   }
-  const open = (id: string) => setOpenId(id)
+  const open = (id: string) => (isAppointment({ id }) ? setAppointmentId(id.slice(APPT.length)) : setOpenId(id))
   const closeDrawer = () => {
     setOpenId(null)
     if (params.get('session')) router.replace('/schedule')
@@ -158,7 +179,10 @@ function Calendar() {
     <Page>
       <PageHeader
         title="Calendar"
-        actions={canManage && <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => create()}>New class</Button>}
+        actions={<>
+          {can('appointments.manage') && <Button icon={<UserRound className="h-4 w-4" />} onClick={() => setBookingAppointment(true)}>Book appointment</Button>}
+          {canManage && <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => create()}>New class</Button>}
+        </>}
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -169,6 +193,13 @@ function Calendar() {
         </div>
         <h2 className="mr-auto min-w-0 truncate text-base font-semibold text-fg-heading" aria-live="polite">{title}</h2>
         {refreshing && <Spinner className="h-4 w-4" />}
+        {seeAppointments && (
+          <Select aria-label="Show" value={show} onChange={(e) => setShow(e.target.value as typeof show)} className="w-auto">
+            <option value="all">Classes and appointments</option>
+            <option value="classes">Classes only</option>
+            <option value="appointments">Appointments only</option>
+          </Select>
+        )}
         <Select aria-label="Class" value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)} className="w-auto">
           <option value="">All classes</option>
           {lookups.classTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -200,9 +231,14 @@ function Calendar() {
           <TimeGrid dates={dates} today={today} byDay={byDay} time={time} onOpen={open} canManage={canManage} onCreate={create} onMove={requestMove} />
         )}
       </Card>
-      {(view === 'week' || view === 'day') && canManage && <p className="mt-2 hidden text-xs text-fg-subtle sm:block">Drag a class to reschedule it. Click an empty slot to add one.</p>}
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-subtle">
+        {seeAppointments && <span className="inline-flex items-center gap-3"><span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border border-line bg-surface" aria-hidden />Class</span><span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border border-dashed border-fg-subtle bg-subtle" aria-hidden />Appointment</span></span>}
+        {(view === 'week' || view === 'day') && canManage && <span className="hidden sm:inline">Drag a class to reschedule it. Click an empty slot to add one.</span>}
+      </div>
 
       <SessionDrawer sessionId={openId} onClose={closeDrawer} onChanged={reload} />
+      <AppointmentDetailModal id={appointmentId} onClose={() => setAppointmentId(null)} onChanged={reloadAll} />
+      <BookAppointmentModal open={bookingAppointment} onClose={() => setBookingAppointment(false)} onDone={reloadAll} initialStaffId={coachId || undefined} />
       <SessionFormModal open={formOpen} initial={draft} onClose={() => setFormOpen(false)} onSaved={reload} />
       <ConfirmModal open={!!move} onClose={() => setMove(null)} onConfirm={() => move && reschedule(move)} loading={moving} title="Move this class?" confirmLabel="Move and notify">
         {move && <p>{move.session.title} will move to {dayLabel(move.date, { weekday: 'long', month: 'short', day: 'numeric' })} at {time(zonedToUtc(move.date, move.startTime, tz))}. The {move.session.booked + move.session.waitlisted} member{move.session.booked + move.session.waitlisted === 1 ? '' : 's'} booked or waiting will be emailed about the change.</p>}
@@ -214,6 +250,15 @@ function Calendar() {
 function Block({ s, time, compact }: { s: Placed; time: (v: string) => string; compact?: boolean }) {
   const full = s.spotsLeft === 0
   const cancelled = s.status === 'cancelled'
+  if (isAppointment(s)) {
+    return (
+      <>
+        <span className={cn('flex items-center gap-1 truncate text-xs font-semibold text-fg-heading', cancelled && 'line-through')}><UserRound className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{s.title}</span></span>
+        {!compact && <span className="block truncate text-[11px] text-fg-muted">{time(s.startsAt)}{s.coach ? ` · ${s.coach.name.split(' ')[0]}` : ''}</span>}
+        <span className={cn('block truncate text-[11px]', cancelled ? 'text-red-600 dark:text-red-400' : 'text-fg-muted')}>{cancelled ? 'Cancelled' : s.classType.name}</span>
+      </>
+    )
+  }
   return (
     <>
       <span className={cn('block truncate text-xs font-semibold text-fg-heading', cancelled && 'line-through')}>{s.title}</span>
@@ -288,7 +333,8 @@ function TimeGrid({
               }}
             >
               {(byDay.get(d) || []).map((s) => {
-                const movable = canManage && s.status === 'scheduled' && new Date(s.startsAt) > new Date()
+                const appointment = isAppointment(s)
+                const movable = !appointment && canManage && s.status === 'scheduled' && new Date(s.startsAt) > new Date()
                 return (
                   <button
                     key={s.id}
@@ -297,8 +343,8 @@ function TimeGrid({
                     onDragStart={(e) => { drag.current = { session: s, offset: e.clientY - e.currentTarget.getBoundingClientRect().top }; e.dataTransfer.effectAllowed = 'move' }}
                     onDragEnd={() => { drag.current = null; setHover(null) }}
                     onClick={() => onOpen(s.id)}
-                    aria-label={`${s.title}, ${time(s.startsAt)}, ${s.booked} of ${s.capacity} booked`}
-                    className={cn('ui-focus absolute overflow-hidden rounded-md border border-line bg-surface px-1.5 py-1 text-left shadow-card transition hover:z-10 hover:shadow-pop', s.status === 'cancelled' && 'opacity-60', movable && 'cursor-grab active:cursor-grabbing')}
+                    aria-label={appointment ? `Appointment: ${s.classType.name} with ${s.title}, ${time(s.startsAt)}` : `${s.title}, ${time(s.startsAt)}, ${s.booked} of ${s.capacity} booked`}
+                    className={cn('ui-focus absolute overflow-hidden rounded-md border px-1.5 py-1 text-left shadow-card transition hover:z-10 hover:shadow-pop', appointment ? 'border-dashed border-fg-subtle/60 bg-subtle' : 'border-line bg-surface', s.status === 'cancelled' && 'opacity-60', movable && 'cursor-grab active:cursor-grabbing')}
                     style={{
                       top: ((s.startMin - startHour * 60) / 60) * HOUR_PX + 1,
                       height: Math.max(26, ((s.endMin - s.startMin) / 60) * HOUR_PX - 2),
@@ -356,7 +402,7 @@ function MonthGrid({ dates, month, today, byDay, time, onOpen, onDay }: { dates:
 function Agenda({ dates, today, byDay, time, onOpen, onCreate }: { dates: string[]; today: string; byDay: Map<string, Placed[]>; time: (v: string) => string; onOpen: (id: string) => void; onCreate?: () => void }) {
   const withClasses = dates.filter((d) => (byDay.get(d) || []).length > 0)
   if (withClasses.length === 0) {
-    return <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="No classes in these two weeks" description="Schedule a one-off class or set up a weekly recurring one." action={onCreate && <Button variant="primary" onClick={onCreate}>New class</Button>} />
+    return <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Nothing in these two weeks" description="Schedule a one-off class or set up a weekly recurring one." action={onCreate && <Button variant="primary" onClick={onCreate}>New class</Button>} />
   }
   return (
     <div className="divide-y divide-line">
@@ -366,15 +412,15 @@ function Agenda({ dates, today, byDay, time, onOpen, onCreate }: { dates: string
           <ul className="space-y-1.5">
             {(byDay.get(d) || []).map((s) => (
               <li key={s.id}>
-                <button type="button" onClick={() => onOpen(s.id)} className={cn('ui-focus flex w-full items-center gap-3 rounded-lg border border-line px-3 py-2.5 text-left hover:bg-subtle/60', s.status === 'cancelled' && 'opacity-60')}>
+                <button type="button" onClick={() => onOpen(s.id)} className={cn('ui-focus flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left hover:bg-subtle/60', isAppointment(s) ? 'border-dashed border-fg-subtle/60 bg-subtle/40' : 'border-line', s.status === 'cancelled' && 'opacity-60')}>
                   <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: s.classType.color }} />
                   <span className="tabular w-16 shrink-0 text-sm font-medium text-fg-heading">{time(s.startsAt)}</span>
                   <span className="min-w-0 flex-1">
-                    <span className={cn('block truncate text-sm font-medium text-fg-heading', s.status === 'cancelled' && 'line-through')}>{s.title}</span>
-                    <span className="block truncate text-xs text-fg-muted">{[s.coach?.name, s.location?.name, s.room].filter(Boolean).join(' · ') || 'No coach assigned'}</span>
+                    <span className={cn('flex items-center gap-1.5 truncate text-sm font-medium text-fg-heading', s.status === 'cancelled' && 'line-through')}>{isAppointment(s) && <UserRound className="h-3.5 w-3.5 shrink-0 text-fg-muted" aria-hidden />}<span className="truncate">{s.title}</span></span>
+                    <span className="block truncate text-xs text-fg-muted">{[isAppointment(s) ? s.classType.name : null, s.coach?.name, s.location?.name, s.room].filter(Boolean).join(' · ') || 'No coach assigned'}</span>
                   </span>
                   <span className={cn('tabular shrink-0 text-xs', s.status === 'cancelled' ? 'text-red-600 dark:text-red-400' : s.spotsLeft === 0 ? 'font-semibold text-amber-700 dark:text-amber-400' : 'text-fg-muted')}>
-                    {s.status === 'cancelled' ? 'Cancelled' : `${s.booked}/${s.capacity}${s.waitlisted ? ` +${s.waitlisted}` : ''}`}
+                    {s.status === 'cancelled' ? 'Cancelled' : isAppointment(s) ? '1:1' : `${s.booked}/${s.capacity}${s.waitlisted ? ` +${s.waitlisted}` : ''}`}
                   </span>
                 </button>
               </li>

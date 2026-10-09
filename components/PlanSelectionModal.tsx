@@ -301,7 +301,7 @@ export default function PlanSelectionModal({
               <button
                 onClick={handleSubscribe}
                 disabled={loading}
-                className="px-6 py-2 bg-primary hover:bg-primary-dark text-black font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2 ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {loading ? (
                   <>

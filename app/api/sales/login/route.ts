@@ -5,6 +5,7 @@ import { createToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { rateLimitResponse, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+import { recordFailedSignIn, signInBlocked } from "@/lib/login-attempts";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -37,11 +38,22 @@ export async function POST(request: NextRequest) {
     const { email, password } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
+    // Wrong passwords are counted in the database, so the limit holds across server instances.
+    if (await signInBlocked("sales", normalizedEmail)) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": "900" } }
+      );
+    }
+
     const salesRep = await prisma.salesRep.findUnique({
       where: { email: normalizedEmail },
     });
 
-    if (!salesRep) {
+    // The password is checked before anything is said about the account.
+    const passwordMatch = salesRep ? await bcrypt.compare(password, salesRep.password) : false;
+    if (!salesRep || !passwordMatch) {
+      await recordFailedSignIn("sales", normalizedEmail);
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
@@ -55,13 +67,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const passwordMatch = await bcrypt.compare(password, salesRep.password);
-    if (!passwordMatch) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 }
-      );
-    }
 
     await prisma.salesRep.update({
       where: { id: salesRep.id },

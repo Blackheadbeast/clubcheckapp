@@ -3,19 +3,21 @@ import { resolveRange } from '@/lib/dates'
 import { csvResponse } from '@/lib/csv'
 import { getGymSettings } from '@/lib/services/core'
 import { attendanceReport, financialReport, membersReport, salesReport } from '@/lib/services/reports'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 const REPORTS = { financial: financialReport, members: membersReport, attendance: attendanceReport, sales: salesReport }
 
 // GET /api/reports/:type?range=&from=&to=&locationId=&format=csv&section=
-export const GET = handler({ permission: ['reports.view', 'reports.financial'] }, async ({ ownerId, params, query, can }) => {
+export const GET = handler({ permission: ['reports.view', 'reports.financial'] }, async ({ ownerId, params, query, can, actor }) => {
   const type = params.type as keyof typeof REPORTS
   if (!REPORTS[type]) throw notFound('Report')
   if (type === 'financial' && !can('reports.financial')) throw new ApiError(403, 'You do not have permission to view financial reports.', 'forbidden')
   if (type !== 'financial' && !can('reports.view')) throw new ApiError(403, 'You do not have permission to view this report.', 'forbidden')
-  const locationId = query.get('locationId')
-  await assertOwned(ownerId, 'location', locationId, 'Location')
+  await assertOwned(ownerId, 'location', query.get('locationId'), 'Location')
+  // Staff locked to a location only ever get that location's figures.
+  const { locationId } = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const settings = await getGymSettings(ownerId)
   const range = resolveRange(query.get('range'), query.get('from'), query.get('to'), settings.timezone)
   const report = (await REPORTS[type](ownerId, range, settings.timezone, locationId)) as Record<string, unknown>

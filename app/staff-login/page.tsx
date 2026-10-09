@@ -33,7 +33,7 @@ export default function StaffLoginPage() {
         return
       }
 
-      router.push('/dashboard')
+      router.push('/home')
     } catch {
       setError('Something went wrong')
     } finally {
@@ -67,7 +67,7 @@ export default function StaffLoginPage() {
                 required
                 placeholder="e.g. A3B7KP"
                 maxLength={36}
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary uppercase tracking-wider"
+                className="ui-input h-11 uppercase tracking-wider"
               />
               <p className="text-gray-500 text-xs mt-1">
                 6-character code from your gym owner
@@ -84,7 +84,7 @@ export default function StaffLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="your@email.com"
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                className="ui-input h-11"
               />
             </div>
 
@@ -98,7 +98,7 @@ export default function StaffLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                className="ui-input h-11"
               />
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function StaffLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50"
+            className="w-full mt-6 ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-4 rounded-lg transition disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { handler } from '@/lib/api'
-import { cancelBooking, claimOffer, markAttendance } from '@/lib/services/bookings'
+import { cancelBooking, claimOffer, markAttendance, promoteBooking } from '@/lib/services/bookings'
 import { flushOutbox } from '@/lib/services/automations'
 
 export const dynamic = 'force-dynamic'
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 const actionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('cancel'), waive: z.boolean().optional() }),
   z.object({ action: z.literal('claim') }),
+  z.object({ action: z.literal('promote') }),
   z.object({ action: z.literal('attendance'), status: z.enum(['attended', 'no_show', 'booked']) }),
 ])
 
@@ -19,6 +20,10 @@ export const POST = handler({ permission: ['bookings.manage', 'attendance.manage
     if (body.action === 'cancel') {
       const r = await cancelBooking(db, { ownerId, bookingId, by: 'staff', waive: body.waive, actor })
       return { status: r.booking.status, late: r.late, creditReturned: r.creditReturned, promoted: r.promoted }
+    }
+    if (body.action === 'promote') {
+      const r = await promoteBooking(db, { ownerId, bookingId, actor })
+      return { status: r.booking.status }
     }
     if (body.action === 'claim') {
       const r = await claimOffer(db, { ownerId, bookingId, actor })

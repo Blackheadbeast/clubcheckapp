@@ -1,173 +1,174 @@
-# ClubCheck Launch Checklist
+# ClubCheck launch checklist
 
-## Pre-Launch Verification
+Written after the production-hardening pass on 2026-10-08. Everything from Priorities 1–12 is on the
+`phase-2-payments` branch, uncommitted. Production is still running the commit from 2026-10-06 and its
+database has none of the schema changes below.
 
-### Security Hardening
-- [x] Security headers configured (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
-- [x] Rate limiting on all sensitive endpoints (auth, signup, email, feedback, checkin)
-- [x] JWT tokens with httpOnly cookies
-- [x] Password hashing with bcrypt (10 rounds)
-- [x] Input validation with Zod schemas
-- [x] SQL injection protection via Prisma ORM
-- [x] CORS properly configured
-- [x] Email verification required for new accounts
-- [x] Demo mode isolation (mutations blocked)
+Three kinds of item:
 
-### Database
-- [x] Proper indexes on frequently queried columns
-- [x] Cascade deletes configured
-- [x] Database connection pooling (Prisma)
-- [ ] Run `npx prisma db push` to apply new indexes
-- [ ] Verify database backup strategy with Vercel/Supabase
+- **BLOCKER**: must be done before the new code serves real customers.
+- **SETUP**: safe in code; needs an action outside the codebase.
+- **LATER**: needed only to turn on one feature.
 
-### Authentication & Authorization
-- [x] Email verification flow working
-- [x] Trial period starts after verification
-- [x] Billing status enforcement on mutations
-- [x] Staff role-based permissions
-- [x] Token expiry (7 days for auth, 24h for verification)
-- [x] Logout clears auth cookie
+Do the steps in this order. Nothing here is destructive.
 
-### Rate Limits Applied
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| Login | 10 attempts | 15 min |
-| Signup | 5 signups | 1 hour |
-| Email (verification/resend) | 5 emails | 15 min |
-| Feedback | 10 submissions | 1 hour |
-| Check-in | 60 requests | 1 min |
-| Member Portal | 30 requests | 1 min |
-| Bulk Operations | 10 operations | 5 min |
-| General API | 100 requests | 1 min |
+## 1. Database (BLOCKER)
 
-### Legal & Compliance
-- [x] Privacy Policy page (/privacy)
-- [x] Terms of Service page (/terms)
-- [x] Legal entity: BlueLoom Ventures LLC (d/b/a ClubCheck)
-- [x] Contact email: blueloomventuresllc@gmail.com
-- [x] Footer copyright updated
-- [x] Waiver system with signature capture
+The new code needs 57 new tables and about 40 new columns on six existing tables. Every change is
+additive: new tables, new nullable or defaulted columns, new indexes and foreign keys. Nothing is
+dropped, renamed or retyped, and no unique index is added to a table that already has rows. The exact
+SQL, generated from the deployed schema to the current one, is in
+`docs/release/phase-2-schema-changes.sql`.
 
-### Environment Variables Required
-```
-# Core
-DATABASE_URL=postgresql://...
-JWT_SECRET=<secure-random-string>
-NEXT_PUBLIC_APP_URL=https://clubcheckapp.com
+This repository deploys its schema with `prisma db push` (the one file under `prisma/migrations` is
+the original baseline and is not used).
 
-# Email (Resend)
-RESEND_API_KEY=re_...
+1. Take a backup or confirm a recent one exists (your database provider's console).
+2. Preview against production. This only reads:
 
-# Stripe Billing
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_ID_STARTER=price_...
-STRIPE_PRICE_ID_PRO=price_...
-STRIPE_PRICE_ID_STARTER_YEARLY=price_...
-STRIPE_PRICE_ID_PRO_YEARLY=price_...
-```
-
-### Pre-Deployment Steps
-1. [ ] Verify all environment variables are set in Vercel
-2. [ ] Run `npx prisma db push` on production
-3. [ ] Test email sending (verification emails)
-4. [ ] Test Stripe webhook endpoint
-5. [ ] Verify demo account exists
-6. [ ] Check mobile responsiveness
-7. [ ] Test walkthrough tour on fresh account
-
-### Monitoring & Logging
-- [x] Audit logging for key actions
-- [x] Error logging to console (enhance for production)
-- [ ] Set up error tracking (Sentry/LogRocket)
-- [ ] Set up uptime monitoring
-
-### Performance
-- [x] Next.js compression enabled
-- [x] Image optimization configured
-- [x] Database indexes for common queries
-- [x] Efficient pagination (take limits)
-
----
-
-## Scaling for 100+ Users
-
-### Current Capacity
-The system is designed to handle:
-- **100+ gym owners** (signups)
-- **10,000+ total members** across all gyms
-- **1,000+ daily check-ins**
-- **Concurrent users**: ~50-100 (typical usage pattern)
-
-### Architecture for Scale
-| Component | Current | At 500+ Users |
-|-----------|---------|---------------|
-| Rate Limiting | In-memory (per-instance) | Upgrade to Upstash Redis |
-| Database | Supabase/Vercel Postgres | Add connection pooling (PgBouncer) |
-| Sessions | JWT (stateless) | No change needed |
-| Email | Resend | Verify rate limits, upgrade plan if needed |
-
-### When to Upgrade (Warning Signs)
-1. **Rate limit failures** - Users getting blocked incorrectly
-2. **Database connection errors** - "Too many connections"
-3. **Slow API responses** - >500ms average
-4. **Email delivery delays** - >30 second delays
-
-### Upgrade Path
-1. **Upstash Redis** ($0-10/mo) - Distributed rate limiting
    ```bash
-   npm install @upstash/redis @upstash/ratelimit
+   npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script > /tmp/prod-preview.sql
+   grep -nE "DROP |ALTER COLUMN|RENAME " /tmp/prod-preview.sql    # must print nothing
    ```
 
-2. **Supabase Pro** ($25/mo) - More connections, better pooling
+   If that grep prints anything, stop: production is not at the schema this was prepared from.
+3. Apply:
 
-3. **Resend Pro** ($20/mo) - Higher email limits
+   ```bash
+   npx prisma db push
+   ```
 
-### Database Connection Pooling
-For Supabase, add to DATABASE_URL:
-```
-?pgbouncer=true&connection_limit=10
-```
+   Never pass `--accept-data-loss` or `--force-reset`. If Prisma asks to confirm data loss, answer no and stop.
+4. Deploy the code only after step 3 succeeds. The old code keeps working against the new schema
+   (the changes are additive), so there is no window in which the live site is broken.
 
----
+## 2. Environment variables
 
-## Launch Day Checklist
+Set in the hosting dashboard for Production. Names only; values come from each provider.
 
-### Before Going Live
-1. [ ] Final test of signup -> verification -> dashboard flow
-2. [ ] Test Stripe checkout (monthly and yearly)
-3. [ ] Test member creation and check-in
-4. [ ] Test kiosk mode
-5. [ ] Verify emails are being sent
-6. [ ] Check all links in emails
+| Variable | Needed for | Kind | Without it |
+|---|---|---|---|
+| `DATABASE_URL` | Everything | BLOCKER | App does not start |
+| `JWT_SECRET` | Staff, member and booking sessions, signed download links | BLOCKER | App refuses to sign anyone in |
+| `NEXT_PUBLIC_APP_URL` | Every link in every email, booking links, embed code, Twilio signatures | BLOCKER | Links fall back to the request's own address |
+| `CRON_SECRET` | Scheduled jobs | BLOCKER | Every scheduled job is refused (401): no billing run, no reminders |
+| `RESEND_API_KEY`, `EMAIL_FROM` | All email | BLOCKER | No email is sent (verification, invitations, signing links, receipts) |
+| `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | ClubCheck's own subscription and member payments | BLOCKER for payments | No card payments |
+| `STRIPE_WEBHOOK_SECRET` | ClubCheck's own subscription webhook (`/api/stripe/webhook`) | BLOCKER for subscriptions | Webhook answers 503; subscription changes are not recorded |
+| `STRIPE_PRICE_ID_STARTER`, `_PRO`, `_STARTER_YEARLY`, `_PRO_YEARLY` | Subscription checkout | BLOCKER for subscriptions | Checkout fails |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | Member payments webhook (`/api/webhooks/stripe-connect`) | BLOCKER for member payments | Webhook answers 503; bank debits, disputes and account status never update |
+| `WEBHOOK_ENCRYPTION_KEY` | Outbound webhooks (Settings → Developer) | SETUP | Creating a webhook answers "not configured". Set it once and never change it: stored webhook secrets are encrypted with it |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | "Sign in with Google" | SETUP | That button does not work |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER` | Texting | LATER | Texting is off; the app says so |
+| `TWILIO_WEBHOOK_BASE_URL` | Only if Twilio calls a different address than `NEXT_PUBLIC_APP_URL` | LATER | Uses `NEXT_PUBLIC_APP_URL` |
+| `RESEND_WEBHOOK_SECRET` | Email bounce and open tracking | LATER | Webhook answers 503 |
+| `STRIPE_CONNECT_FEE_BPS` | A platform fee on member payments | Optional | No fee (0) |
+| `FILE_STORAGE`, `FILE_STORAGE_DIR` | Where signed-document PDFs are cached | Optional | PDFs are drawn from the signed record on each download |
+| `LOGTAIL_SOURCE_TOKEN` | Shipping logs to Better Stack | Optional | Logs stay in the host's log viewer |
+| `DATABASE_POOL_MAX` | Database connections per instance | Optional | Driver default |
 
-### After Launch
-1. [ ] Monitor error logs for first 24 hours
-2. [ ] Check database performance
-3. [ ] Monitor rate limit hits
-4. [ ] Watch for unusual signup patterns
-5. [ ] Respond to feedback submissions
+Must **not** be set in production: `PAYMENT_PROVIDER`, `SMS_PROVIDER` (both are ignored there anyway),
+`WEBHOOK_ALLOW_PRIVATE`, `SEED_ALLOW_REMOTE`.
 
----
+Two things found in the local files that are worth fixing:
 
-## Emergency Contacts
+- The `JWT_SECRET` in the local `.env` is the same one production uses, and `.env` points
+  `DATABASE_URL` at the production database. Anyone with this laptop's files can sign in as anyone.
+  Give production its own secret (everyone is signed out once), and point local `.env` at a local database.
+- Production currently has Stripe **test** keys. See section 4.
 
-- **Technical Issues**: blueloomventuresllc@gmail.com
-- **Billing/Stripe**: Stripe Dashboard
-- **Database**: Supabase/Vercel Dashboard
-- **Domain/DNS**: Domain registrar
+## 3. Scheduled jobs
 
----
+`vercel.json` schedules two, daily:
 
-## Rollback Plan
+| Path | Schedule (UTC) | What it does |
+|---|---|---|
+| `/api/cron/platform` | 08:00 daily | Membership billing, payment retries, class generation, no-shows, appointment reminders, automations, campaigns, document expiry and reminders, payroll sync, webhook retries |
+| `/api/cron/billing-reminders` | 09:00 daily | Reminder emails for members on the older simple billing (see the note below) |
 
-If critical issues arise:
-1. Revert to previous Vercel deployment
-2. Check database for corrupted data
-3. Review audit logs for issue timeline
-4. Communicate with affected users
+A third exists and is **not** scheduled, because Vercel's Hobby plan only allows daily jobs:
 
----
+| Path | Wanted | What it does |
+|---|---|---|
+| `/api/cron/messages` | Every 1–5 minutes | Sends queued and scheduled messages on time, retries failures, expires waitlist offers |
 
-*Last updated: 2026-02-08*
-*ClubCheck v1.0 - BlueLoom Ventures LLC*
+- **SETUP:** schedule `/api/cron/messages` every few minutes: either Vercel Pro (add it to
+  `vercel.json` as `*/5 * * * *`) or any outside scheduler calling it with the header
+  `Authorization: Bearer <CRON_SECRET>`. Without it, messages still go out when someone uses the app
+  and once a day; "1 hour before" reminders, scheduled campaigns and waitlist deadlines are late.
+- **SETUP:** `/api/cron/platform` is allowed 300 seconds. On a plan that caps functions lower, a
+  large number of gyms will not finish in one run. Every step is safe to repeat, so the next run
+  picks up where it stopped.
+- **Note:** the billing-reminder job has been refused (401) on every run since it was added,
+  because it looked for its secret in the wrong place. That is fixed. From the first run after
+  deploy it **will start emailing** members who have the older "billing enabled" settings and
+  marking them overdue. If you do not want that, remove it from `vercel.json` before deploying.
+
+All three accept the secret only as a header, never in the URL.
+
+## 4. Stripe
+
+Validated in **test mode** on 2026-10-08 against real Stripe with live webhooks: 93 checks of the
+member-payment flow, 49 of plan changes and credits, and a browser run of the public booking page
+with real card entry (success, declined, 3-D Secure, double click). Nothing has been run in live mode.
+
+- **SETUP:** in the Stripe dashboard, live mode: enable Connect, and create two webhook endpoints:
+  - `https://<your domain>/api/stripe/webhook` (your account's events: `checkout.session.completed`,
+    `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.updated`,
+    `customer.subscription.deleted`) → its signing secret is `STRIPE_WEBHOOK_SECRET`.
+  - `https://<your domain>/api/webhooks/stripe-connect` with "Listen to events on connected
+    accounts" (`account.updated`, `account.application.deauthorized`, `payment_intent.succeeded`,
+    `payment_intent.processing`, `payment_intent.payment_failed`, `charge.refunded`, `refund.created`,
+    `refund.updated`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed`,
+    `setup_intent.succeeded`, `payment_method.updated`, `payment_method.automatically_updated`,
+    `payment_method.detached`) → its signing secret is `STRIPE_CONNECT_WEBHOOK_SECRET`.
+- **SETUP:** replace the test keys with live keys and live price IDs.
+- **SETUP:** make one small real payment through a connected gym and refund it before inviting customers.
+
+## 5. Texting (LATER)
+
+Not validated: there are no Twilio credentials in this environment. The adapter is tested against
+a simulated provider only. Before turning texting on:
+
+1. Twilio account, a number or messaging service, and **A2P 10DLC registration** (brand and
+   campaign) for US numbers. Unregistered traffic is filtered by carriers.
+2. Set the `TWILIO_*` variables.
+3. On the number or messaging service: "A message comes in" → `POST https://<your domain>/api/webhooks/twilio/inbound`;
+   status callback → `POST https://<your domain>/api/webhooks/twilio/status`.
+4. With your own phone: send a text from a member's profile; confirm it shows delivered; reply and see
+   it in the inbox; send STOP and confirm the next text is refused; send START and confirm it sends again.
+
+## 6. Email
+
+- **SETUP:** verify the sending domain in Resend so `EMAIL_FROM` is not `onboarding@resend.dev`.
+
+## 7. Backups and monitoring
+
+None of this exists in the codebase; each is a setting somewhere else.
+
+- **SETUP:** confirm automatic database backups and try one restore into a scratch database.
+- **SETUP:** error alerts. The code writes structured logs; set `LOGTAIL_SOURCE_TOKEN` or use the
+  host's log drain, and alert on `"[cron]"`, `"[stripe-connect]"`, `"[twilio]"`, `"[webhooks]"` and
+  `"[payroll]"` error lines.
+- **SETUP:** in Stripe and Twilio, turn on email alerts for failing webhook endpoints.
+- Failed member payments, failed messages and failed outbound webhooks are visible in the app
+  (Billing → Failed payments, Communication → Sent messages, Settings → Developer).
+
+## 8. After deploying
+
+1. Sign in as the owner; open Dashboard, Members, Billing, Documents, Payroll.
+2. `curl -H "Authorization: Bearer $CRON_SECRET" https://<your domain>/api/cron/platform` returns 200 with totals.
+3. In Stripe, send a test event to each webhook endpoint: both answer 200.
+4. Open `https://<your domain>/book/<a gym's address>` in a private window.
+5. Check the response headers of `/dashboard` (`X-Frame-Options: DENY`) and of `/book/...` (no `X-Frame-Options`).
+
+## 9. Security notes for whoever hosts this
+
+- Rate limits, audit entries and the address recorded with an e-signature use the caller address from the
+  hosting platform's own headers (`x-vercel-forwarded-for`, `x-real-ip`). On Vercel these cannot be forged. Behind
+  any other proxy, make sure it sets `x-real-ip` itself and strips any copy the caller sent.
+- Changing `JWT_SECRET` signs everyone out. Changing a password signs that person out everywhere else.
+- The platform administrator is the verified account holder of an address listed in `lib/admin.ts`. Make sure
+  that account exists and is verified before launch.
+- Before taking on a gym with compliance requirements, commission an independent penetration test (see the
+  security audit report).

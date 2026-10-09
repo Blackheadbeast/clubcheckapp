@@ -310,6 +310,52 @@ describe.skipIf(!up)('HTTP API', () => {
     })
   })
 
+  describe('card and bank payments', () => {
+    it('keeps saved payment methods behind billing permissions and inside the gym', async () => {
+      const member = await createMember(gymA, { connectCustomerId: 'cus_http_test' })
+      const method = await prisma.paymentMethod.create({ data: { ownerId: gymA, memberId: member.id, providerId: `pm_http_${member.id}`, type: 'card', brand: 'visa', last4: '4242', isDefault: true } })
+      const path = `/api/members/${member.id}/payment-methods`
+      expect((await call(users.coach, 'GET', path)).status).toBe(403)
+      const seen = await call(users.front_desk, 'GET', path)
+      expect(seen.status).toBe(200)
+      expect(seen.data.methods).toHaveLength(1)
+      expect(seen.data.methods[0]).toMatchObject({ last4: '4242', brand: 'visa', isDefault: true })
+      // Only display details leave the server, never the processor's reference.
+      expect(seen.text).not.toContain(method.providerId)
+      expect(seen.text).not.toContain('cus_http_test')
+      // Another gym cannot read, re-point or delete it.
+      expect((await call(users.otherOwner, 'GET', path)).status).toBe(404)
+      expect((await call(users.otherOwner, 'PATCH', `${path}/${method.id}`)).status).toBe(404)
+      expect((await call(users.otherOwner, 'DELETE', `${path}/${method.id}`)).status).toBe(404)
+      expect(await prisma.paymentMethod.count({ where: { id: method.id } })).toBe(1)
+    })
+
+    it('refuses to charge or save cards until the gym has connected a processor', async () => {
+      const member = await createMember(gymA)
+      const plan = await createPlan(gymA)
+      const sale = await call(users.owner, 'POST', `/api/members/${member.id}/memberships`, { planId: plan.id, paymentMethod: 'card', collectNow: true })
+      expect(sale.status).toBe(200)
+      expect(sale.data.invoice.status).toBe('open')
+      const charge = await call(users.owner, 'POST', `/api/billing/invoices/${sale.data.invoice.id}/charge`, {})
+      expect(charge.status).toBe(409)
+      expect(charge.json.code).toBe('payments_not_connected')
+      expect((await call(users.coach, 'POST', `/api/billing/invoices/${sale.data.invoice.id}/charge`, {})).status).toBe(403)
+      const setup = await call(users.owner, 'POST', `/api/members/${member.id}/payment-methods`)
+      expect(setup.status).toBe(400)
+      expect(setup.json.code).toBe('payments_not_connected')
+      const status = await call(users.owner, 'GET', '/api/billing/connect')
+      expect(status.data).toMatchObject({ connected: false, chargesEnabled: false })
+      expect((await call(users.front_desk, 'POST', '/api/billing/connect')).status).toBe(403)
+    })
+
+    it('rejects webhook calls that are not signed by Stripe', async () => {
+      const unsigned = await call(null, 'POST', '/api/webhooks/stripe-connect', { type: 'payment_intent.succeeded' })
+      expect([400, 503]).toContain(unsigned.status)
+      const forged = await call(null, 'POST', '/api/webhooks/stripe-connect', { type: 'payment_intent.succeeded' }, { 'stripe-signature': 't=1,v1=deadbeef' })
+      expect([400, 503]).toContain(forged.status)
+    })
+  })
+
   describe('member portal', () => {
     it('lets a member book and cancel only their own classes, by token', async () => {
       const plan = await createPlan(gymA, { name: 'Portal Plan' })

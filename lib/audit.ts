@@ -92,9 +92,7 @@ export async function logAuditEvent(
   request?: Request,
   metadata?: Record<string, unknown>
 ): Promise<void> {
-  const ipAddress = request?.headers.get('x-forwarded-for') ||
-    request?.headers.get('x-real-ip') ||
-    'unknown'
+  const ipAddress = (request?.headers.get('x-vercel-forwarded-for') || request?.headers.get('x-real-ip') || request?.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim()
   const userAgent = request?.headers.get('user-agent') || undefined
 
   // Get actor email from database if not a staff member

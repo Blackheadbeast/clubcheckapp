@@ -1,3 +1,4 @@
+import { leadEvent } from '@/lib/services/events'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { ApiError, badRequest, handler, notFound } from '@/lib/api'
@@ -33,6 +34,7 @@ export const POST = handler({ permission: 'leads.manage', write: true, body: sch
     }, actor, { status: body.planId ? 'active' : 'inactive' })
     await db.prospect.update({ where: { id: lead.id }, data: { status: 'converted', convertedAt: new Date(), convertedMemberId: member.id, nextFollowUpAt: null } })
     await logActivity(db, { ownerId, prospectId: lead.id, type: 'lead_converted', title: 'Converted to member', actor })
+    await leadEvent(db, ownerId, 'lead.updated', lead.id)
     await logActivity(db, { ownerId, memberId: member.id, type: 'lead_converted', title: 'Converted from lead', detail: lead.source ? `Source: ${lead.source}` : undefined, actor })
     const sale = body.planId ? await sellMembership(db, { ownerId, memberId: member.id, planId: body.planId, paymentMethod: body.paymentMethod, collectNow: body.collectNow, locationId: lead.locationId, actor }) : null
     return { member, sale }

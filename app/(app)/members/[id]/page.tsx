@@ -12,12 +12,17 @@ import { timeAgo, titleCase } from '@/lib/format'
 import { useSession } from '@/components/Session'
 import {
   Avatar, Badge, Button, Card, CardHeader, ConfirmModal, EmptyState, ErrorState, FormError, IconButton, Modal, MoneyInput, Page, Pagination,
-  Select, Skeleton, SkeletonRows, StatusBadge, Table, Tabs, Td, Textarea, Th, Field, Input, useToast,
-} from '@/components/ui'
+  Select, Skeleton, SkeletonRows, StatusBadge, Table, Tabs, Td, Textarea, Th, Field, Input, useToast, cn } from '@/components/ui'
 import { EMPTY_MEMBER, MemberFields, toPayload, type MemberFormValues } from '@/components/members/MemberForm'
 import { MembershipActionModal, SellMembershipModal, type MembershipRef } from '@/components/members/MembershipModals'
 import { ComposeModal } from '@/components/members/ComposeModal'
+import { ChangePlanModal, CreditsCard, HouseholdTab } from '@/components/billing/AdvancedBilling'
+import { MemberWorkouts } from '@/components/coaching/MemberWorkouts'
+import { MemberDocuments } from '@/components/documents/MemberDocuments'
+import { SoldBy } from '@/components/payroll/SoldBy'
+import { SmsConsent, Thread } from '@/components/messaging/Thread'
 import { PayModal, RefundModal, type PayTarget, type RefundTarget } from '@/components/billing/PaymentModals'
+import { PaymentMethods } from '@/components/billing/PaymentMethods'
 import { BookClassModal } from '@/components/schedule/BookClassModal'
 
 interface Membership {
@@ -65,7 +70,7 @@ interface Member extends Omit<MemberFormValues, 'dateOfBirth' | 'homeLocationId'
   billing: { balanceCents: number; overdueCents: number; openInvoices: number; lifetimePaidCents: number } | null
 }
 
-type TabKey = 'overview' | 'memberships' | 'billing' | 'attendance' | 'messages' | 'timeline' | 'details'
+type TabKey = 'overview' | 'memberships' | 'billing' | 'household' | 'attendance' | 'workouts' | 'documents' | 'messages' | 'timeline' | 'details'
 const LIVE = ['active', 'trial', 'past_due', 'frozen']
 
 function MemberProfile() {
@@ -149,8 +154,10 @@ function MemberProfile() {
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'memberships', label: 'Memberships' },
-    ...(can('billing.view') ? [{ key: 'billing' as const, label: 'Billing' }] : []),
+    ...(can('billing.view') ? [{ key: 'billing' as const, label: 'Billing' }, { key: 'household' as const, label: 'Household' }] : []),
     { key: 'attendance', label: 'Attendance' },
+    ...(can('workouts.view') ? [{ key: 'workouts' as const, label: 'Workouts' }] : []),
+    ...(can('documents.view') ? [{ key: 'documents' as const, label: 'Documents' }] : []),
     { key: 'messages', label: 'Messages' },
     { key: 'timeline', label: 'Timeline' },
     { key: 'details', label: 'Details' },
@@ -172,6 +179,7 @@ function MemberProfile() {
             {member.phone && <a href={`tel:${member.phone}`} className="ui-focus inline-flex items-center gap-1.5 rounded hover:text-fg"><Phone className="h-3.5 w-3.5" />{member.phone}</a>}
             <span>Joined {date(member.createdAt)}</span>
           </div>
+          {!member.archivedAt && <AccountInvite memberId={member.id} memberName={member.name} canInvite={can('members.manage')} />}
           <TagEditor member={member} canEdit={can('members.manage')} onChange={refresh} />
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -262,15 +270,19 @@ function MemberProfile() {
       )}
 
       {tab === 'billing' && can('billing.view') && <BillingTab key={version} member={member} onChange={refresh} />}
+      {tab === 'household' && can('billing.view') && <HouseholdTab key={version} member={{ id: member.id, name: member.name }} onChanged={refresh} />}
       {tab === 'attendance' && <AttendanceTab key={version} memberId={member.id} stats={member.stats} onChange={refresh} />}
-      {tab === 'messages' && <MessagesTab key={version} memberId={member.id} onCompose={can('communication.send') ? () => setComposing(true) : undefined} />}
+      {tab === 'workouts' && can('workouts.view') && <MemberWorkouts key={version} memberId={member.id} />}
+      {tab === 'documents' && can('documents.view') && <MemberDocuments key={version} memberId={member.id} />}
+      {tab === 'messages' && <MessagesTab key={version} memberId={member.id} canText={can('communication.text') || can('communication.send')} onCompose={can('communication.send') ? () => setComposing(true) : undefined} />}
       {tab === 'timeline' && <Card><Timeline key={`all-${version}`} memberId={member.id} canEdit={can('members.manage')} /></Card>}
       {tab === 'details' && <DetailsTab member={member} />}
 
       <SellMembershipModal memberId={member.id} memberName={member.name} open={selling} onClose={() => setSelling(false)} onDone={refresh} />
       <BookClassModal memberId={member.id} memberName={member.name} open={booking} onClose={() => setBooking(false)} onDone={refresh} />
       <ComposeModal open={composing} onClose={() => setComposing(false)} memberId={member.id} label={member.name} onSent={refresh} />
-      <MembershipActionModal action={membershipAction?.action || null} membership={membershipAction?.membership || null} onClose={() => setMembershipAction(null)} onDone={refresh} />
+      <MembershipActionModal action={membershipAction && membershipAction.action !== 'change_plan' ? membershipAction.action : null} membership={membershipAction?.membership || null} onClose={() => setMembershipAction(null)} onDone={refresh} />
+      <ChangePlanModal membership={membershipAction?.action === 'change_plan' ? membershipAction.membership : null} onClose={() => setMembershipAction(null)} onDone={refresh} />
       <EditMemberModal member={member} open={editing} onClose={() => setEditing(false)} onSaved={refresh} onDeleted={() => router.push('/members')} />
       <ConfirmModal open={archiving} onClose={() => setArchiving(false)} onConfirm={() => setArchived(true)} loading={busy} title={`Archive ${member.name}?`} confirmLabel="Archive">
         <p>They'll be hidden from the directory and won't be able to check in or book. Their history is kept and you can restore them at any time.</p>
@@ -336,6 +348,7 @@ function MembershipCard({
           </div>
           <p className="mt-1 text-sm text-fg-muted">{facts.join(' · ')}</p>
           <p className="mt-0.5 text-xs text-fg-subtle">Started {date(m.startDate)}{live && recurring ? ` · pays by ${m.paymentMethod.replace('_', ' ')}` : ''}{m.cancelReason ? ` · ${m.cancelReason}` : ''}</p>
+          <SoldBy membershipId={m.id} planName={m.plan.name} />
         </div>
         {canManage && live && (
           <div className="flex flex-wrap gap-1.5">
@@ -498,6 +511,48 @@ function Timeline({ memberId, type, compact, limit, canEdit }: { memberId: strin
   )
 }
 
+interface AccountState { status: 'none' | 'invited' | 'invite_expired' | 'active'; invitedAt: string | null; activatedAt: string | null; lastLoginAt: string | null }
+
+/** Whether the member can sign in themselves, with the invitation (or password reset) one click away. */
+function AccountInvite({ memberId, memberName, canInvite }: { memberId: string; memberName: string; canInvite: boolean }) {
+  const toast = useToast()
+  const { date } = useSession()
+  const { data, setData } = useApi<AccountState>(`/api/members/${memberId}/invite`)
+  const [busy, setBusy] = useState(false)
+  if (!data) return null
+  const first = memberName.split(' ')[0]
+
+  const send = async () => {
+    setBusy(true)
+    try {
+      const result = await api<{ kind: 'invite' | 'reset'; delivered: boolean; email: string; account: AccountState }>(`/api/members/${memberId}/invite`, { method: 'POST' })
+      setData(result.account)
+      if (result.delivered) toast.success(result.kind === 'invite' ? `Invitation sent to ${result.email}` : `Password reset sent to ${result.email}`)
+      else toast.error(`The link was created but the email to ${result.email} could not be sent. Check your email settings and try again.`)
+    } catch (err) {
+      toast.error((err as ClientError).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const label = data.status === 'active'
+    ? `Member account active${data.lastLoginAt ? ` · last signed in ${timeAgo(data.lastLoginAt)}` : ' · has not signed in yet'}`
+    : data.status === 'invited' ? `Invited ${date(data.invitedAt)} · not set up yet`
+    : data.status === 'invite_expired' ? `Invitation from ${date(data.invitedAt)} expired`
+    : `${first} can't sign in yet`
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-muted">
+      <span className="inline-flex items-center gap-1.5"><span className={cn('h-1.5 w-1.5 rounded-full', data.status === 'active' ? 'bg-emerald-500' : data.status === 'invited' ? 'bg-sky-500' : 'bg-fg-subtle')} aria-hidden />{label}</span>
+      {canInvite && (
+        <button type="button" onClick={send} disabled={busy} className="ui-focus rounded font-medium text-accent-text hover:underline disabled:opacity-60">
+          {busy ? 'Sending…' : data.status === 'active' ? 'Send password reset' : data.status === 'none' ? 'Invite member' : 'Resend invitation'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 interface InvoiceRow { id: string; number: string; status: string; totalCents: number; amountPaidCents: number; refundedCents: number; dueDate: string | null; createdAt: string; items: { description: string }[] }
 interface TxRow { id: string; type: string; status: string; amountCents: number; refundedCents: number; method: string; failureReason: string | null; note: string | null; createdAt: string; invoice: { number: string } | null }
 
@@ -507,29 +562,7 @@ function BillingTab({ member, onChange }: { member: Member; onChange: () => void
   const { data, error, loading, reload } = useApi<{ invoices: InvoiceRow[]; transactions: TxRow[] }>(`/api/members/${member.id}/invoices`)
   const [pay, setPay] = useState<PayTarget | null>(null)
   const [refund, setRefund] = useState<RefundTarget | null>(null)
-  const [creditOpen, setCreditOpen] = useState(false)
-  const [creditCents, setCreditCents] = useState(0)
-  const [creditNote, setCreditNote] = useState('')
-  const [creditError, setCreditError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
   const done = () => { reload(); onChange() }
-
-  const addCredit = async () => {
-    setBusy(true)
-    setCreditError(null)
-    try {
-      await api(`/api/members/${member.id}/credit`, { body: { amountCents: creditCents, note: creditNote || null } })
-      toast.success(`${money(creditCents)} credit added`)
-      setCreditOpen(false)
-      setCreditCents(0)
-      setCreditNote('')
-      done()
-    } catch (err) {
-      setCreditError((err as ClientError).message)
-    } finally {
-      setBusy(false)
-    }
-  }
 
   if (loading) return <Card padded={false}><SkeletonRows /></Card>
   if (error || !data) return <Card><ErrorState error={error || 'Failed to load'} onRetry={reload} /></Card>
@@ -537,21 +570,27 @@ function BillingTab({ member, onChange }: { member: Member; onChange: () => void
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MiniStat label="Balance due" value={money(member.billing?.balanceCents)} tone={member.billing?.overdueCents ? 'danger' : undefined} />
+        <MiniStat label="Amount due" value={money(member.billing?.balanceCents)} tone={member.billing?.overdueCents ? 'danger' : undefined} />
         <MiniStat label="Overdue" value={money(member.billing?.overdueCents)} tone={member.billing?.overdueCents ? 'danger' : undefined} />
-        <MiniStat label="Lifetime paid" value={money(member.billing?.lifetimePaidCents)} />
-        <div className="rounded-xl border border-line bg-surface p-3 shadow-card">
-          <p className="text-xs text-fg-muted">Account credit</p>
-          <p className="tabular mt-1 text-lg font-semibold text-fg-heading">{money(member.creditBalanceCents)}</p>
-          {can('billing.refund') && <button type="button" onClick={() => setCreditOpen(true)} className="ui-focus mt-0.5 rounded text-xs font-medium text-accent-text hover:underline">Add credit</button>}
-        </div>
+        <MiniStat label="Amount paid, all time" value={money(member.billing?.lifetimePaidCents)} />
+        <MiniStat label="Account credit" value={money(member.creditBalanceCents)} />
       </div>
+
+      <Card>
+        <CardHeader title="Cards and bank accounts" description="Renewals set to pay by card or bank debit are charged to the default automatically." />
+        <PaymentMethods
+          base={`/api/members/${member.id}`}
+          canManage={can('billing.manage')}
+          onChange={done}
+          unavailableHint={can('settings.manage') ? <>Connect Stripe in <Link href="/settings/payments" className="font-medium text-accent-text hover:underline">Settings → Payments</Link> to save cards and collect renewals automatically.</> : 'Ask the owner to connect Stripe to save cards and collect renewals automatically.'}
+        />
+      </Card>
 
       <Card padded={false}>
         <CardHeader title="Invoices" className="px-4 pt-4 sm:px-5" />
         {data.invoices.length === 0 ? <EmptyState title="No invoices" description="Invoices appear when you sell a membership or product." /> : (
           <Table>
-            <thead><tr><Th>Invoice</Th><Th>For</Th><Th>Status</Th><Th>Due</Th><Th align="right">Total</Th><Th align="right">Balance</Th><Th /></tr></thead>
+            <thead><tr><Th>Invoice</Th><Th>For</Th><Th>Status</Th><Th>Due</Th><Th align="right">Total</Th><Th align="right">Amount remaining</Th><Th /></tr></thead>
             <tbody>
               {data.invoices.map((inv) => {
                 const balance = inv.totalCents - inv.amountPaidCents
@@ -564,7 +603,7 @@ function BillingTab({ member, onChange }: { member: Member; onChange: () => void
                     <Td className="text-fg-muted">{date(inv.dueDate)}</Td>
                     <Td align="right">{money(inv.totalCents)}</Td>
                     <Td align="right" className={inv.status === 'open' ? 'font-medium' : 'text-fg-subtle'}>{inv.status === 'open' ? money(balance) : '—'}</Td>
-                    <Td align="right">{inv.status === 'open' && can('billing.manage') && <Button size="sm" variant="primary" onClick={() => setPay({ id: inv.id, number: inv.number, balanceCents: balance, creditBalanceCents: member.creditBalanceCents })}>Take payment</Button>}</Td>
+                    <Td align="right">{inv.status === 'open' && can('billing.manage') && <Button size="sm" variant="primary" onClick={() => setPay({ id: inv.id, number: inv.number, balanceCents: balance, creditBalanceCents: member.creditBalanceCents, memberId: member.id })}>Take payment</Button>}</Td>
                   </tr>
                 )
               })}
@@ -575,14 +614,14 @@ function BillingTab({ member, onChange }: { member: Member; onChange: () => void
 
       <Card padded={false}>
         <CardHeader title="Payment history" className="px-4 pt-4 sm:px-5" />
-        {data.transactions.length === 0 ? <EmptyState title="No payments yet" /> : (
+        {data.transactions.length === 0 ? <EmptyState title="No payments yet" description="Payments, refunds and credits for this member are listed here as they happen." /> : (
           <Table>
             <thead><tr><Th>Date</Th><Th>Type</Th><Th>Method</Th><Th>Invoice</Th><Th>Status</Th><Th align="right">Amount</Th><Th /></tr></thead>
             <tbody>
               {data.transactions.map((t) => (
                 <tr key={t.id}>
                   <Td className="text-fg-muted">{dateTime(t.createdAt)}</Td>
-                  <Td>{titleCase(t.type)}</Td>
+                  <Td>{t.type === 'payment' ? 'Charge' : titleCase(t.type)}</Td>
                   <Td className="text-fg-muted">{titleCase(t.method)}</Td>
                   <Td className="text-fg-muted">{t.invoice?.number || '—'}</Td>
                   <Td>
@@ -591,8 +630,8 @@ function BillingTab({ member, onChange }: { member: Member; onChange: () => void
                   </Td>
                   <Td align="right" className={t.type === 'refund' ? 'text-amber-700 dark:text-amber-400' : ''}>{t.type === 'refund' ? '−' : ''}{money(t.amountCents)}</Td>
                   <Td align="right">
-                    {t.type === 'payment' && t.status === 'succeeded' && t.refundedCents < t.amountCents && can('billing.refund') && (
-                      <Button size="sm" onClick={() => setRefund({ id: t.id, amountCents: t.amountCents, refundedCents: t.refundedCents, method: t.method })}>Refund</Button>
+                    {t.type === 'payment' && t.status === 'succeeded' && (t.refundedCents > 0 || can('billing.refund')) && (
+                      <Button size="sm" onClick={() => setRefund({ id: t.id, amountCents: t.amountCents, refundedCents: t.refundedCents, method: t.method })}>{t.refundedCents < t.amountCents && can('billing.refund') ? 'Refund' : 'Refund history'}</Button>
                     )}
                   </Td>
                 </tr>
@@ -602,15 +641,10 @@ function BillingTab({ member, onChange }: { member: Member; onChange: () => void
         )}
       </Card>
 
+      <CreditsCard key={`credits-${member.creditBalanceCents}`} memberId={member.id} onChanged={done} />
+
       <PayModal invoice={pay} onClose={() => setPay(null)} onDone={done} />
       <RefundModal transaction={refund} onClose={() => setRefund(null)} onDone={done} />
-      <Modal open={creditOpen} onClose={() => setCreditOpen(false)} title="Add account credit" size="sm" footer={<><Button onClick={() => setCreditOpen(false)}>Cancel</Button><Button variant="primary" onClick={addCredit} loading={busy} disabled={creditCents <= 0}>Add {money(creditCents)}</Button></>}>
-        <div className="space-y-4">
-          <Field label="Amount"><MoneyInput cents={creditCents} onChange={setCreditCents} /></Field>
-          <Field label="Reason"><Input value={creditNote} onChange={(e) => setCreditNote(e.target.value)} placeholder="Goodwill, referral reward…" maxLength={300} /></Field>
-          <FormError message={creditError} />
-        </div>
-      </Modal>
     </div>
   )
 }
@@ -670,13 +704,13 @@ function AttendanceTab({ memberId, stats, onChange }: { memberId: string; stats:
       </Card>
       <Card padded={false}>
         <CardHeader title="Class history" className="px-4 pt-4 sm:px-5" />
-        {bookings.loading ? <SkeletonRows rows={3} /> : !bookings.data || bookings.data.past.length === 0 ? <EmptyState title="No class history yet" /> : (
+        {bookings.loading ? <SkeletonRows rows={3} /> : !bookings.data || bookings.data.past.length === 0 ? <EmptyState title="No class history yet" description="Classes this member attended, missed or cancelled are kept here." /> : (
           <Table><thead><tr><Th>Class</Th><Th>When</Th><Th>Coach</Th><Th>Status</Th><Th /></tr></thead><tbody>{bookings.data.past.map((b) => row(b, false))}</tbody></Table>
         )}
       </Card>
       <Card padded={false}>
         <CardHeader title="Check-ins" className="px-4 pt-4 sm:px-5" />
-        {checkins === null ? <SkeletonRows rows={3} /> : checkins.length === 0 ? <EmptyState title="No check-ins yet" /> : (
+        {checkins === null ? <SkeletonRows rows={3} /> : checkins.length === 0 ? <EmptyState title="No check-ins yet" description="Each visit is recorded here when this member checks in." /> : (
           <Table>
             <thead><tr><Th>When</Th><Th>Type</Th><Th>Method</Th></tr></thead>
             <tbody>{checkins.map((c) => <tr key={c.id}><Td>{dateTime(c.timestamp)}</Td><Td className="text-fg-muted">{titleCase(c.type || 'open_gym')}</Td><Td className="text-fg-muted">{titleCase(c.source || 'manual')}</Td></tr>)}</tbody>
@@ -687,20 +721,28 @@ function AttendanceTab({ memberId, stats, onChange }: { memberId: string; stats:
   )
 }
 
-interface MessageRow { id: string; channel: string; subject: string | null; body: string; status: string; error: string | null; createdAt: string; automation: { name: string } | null; campaign: { name: string } | null }
+interface MessageRow { id: string; channel: string; direction?: string; subject: string | null; body: string; status: string; error: string | null; createdAt: string; automation: { name: string } | null; campaign: { name: string } | null }
 
-function MessagesTab({ memberId, onCompose }: { memberId: string; onCompose?: () => void }) {
+function MessagesTab({ memberId, canText, onCompose }: { memberId: string; canText: boolean; onCompose?: () => void }) {
   const { dateTime } = useSession()
   const { data, error, loading, reload } = useApi<MessageRow[]>(`/api/members/${memberId}/messages`)
   return (
-    <Card padded={false}>
-      <CardHeader title="Email & SMS history" description="Everything sent to this member, including automated messages." className="px-4 pt-4 sm:px-5" action={onCompose && <Button size="sm" variant="primary" onClick={onCompose}>New message</Button>} />
-      {loading ? <SkeletonRows /> : error ? <ErrorState error={error} onRetry={reload} /> : !data || data.length === 0 ? <EmptyState title="No messages yet" /> : (
+    <div className="grid gap-4 lg:grid-cols-2">
+    {canText && (
+      <Card padded={false} className="min-w-0 overflow-hidden">
+        <CardHeader title="Text conversation" description="Texts to and from this member. Replies also appear in the inbox." className="px-4 pt-4 sm:px-5" />
+        <Thread source={{ memberId }} onChanged={reload} className="h-[26rem] border-t border-line" />
+      </Card>
+    )}
+    <Card padded={false} className={cn('min-w-0', !canText && 'lg:col-span-2')}>
+      <CardHeader title="Email & SMS history" description="Everything sent to this member, including automated messages." className="px-4 pt-4 sm:px-5" action={onCompose && <Button size="sm" variant="primary" onClick={onCompose}>New email</Button>} />
+      {loading ? <SkeletonRows /> : error ? <ErrorState error={error} onRetry={reload} /> : !data || data.length === 0 ? <EmptyState title="No messages yet" description="Emails and texts sent to this member, by you or automatically, are kept here." /> : (
         <ul className="divide-y divide-line/60">
           {data.map((m) => (
             <li key={m.id} className="px-4 py-3 sm:px-5">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge>{m.channel === 'sms' ? 'SMS' : 'Email'}</Badge>
+                {m.direction === 'inbound' && <Badge tone="blue">From member</Badge>}
                 <span className="text-sm font-medium text-fg-heading">{m.subject || m.body.slice(0, 60)}</span>
                 <StatusBadge status={m.status} />
                 {(m.automation || m.campaign) && <span className="text-xs text-fg-subtle">{m.automation ? `Automation: ${m.automation.name}` : `Campaign: ${m.campaign!.name}`}</span>}
@@ -713,6 +755,7 @@ function MessagesTab({ memberId, onCompose }: { memberId: string; onCompose?: ()
         </ul>
       )}
     </Card>
+    </div>
   )
 }
 
@@ -766,8 +809,9 @@ function DetailsTab({ member }: { member: Member }) {
         <CardHeader title="Communication preferences" />
         <dl className="grid gap-2.5 text-sm sm:grid-cols-2">
           <Detail label="Marketing email" value={member.emailOptIn ? 'Subscribed' : 'Opted out'} />
-          <Detail label="Text messages" value={member.smsOptIn ? 'Opted in' : 'Not opted in'} />
         </dl>
+        <p className="mb-2 mt-4 text-sm font-medium text-fg-heading">Text messages</p>
+        <SmsConsent memberId={member.id} />
       </Card>
     </div>
   )

@@ -27,7 +27,7 @@ export default function MessagesPage() {
 
   return (
     <Page>
-      <PageHeader title="Messages" description="Every email and text sent to members and leads." actions={<Link href="/communication/campaigns?new=1"><Button variant="primary">New campaign</Button></Link>} />
+      <PageHeader title="Sent messages" description="Every email and text sent to members and leads. Replies are in the inbox." actions={<Link href="/communication/campaigns?new=1"><Button variant="primary">New campaign</Button></Link>} />
       <DeliveryNotice delivery={meta?.delivery as { email: boolean; sms: boolean } | undefined} />
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Sent, 30 days" value={delivered} />
@@ -39,7 +39,7 @@ export default function MessagesPage() {
         <SearchInput value={search} onChange={setSearch} placeholder="Search recipient or subject" className="min-w-[12rem] flex-1 sm:max-w-xs" />
         <Select aria-label="Channel" value={channel} onChange={(e) => setChannel(e.target.value)} className="w-auto"><option value="">Email & SMS</option><option value="email">Email</option><option value="sms">SMS</option></Select>
         <Select aria-label="Source" value={source} onChange={(e) => setSource(e.target.value)} className="w-auto"><option value="">Any source</option><option value="direct">Sent by staff</option><option value="campaign">Campaigns</option><option value="automation">Automations</option></Select>
-        <Select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto"><option value="">Any status</option>{['sent', 'delivered', 'opened', 'clicked', 'failed', 'skipped', 'queued'].map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</Select>
+        <Select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto"><option value="">Any status</option>{['sent', 'delivered', 'opened', 'clicked', 'failed', 'undelivered', 'skipped', 'expired', 'queued'].map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</Select>
       </div>
       <Card padded={false}>
         {loading ? <SkeletonRows rows={8} /> : error ? <ErrorState error={error} onRetry={reload} /> : !data || data.length === 0 ? (

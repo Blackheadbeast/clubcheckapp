@@ -59,7 +59,7 @@ export default function OrdersPage() {
       <SearchInput value={search} onChange={setSearch} placeholder="Search order number or member" className="mb-3 sm:max-w-sm" />
       <Card padded={false}>
         {loading ? <SkeletonRows rows={8} /> : error ? <ErrorState error={error} onRetry={reload} /> : !data || data.length === 0 ? (
-          <EmptyState icon={<ShoppingBag className="h-5 w-5" />} title="No orders in this period" />
+          <EmptyState icon={<ShoppingBag className="h-5 w-5" />} title="No orders in this period" description="Sales rung up at the point of sale are listed here with what was sold and how it was paid. Try a wider date range." />
         ) : (
           <>
             <Table>

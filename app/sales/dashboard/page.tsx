@@ -172,7 +172,7 @@ export default function SalesDashboardPage() {
                 type="text"
                 readOnly
                 value={`${appUrl}/signup?ref=${salesRep.referralCode}`}
-                className="flex-1 px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg text-sm text-gray-300 font-mono"
+                className="flex-1 px-4 py-2 bg-theme-lighter border border-line rounded-lg text-sm text-gray-300 font-mono"
               />
               <button
                 onClick={copyReferralLink}

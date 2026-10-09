@@ -59,7 +59,7 @@ export default function SystemStatus() {
 
   if (loading && !data) {
     return (
-      <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+      <div className="bg-theme-card p-6 rounded-lg border border-line">
         <h3 className="text-lg font-semibold mb-4">System Status</h3>
         <div className="text-gray-400">Loading...</div>
       </div>
@@ -68,7 +68,7 @@ export default function SystemStatus() {
 
   if (error && !data) {
     return (
-      <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+      <div className="bg-theme-card p-6 rounded-lg border border-line">
         <h3 className="text-lg font-semibold mb-4">System Status</h3>
         <div className="text-red-400">{error}</div>
       </div>
@@ -78,7 +78,7 @@ export default function SystemStatus() {
   if (!data) return null
 
   return (
-    <div className="bg-dark-card p-6 rounded-lg border border-gray-800">
+    <div className="bg-theme-card p-6 rounded-lg border border-line">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">System Status</h3>
         <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function SystemStatus() {
         {data.services.map((service) => (
           <div
             key={service.name}
-            className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0"
+            className="flex items-center justify-between py-2 border-b border-line last:border-0"
           >
             <div className="flex items-center gap-3">
               <div className={`w-2 h-2 rounded-full ${statusColors[service.status]}`} />
@@ -120,7 +120,7 @@ export default function SystemStatus() {
         ))}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between text-xs text-gray-500">
+      <div className="mt-4 pt-4 border-t border-line flex justify-between text-xs text-gray-500">
         <span>Version {data.version}</span>
         <span>Updated {new Date(data.timestamp).toLocaleTimeString()}</span>
       </div>

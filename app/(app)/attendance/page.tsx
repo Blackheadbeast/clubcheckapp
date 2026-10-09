@@ -39,7 +39,7 @@ export default function AttendancePage() {
       <Card padded={false}>
         <CardHeader title="Check-in log" className="px-4 pt-4 sm:px-5" action={<Select aria-label="Type" value={type} onChange={(e) => setType(e.target.value)} className="w-auto"><option value="">All types</option><option value="class">Class</option><option value="open_gym">Open gym</option><option value="personal_training">Personal training</option></Select>} />
         {log.loading ? <SkeletonRows rows={8} /> : log.error ? <ErrorState error={log.error} onRetry={log.reload} /> : !log.data || log.data.length === 0 ? (
-          <EmptyState icon={<ScanLine className="h-5 w-5" />} title="No check-ins in this period" />
+          <EmptyState icon={<ScanLine className="h-5 w-5" />} title="No check-ins in this period" description="Every visit is recorded here when a member checks in at the desk, at the kiosk or for a class. Try a wider date range." />
         ) : (
           <>
             <Table>

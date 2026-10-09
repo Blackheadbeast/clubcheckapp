@@ -189,7 +189,7 @@ export default function CheckinPage() {
         <Card padded={false} className="lg:col-span-2">
           <CardHeader title="Today" description={log.meta ? `${log.meta.total} check-in${log.meta.total === 1 ? '' : 's'}` : undefined} className="px-4 pt-4 sm:px-5" action={<Link href="/attendance"><Button size="sm" variant="ghost">Attendance</Button></Link>} />
           {log.loading ? <SkeletonRows rows={6} /> : log.error ? <ErrorState error={log.error} onRetry={log.reload} /> : !log.data || log.data.length === 0 ? (
-            <EmptyState icon={<ScanLine className="h-5 w-5" />} title="No check-ins yet today" />
+            <EmptyState icon={<ScanLine className="h-5 w-5" />} title="No check-ins yet today" description="Scan a member's code or look them up above. Each visit appears here as it happens." />
           ) : (
             <>
               <ul className="divide-y divide-line/60">

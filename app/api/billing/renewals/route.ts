@@ -3,13 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { handler } from '@/lib/api'
 import { runMembershipBilling } from '@/lib/services/memberships'
 import { flushOutbox } from '@/lib/services/automations'
+import { effectiveLocation, homeScope } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 // GET - recurring memberships in billing-date order (the "membership billing" screen)
-export const GET = handler({ permission: 'billing.view' }, async ({ ownerId }) => {
+export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, query, actor }) => {
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const memberships = await prisma.membership.findMany({
-    where: { ownerId, status: { in: ['active', 'trial', 'past_due', 'frozen'] }, plan: { type: 'recurring' } },
+    where: { ownerId, status: { in: ['active', 'trial', 'past_due', 'frozen'] }, plan: { type: 'recurring' }, ...(scope.locationId && { member: homeScope(scope) }) },
     orderBy: { currentPeriodEnd: 'asc' },
     take: 500,
     select: {

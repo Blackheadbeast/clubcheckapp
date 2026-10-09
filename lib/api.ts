@@ -24,6 +24,17 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * A request's JSON body. The database cannot store a zero byte in text, so one anywhere in the
+ * body would surface later as an internal error; it is refused here instead, as bad input.
+ * Throws on anything that is not JSON.
+ */
+export async function readJson(req: Request): Promise<unknown> {
+  const text = await req.text()
+  if (text.includes('\u0000') || text.includes('\\u0000')) throw new ApiError(400, 'The request contains characters that cannot be stored.', 'invalid_characters')
+  return JSON.parse(text)
+}
+
 export const notFound = (what = 'Record') => new ApiError(404, `${what} not found`, 'not_found')
 export const badRequest = (message: string, code = 'bad_request') => new ApiError(400, message, code)
 export const conflict = (message: string, code = 'conflict') => new ApiError(409, message, code)
@@ -144,8 +155,9 @@ export function handler<S extends z.ZodTypeAny | undefined = undefined>(
       if (opts.body) {
         let raw: unknown
         try {
-          raw = await req.json()
-        } catch {
+          raw = await readJson(req)
+        } catch (error) {
+          if (error instanceof ApiError) return fail(error.status, error.message, error.code)
           return fail(400, 'Request body must be valid JSON.', 'invalid_json')
         }
         const parsed = opts.body.safeParse(raw)
@@ -181,6 +193,8 @@ export function handler<S extends z.ZodTypeAny | undefined = undefined>(
       }
 
       const result = await fn(ctx)
+      // Anything the request recorded for the gym's webhooks is sent now, without holding up the answer.
+      if (opts.write) (await import('@/lib/services/webhooks')).kickWebhooks(auth.ownerId)
       if (result instanceof NextResponse || result instanceof Response) return result
       if (result instanceof Paginated) {
         return NextResponse.json({

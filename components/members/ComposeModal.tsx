@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, ClientError, useApi } from '@/lib/client'
 import { Button, Field, FormError, Input, Modal, Select, Textarea, useToast } from '@/components/ui'
 
@@ -35,8 +35,11 @@ export function ComposeModal({
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // One key per composed message, so a double click or a retry cannot send it twice.
+  const key = useRef('')
 
   useEffect(() => {
+    if (open) key.current = `${Date.now()}-${Math.random().toString(36).slice(2)}-compose`
     if (!open) {
       setSubject('')
       setBody('')
@@ -50,14 +53,14 @@ export function ComposeModal({
     setError(null)
     try {
       if (memberId) {
-        const result = await api<{ status: string; error: string | null }>(`/api/members/${memberId}/messages`, { body: { channel, subject: channel === 'email' ? subject : null, body } })
-        if (result.status === 'sent') toast.success('Message sent')
+        const result = await api<{ status: string; error: string | null }>(`/api/members/${memberId}/messages`, { body: { channel, subject: channel === 'email' ? subject : null, body, clientKey: key.current } })
+        if (['sent', 'delivered', 'queued'].includes(result.status)) toast.success('Message sent')
         else toast.error(`Not delivered: ${result.error || result.status}`)
       } else {
-        const result = await api<{ sent: number; skipped: number; failed: number }>('/api/campaigns', {
+        const result = await api<{ sent: number; skipped: number; failed: number; remaining: number }>('/api/campaigns', {
           body: { name: subject || `Message to ${label}`, channel, subject: channel === 'email' ? subject : null, body, audience, send: true },
         })
-        if (result.sent > 0) toast.success(`Sent to ${result.sent}${result.skipped + result.failed ? `, ${result.skipped + result.failed} not delivered` : ''}`)
+        if (result.sent + result.remaining > 0) toast.success(`${result.remaining ? `Sending to ${result.sent + result.remaining}` : `Sent to ${result.sent}`}${result.skipped + result.failed ? `, ${result.skipped + result.failed} not sent` : ''}`)
         else toast.error(`Nothing was delivered (${result.skipped} skipped, ${result.failed} failed). See Communication for details.`)
       }
       onSent?.()
@@ -113,9 +116,9 @@ export function ComposeModal({
           </Field>
         )}
         <Field label="Message" required hint="Use {{first_name}}, {{gym_name}} and {{portal_link}} to personalise.">
-          <Textarea rows={7} value={body} onChange={(e) => setBody(e.target.value)} required maxLength={channel === 'sms' ? 480 : 5000} />
+          <Textarea rows={7} value={body} onChange={(e) => setBody(e.target.value)} required maxLength={channel === 'sms' ? 1600 : 5000} />
         </Field>
-        {channel === 'sms' && <p className="text-xs text-fg-subtle">Texts only go to members who have opted in to SMS.</p>}
+        {channel === 'sms' && <p className="text-xs text-fg-subtle">{memberId ? 'Texts only go to members who have agreed to them and have not replied STOP.' : 'Sent as a campaign: it only reaches members who agreed to offers and news by text. Everyone else is skipped, with the reason.'}{body.length > 160 ? ` About ${Math.ceil(body.length / 153)} texts each.` : ''}</p>}
         <FormError message={error} />
       </form>
     </Modal>

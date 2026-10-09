@@ -95,6 +95,10 @@ export async function PATCH(
       )
     }
 
+    if (!(await prisma.member.findFirst({ where: { id, ownerId: owner.ownerId }, select: { id: true } }))) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
+
     const member = await prisma.member.update({
       where: { id, ownerId: owner.ownerId },
       data: parsed.data,

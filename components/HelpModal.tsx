@@ -102,7 +102,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <p className="text-gray-400 text-sm mb-3">Still need help?</p>
             <a
               href="mailto:support@clubcheckapp.com?subject=ClubCheck Support Request"
-              className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-4 rounded-lg transition text-sm"
+              className="inline-flex items-center gap-2 ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-2 px-4 rounded-lg transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

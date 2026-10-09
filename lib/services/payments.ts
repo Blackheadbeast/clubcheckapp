@@ -1,6 +1,7 @@
 // Member-facing billing: invoices, payments, refunds, credits and coupons.
 // (lib/billing.ts is unrelated: it is the gym's own ClubCheck subscription.)
 
+import { invoiceEvent, membershipEvent, paymentEvent } from './events'
 import { prisma } from '@/lib/prisma'
 import { ApiError, badRequest, notFound } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
@@ -126,6 +127,10 @@ export async function createInvoice(db: Db, input: CreateInvoiceInput) {
       data: { timesRedeemed: { increment: 1 } },
     })
   }
+  if (invoice.status !== 'draft') {
+    await invoiceEvent(db, input.ownerId, 'invoice.created', invoice.id)
+    if (invoice.status === 'paid') await invoiceEvent(db, input.ownerId, 'invoice.paid', invoice.id)
+  }
   return invoice
 }
 
@@ -143,6 +148,14 @@ export interface PaymentInput {
   provider?: string
   providerReference?: string | null
   cardLast4?: string | null
+  /** Saved payment method (PaymentMethod.id) that was charged, if any. */
+  paymentMethodId?: string | null
+  /** Whose money it was, when it was not the invoice's own member (a household payer). */
+  payerMemberId?: string | null
+  /** Account credit only: whose credit to spend. The invoice's member by default; their household payer is the only other choice. */
+  creditMemberId?: string | null
+  /** Account credit only: spend only credit marked for automatic use. */
+  creditAutoOnly?: boolean
   actor?: ActorRef
   at?: Date
 }
@@ -162,15 +175,21 @@ export async function recordPayment(db: Db, input: PaymentInput) {
   const actor = input.actor || SYSTEM
   const at = input.at || new Date()
 
+  let creditFrom: string | null = null
   if (input.method === 'account_credit') {
     if (!invoice.memberId) throw badRequest('Account credit needs a member on the invoice.')
-    await lockRow(db, 'Member', invoice.memberId)
-    const member = await db.member.findUniqueOrThrow({ where: { id: invoice.memberId }, select: { creditBalanceCents: true } })
-    if (member.creditBalanceCents < amount) {
-      throw badRequest(`Only ${formatMoney(member.creditBalanceCents)} of account credit is available.`, 'insufficient_credit')
+    creditFrom = input.creditMemberId || invoice.memberId
+    if (creditFrom !== invoice.memberId) {
+      // Someone else's credit may only pay this invoice if they are the member's household payer.
+      const { billingPayer } = await import('./households')
+      const payer = await billingPayer(db, input.ownerId, invoice.memberId)
+      if (payer.payerId !== creditFrom) throw badRequest('That credit belongs to someone who does not pay for this member.', 'not_payer')
     }
-    await db.member.update({ where: { id: invoice.memberId }, data: { creditBalanceCents: { decrement: amount } } })
+    const { creditAvailable } = await import('./account-credit')
+    const { totalCents } = await creditAvailable(db, input.ownerId, creditFrom)
+    if (totalCents < amount) throw badRequest(`Only ${formatMoney(totalCents)} of account credit is available.`, 'insufficient_credit')
   }
+  const payerMemberId = (creditFrom && creditFrom !== invoice.memberId ? creditFrom : input.payerMemberId) || null
 
   const transaction = await db.transaction.create({
     data: {
@@ -185,12 +204,18 @@ export async function recordPayment(db: Db, input: PaymentInput) {
       provider: input.provider || 'manual',
       providerReference: input.providerReference || null,
       cardLast4: input.cardLast4 || null,
+      paymentMethodId: input.paymentMethodId || null,
+      payerMemberId: payerMemberId && payerMemberId !== invoice.memberId ? payerMemberId : null,
       note: input.note || null,
       staffId: actor.type === 'staff' || actor.type === 'owner' ? actor.id : null,
       staffName: actor.name || null,
       createdAt: at,
     },
   })
+  if (creditFrom) {
+    const { drawCredit } = await import('./account-credit')
+    await drawCredit(db, { ownerId: input.ownerId, memberId: creditFrom, amountCents: amount, kind: 'applied', invoiceId: invoice.id, transactionId: transaction.id, note: input.note, autoOnly: input.creditAutoOnly, actor })
+  }
 
   const paid = invoice.amountPaidCents + amount
   const fullyPaid = paid >= invoice.totalCents
@@ -203,6 +228,8 @@ export async function recordPayment(db: Db, input: PaymentInput) {
       nextAttemptAt: fullyPaid ? null : invoice.nextAttemptAt,
     },
   })
+  await paymentEvent(db, input.ownerId, 'payment.succeeded', transaction.id)
+  if (fullyPaid) await invoiceEvent(db, input.ownerId, 'invoice.paid', invoice.id)
 
   if (invoice.memberId) {
     await db.member.update({ where: { id: invoice.memberId }, data: { lastPaidAt: at } })
@@ -227,6 +254,7 @@ export async function recordPayment(db: Db, input: PaymentInput) {
       const membership = await db.membership.findUnique({ where: { id: invoice.membershipId } })
       if (membership?.status === 'past_due') {
         await db.membership.update({ where: { id: membership.id }, data: { status: 'active', failedPaymentCount: 0 } })
+        await membershipEvent(db, input.ownerId, 'membership.updated', membership.id)
         const { syncMemberStatus } = await import('./memberships')
         await syncMemberStatus(db, membership.memberId)
       }
@@ -238,7 +266,12 @@ export async function recordPayment(db: Db, input: PaymentInput) {
 /** Record a declined/failed attempt and move the membership to past due. */
 export async function recordFailedPayment(
   db: Db,
-  input: { ownerId: string; invoiceId: string; method: PaymentMethod; failureReason: string; actor?: ActorRef; retryInDays?: number }
+  input: {
+    ownerId: string; invoiceId: string; method: PaymentMethod; failureReason: string; actor?: ActorRef; retryInDays?: number
+    provider?: string; providerReference?: string | null; cardLast4?: string | null; paymentMethodId?: string | null
+    /** The household payer whose card or bank account was tried. */
+    payerMemberId?: string | null
+  }
 ) {
   const invoice = await db.invoice.findFirst({ where: { id: input.invoiceId, ownerId: input.ownerId } })
   if (!invoice) throw notFound('Invoice')
@@ -246,8 +279,9 @@ export async function recordFailedPayment(
   if (balance === 0) throw badRequest('This invoice is already paid.')
   const actor = input.actor || SYSTEM
   const attempt = invoice.attemptCount + 1
-  // Retry schedule: 3 days, then 5, then 7; give up after the fourth attempt.
-  const retryDays = input.retryInDays ?? [3, 5, 7][attempt - 1]
+  // Retry on day 3, day 5 and day 7 after the first failure (gaps of 3, 2 and 2 days),
+  // then give up after the fourth attempt and leave the invoice for staff.
+  const retryDays = input.retryInDays ?? [3, 2, 2][attempt - 1]
   const transaction = await db.transaction.create({
     data: {
       ownerId: input.ownerId,
@@ -257,10 +291,16 @@ export async function recordFailedPayment(
       status: 'failed',
       amountCents: balance,
       method: input.method,
+      provider: input.provider || 'manual',
+      providerReference: input.providerReference || null,
+      cardLast4: input.cardLast4 || null,
+      paymentMethodId: input.paymentMethodId || null,
+      payerMemberId: input.payerMemberId && input.payerMemberId !== invoice.memberId ? input.payerMemberId : null,
       failureReason: input.failureReason,
       staffName: actor.name || null,
     },
   })
+  const payer = input.payerMemberId && input.payerMemberId !== invoice.memberId ? await db.member.findUnique({ where: { id: input.payerMemberId }, select: { name: true } }) : null
   await db.invoice.update({
     where: { id: invoice.id },
     data: {
@@ -268,14 +308,16 @@ export async function recordFailedPayment(
       nextAttemptAt: retryDays ? new Date(Date.now() + retryDays * 86_400_000) : null,
     },
   })
+  await paymentEvent(db, input.ownerId, 'payment.failed', transaction.id)
+  await invoiceEvent(db, input.ownerId, 'invoice.failed', invoice.id)
   if (invoice.memberId) {
     await logActivity(db, {
       ownerId: input.ownerId,
       memberId: invoice.memberId,
       type: 'payment_failed',
       title: `Payment of ${formatMoney(balance)} failed`,
-      detail: `${invoice.number} · ${input.failureReason}`,
-      metadata: { transactionId: transaction.id, invoiceId: invoice.id },
+      detail: `${invoice.number} · ${input.failureReason}${payer ? ` · billed to ${payer.name}` : ''}`,
+      metadata: { transactionId: transaction.id, invoiceId: invoice.id, payerMemberId: input.payerMemberId || undefined },
       actor,
     })
     const member = await db.member.findUnique({ where: { id: invoice.memberId }, select: { name: true } })
@@ -283,7 +325,7 @@ export async function recordFailedPayment(
       ownerId: input.ownerId,
       type: 'payment_failed',
       title: `Payment failed for ${member?.name || 'a member'}`,
-      body: `${formatMoney(balance)} on ${invoice.number}: ${input.failureReason}`,
+      body: `${formatMoney(balance)} on ${invoice.number}${payer ? `, billed to ${payer.name}` : ''}: ${input.failureReason}`,
       href: `/members/${invoice.memberId}?tab=billing`,
     })
   }
@@ -300,6 +342,7 @@ export async function recordFailedPayment(
     })
     if (membership.status === 'active') {
       await db.membership.update({ where: { id: membership.id }, data: { status: 'past_due' } })
+      await membershipEvent(db, input.ownerId, 'membership.updated', membership.id)
       const { syncMemberStatus } = await import('./memberships')
       await syncMemberStatus(db, membership.memberId)
     }
@@ -310,9 +353,25 @@ export async function recordFailedPayment(
 /** Refund all or part of a succeeded payment. */
 export async function refundTransaction(
   db: Db,
-  input: { ownerId: string; transactionId: string; amountCents?: number; reason?: string | null; actor?: ActorRef }
+  input: {
+    ownerId: string; transactionId: string; amountCents?: number; reason?: string | null; actor?: ActorRef
+    /** The processor's id for this refund. Recording the same one twice is a no-op. */
+    providerReference?: string | null
+    /** Why, from REFUND_REASONS. `reason` is the free-text note that goes with it. */
+    refundReason?: string | null
+    /** Pending: the processor has accepted the refund but the money has not moved yet (bank debits). */
+    status?: 'succeeded' | 'pending'
+    /** Keep the money on the member's account as credit instead of sending it back. */
+    toCredit?: boolean
+  }
 ) {
   await lockRow(db, 'Transaction', input.transactionId)
+  if (input.providerReference) {
+    const already = await db.transaction.findFirst({
+      where: { ownerId: input.ownerId, type: 'refund', parentTransactionId: input.transactionId, providerReference: input.providerReference },
+    })
+    if (already) return { refund: already, fullyRefunded: false, duplicate: true }
+  }
   const original = await db.transaction.findFirst({ where: { id: input.transactionId, ownerId: input.ownerId } })
   if (!original) throw notFound('Transaction')
   if (original.type !== 'payment' || original.status !== 'succeeded') {
@@ -326,6 +385,10 @@ export async function refundTransaction(
     throw badRequest(`You can refund at most ${formatMoney(refundable)} of this payment.`, 'refund_too_large')
   }
   const actor = input.actor || SYSTEM
+  if (input.toCredit && !original.memberId) throw badRequest('There is no member on this payment to hold the credit.', 'no_member')
+  // Money that was paid from account credit goes back to account credit, to whoever's credit it was.
+  const backToCredit = input.toCredit || original.method === 'account_credit'
+  const creditTo = original.method === 'account_credit' ? original.payerMemberId || original.memberId : original.memberId
 
   const refund = await db.transaction.create({
     data: {
@@ -334,11 +397,16 @@ export async function refundTransaction(
       invoiceId: original.invoiceId,
       locationId: original.locationId,
       type: 'refund',
-      status: 'succeeded',
+      status: input.status || 'succeeded',
       amountCents: amount,
-      method: original.method,
-      provider: original.provider,
+      // A refund kept as credit never left the gym, so it is recorded against account credit, not the card.
+      method: input.toCredit ? 'account_credit' : original.method,
+      provider: input.toCredit ? 'manual' : original.provider,
+      providerReference: input.providerReference || null,
+      cardLast4: input.toCredit ? null : original.cardLast4,
       note: input.reason || null,
+      refundReason: input.refundReason || null,
+      payerMemberId: original.payerMemberId,
       parentTransactionId: original.id,
       staffId: actor.type === 'staff' || actor.type === 'owner' ? actor.id : null,
       staffName: actor.name || null,
@@ -348,38 +416,103 @@ export async function refundTransaction(
   if (original.invoiceId) {
     await db.invoice.update({ where: { id: original.invoiceId }, data: { refundedCents: { increment: amount } } })
   }
-  // Refunds of account-credit payments go back to the member's credit balance.
-  if (original.method === 'account_credit' && original.memberId) {
-    await db.member.update({ where: { id: original.memberId }, data: { creditBalanceCents: { increment: amount } } })
+  if (original.invoiceId) await syncOrderRefundState(db, original.invoiceId)
+  let credit = null
+  if (backToCredit && creditTo) {
+    const { grantCredit } = await import('./account-credit')
+    const invoice = original.invoiceId ? await db.invoice.findUnique({ where: { id: original.invoiceId }, select: { number: true } }) : null
+    credit = (await grantCredit(db, {
+      ownerId: input.ownerId, memberId: creditTo, amountCents: amount, source: 'refund',
+      reason: [invoice ? `Refund of ${invoice.number}` : 'Refund', input.reason].filter(Boolean).join(': '),
+      sourceInvoiceId: original.invoiceId, sourceTransactionId: refund.id, actor, recordTransaction: false,
+    })).credit
   }
   if (original.memberId) {
     await logActivity(db, {
       ownerId: input.ownerId,
       memberId: original.memberId,
       type: 'refund',
-      title: `Refund of ${formatMoney(amount)} issued`,
-      detail: input.reason || undefined,
-      metadata: { transactionId: refund.id, originalTransactionId: original.id },
+      title: `Refund of ${formatMoney(amount)} ${input.toCredit ? 'kept as account credit' : input.status === 'pending' ? 'started' : 'issued'}`,
+      detail: [input.refundReason && REFUND_REASON_LABELS[input.refundReason], input.reason].filter(Boolean).join(' · ') || undefined,
+      metadata: { transactionId: refund.id, originalTransactionId: original.id, creditId: credit?.id },
       actor,
     })
   }
-  return { refund, fullyRefunded: amount === refundable }
+  // A refund the bank has not confirmed yet is announced when it settles, not before.
+  if (refund.status === 'succeeded') await paymentEvent(db, input.ownerId, 'payment.refunded', original.id, refund.id)
+  return { refund, credit, fullyRefunded: amount === refundable, duplicate: false }
+}
+
+export const REFUND_REASONS = ['requested', 'duplicate', 'billing_error', 'service_issue', 'cancelled', 'fraudulent', 'other'] as const
+export const REFUND_REASON_LABELS: Record<string, string> = {
+  requested: 'Member asked', duplicate: 'Charged twice', billing_error: 'Billing mistake', service_issue: 'Problem with the service',
+  cancelled: 'Cancelled', fraudulent: 'Fraud', other: 'Other',
+}
+
+/** Keep a shop order's status in step with how much of it has been refunded. */
+export async function syncOrderRefundState(db: Db, invoiceId: string) {
+  const invoice = await db.invoice.findUnique({ where: { id: invoiceId }, select: { orderId: true, refundedCents: true, amountPaidCents: true } })
+  if (!invoice?.orderId) return
+  const status = invoice.refundedCents <= 0 ? 'completed' : invoice.refundedCents >= invoice.amountPaidCents ? 'refunded' : 'partially_refunded'
+  await db.order.updateMany({ where: { id: invoice.orderId, status: { not: status } }, data: { status } })
+}
+
+/**
+ * The processor's final word on a refund that was pending. Succeeded settles it. Failed puts the
+ * money back on the original payment (it never left) and tells staff. Safe to call repeatedly.
+ */
+export async function settleRefund(db: Db, input: { ownerId: string; refundId: string; outcome: 'succeeded' | 'failed'; failureReason?: string | null }) {
+  const found = await db.transaction.findFirst({ where: { id: input.refundId, ownerId: input.ownerId, type: 'refund' }, select: { parentTransactionId: true } })
+  if (!found) return null
+  if (found.parentTransactionId) await lockRow(db, 'Transaction', found.parentTransactionId)
+  const refund = await db.transaction.findUniqueOrThrow({ where: { id: input.refundId } })
+  // A failure is final. So is a success, except that the processor can still fail a refund it had first reported as done.
+  if (refund.status === 'failed' || refund.status === input.outcome) return refund
+  if (input.outcome === 'succeeded') {
+    const settled = await db.transaction.update({ where: { id: refund.id }, data: { status: 'succeeded' } })
+    if (refund.parentTransactionId) await paymentEvent(db, input.ownerId, 'payment.refunded', refund.parentTransactionId, refund.id)
+    return settled
+  }
+  const updated = await db.transaction.update({ where: { id: refund.id }, data: { status: 'failed', failureReason: input.failureReason || 'The refund failed' } })
+  if (refund.parentTransactionId) await db.transaction.update({ where: { id: refund.parentTransactionId }, data: { refundedCents: { decrement: refund.amountCents } } })
+  if (refund.invoiceId) {
+    await db.invoice.update({ where: { id: refund.invoiceId }, data: { refundedCents: { decrement: refund.amountCents } } })
+    await syncOrderRefundState(db, refund.invoiceId)
+  }
+  if (refund.memberId) {
+    await logActivity(db, {
+      ownerId: input.ownerId, memberId: refund.memberId, type: 'refund', title: `Refund of ${formatMoney(refund.amountCents)} failed`,
+      detail: input.failureReason || 'The money was not returned', metadata: { transactionId: refund.id, originalTransactionId: refund.parentTransactionId },
+    })
+  }
+  await notify(db, {
+    ownerId: input.ownerId, type: 'refund_failed', title: `A refund of ${formatMoney(refund.amountCents)} failed`,
+    body: `${input.failureReason || 'The processor could not return the money.'} It has not been refunded; try again or refund another way.`,
+    href: refund.memberId ? `/members/${refund.memberId}?tab=billing` : '/billing',
+  })
+  return updated
 }
 
 /** Add (or with a negative amount, remove) account credit for a member. */
 export async function adjustCredit(
   db: Db,
-  input: { ownerId: string; memberId: string; amountCents: number; note?: string | null; actor?: ActorRef }
+  input: { ownerId: string; memberId: string; amountCents: number; note?: string | null; autoApply?: boolean; actor?: ActorRef }
 ) {
   if (input.amountCents === 0) throw badRequest('Credit amount cannot be zero.')
   await lockRow(db, 'Member', input.memberId)
   const member = await db.member.findFirst({ where: { id: input.memberId, ownerId: input.ownerId } })
   if (!member) throw notFound('Member')
-  if (member.creditBalanceCents + input.amountCents < 0) {
-    throw badRequest(`That would take the credit balance below zero (${formatMoney(member.creditBalanceCents)} available).`)
-  }
   const actor = input.actor || SYSTEM
-  await db.member.update({ where: { id: member.id }, data: { creditBalanceCents: { increment: input.amountCents } } })
+  const { creditAvailable, drawCredit, grantCredit } = await import('./account-credit')
+  if (input.amountCents > 0) {
+    const granted = await grantCredit(db, { ownerId: input.ownerId, memberId: member.id, amountCents: input.amountCents, source: 'staff', reason: input.note, autoApply: input.autoApply, actor })
+    return granted.transaction!
+  }
+  const { totalCents } = await creditAvailable(db, input.ownerId, member.id)
+  if (totalCents + input.amountCents < 0) {
+    throw badRequest(`That would take the credit balance below zero (${formatMoney(totalCents)} available).`)
+  }
+  await drawCredit(db, { ownerId: input.ownerId, memberId: member.id, amountCents: -input.amountCents, kind: 'removed', note: input.note, actor })
   const transaction = await db.transaction.create({
     data: {
       ownerId: input.ownerId,

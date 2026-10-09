@@ -60,9 +60,9 @@ export async function POST(
     }
 
     // Build waiver link
-    const host = request.headers.get('host') || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    const waiverLink = `${protocol}://${host}/waiver/${member.id}`
+    // The configured address, not the Host header: a link in an email must not be steerable by whoever sent the request.
+    const origin = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, '')
+    const waiverLink = `${origin}/waiver/${member.id}`
 
     // Send email
     const result = await sendWaiverEmail(

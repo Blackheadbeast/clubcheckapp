@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
+import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
+import { requireWriteAccess } from '@/lib/billing'
 import { PLAN_LIMITS } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +17,15 @@ export async function POST(request: NextRequest) {
         { error: 'Unauthorized' },
         { status: 401 }
       )
+    }
+
+    // The shared demo account is read-only, and an account whose subscription has lapsed cannot make changes.
+    if (isDemoOwner(owner.ownerId)) {
+      return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403 })
+    }
+    const writeAccess = await requireWriteAccess(owner.ownerId)
+    if (!writeAccess.allowed) {
+      return NextResponse.json({ error: writeAccess.error }, { status: writeAccess.status })
     }
 
     // Get owner data for plan limits

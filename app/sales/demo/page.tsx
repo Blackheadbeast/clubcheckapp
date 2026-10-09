@@ -116,7 +116,7 @@ export default function SalesDemoPage() {
                   type="text"
                   readOnly
                   value={demoUrl}
-                  className="flex-1 px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg text-sm text-gray-300 font-mono truncate"
+                  className="flex-1 px-4 py-2 bg-theme-lighter border border-line rounded-lg text-sm text-gray-300 font-mono truncate"
                 />
                 <button
                   onClick={copyLink}

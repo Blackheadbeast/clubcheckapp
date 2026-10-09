@@ -112,7 +112,7 @@ export default function ReferralsPage() {
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary">Referrals</h1>
+          <h1 className="ui-page-title">Referrals</h1>
           <p className="text-gray-400 mt-1">Earn free months by referring other gyms</p>
         </div>
 
@@ -128,19 +128,19 @@ export default function ReferralsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-theme-card p-6 rounded-lg border border-theme">
+          <div className="bg-theme-card p-6 rounded-2xl border border-theme shadow-card">
             <div className="text-gray-400 text-sm mb-2">Total Referred</div>
             <div className="text-4xl font-bold text-primary">{data.totalReferred}</div>
             <div className="text-gray-500 text-sm mt-2">gyms signed up</div>
           </div>
 
-          <div className="bg-theme-card p-6 rounded-lg border border-theme">
+          <div className="bg-theme-card p-6 rounded-2xl border border-theme shadow-card">
             <div className="text-gray-400 text-sm mb-2">Paying Referrals</div>
             <div className="text-4xl font-bold text-green-400">{data.payingReferrals}</div>
             <div className="text-gray-500 text-sm mt-2">converted to paid</div>
           </div>
 
-          <div className="bg-theme-card p-6 rounded-lg border border-theme">
+          <div className="bg-theme-card p-6 rounded-2xl border border-theme shadow-card">
             <div className="text-gray-400 text-sm mb-2">Credits Earned</div>
             <div className="text-4xl font-bold text-blue-400">{data.creditedMonths}</div>
             <div className="text-gray-500 text-sm mt-2">free months</div>
@@ -148,11 +148,11 @@ export default function ReferralsPage() {
         </div>
 
         {/* Referral Code Card */}
-        <div className="bg-theme-card p-6 rounded-lg border border-theme mb-8">
+        <div className="bg-theme-card p-6 rounded-2xl border border-theme shadow-card mb-8">
           <h2 className="text-xl font-semibold text-gray-100 mb-4">Your Referral Link</h2>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 bg-theme-lighter border border-gray-700 rounded-lg p-4">
+            <div className="flex-1 bg-theme-lighter border border-line rounded-lg p-4">
               <div className="text-xs text-gray-500 mb-1">Referral Code</div>
               <div className="text-primary font-mono font-bold text-lg">{data.referralCode}</div>
             </div>
@@ -160,7 +160,7 @@ export default function ReferralsPage() {
             <div className="flex gap-2">
               <button
                 onClick={copyToClipboard}
-                className="bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-6 rounded-lg transition flex items-center gap-2"
+                className="ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-6 rounded-lg transition flex items-center gap-2"
               >
                 {copying ? (
                   <>
@@ -187,7 +187,7 @@ export default function ReferralsPage() {
               <button
                 onClick={regenerateCode}
                 disabled={regenerating}
-                className="bg-theme-lighter hover:bg-gray-800 text-gray-100 font-semibold py-3 px-4 rounded-lg border border-gray-700 transition disabled:opacity-50"
+                className="bg-theme-lighter hover:bg-line text-gray-100 font-semibold py-3 px-4 rounded-lg border border-line transition disabled:opacity-50"
                 title="Generate new code"
               >
                 <svg
@@ -253,10 +253,10 @@ export default function ReferralsPage() {
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             ref.status === 'active' || ref.status === 'trialing'
-                              ? 'bg-green-900/30 text-green-400'
+                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                               : ref.status === 'past_due'
-                              ? 'bg-red-900/30 text-red-400'
-                              : 'bg-gray-800 text-gray-400'
+                              ? 'bg-red-500/10 text-red-700 dark:text-red-400'
+                              : 'bg-subtle text-fg-muted'
                           }`}
                         >
                           {ref.status || 'pending'}

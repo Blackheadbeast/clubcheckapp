@@ -11,6 +11,8 @@ import { config } from 'dotenv'
 import { randomUUID, randomBytes } from 'node:crypto'
 
 config({ path: '.env.development.local', override: true })
+// Seed another local database instead (see scripts/local-postgres.ts).
+if (process.env.TEST_DATABASE_URL) process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
 
 const OWNER_EMAIL = 'owner@ironharbor.test'
 const PASSWORD = 'clubcheck-demo'

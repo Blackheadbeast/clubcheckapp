@@ -13,6 +13,8 @@ export const GET = handler({ permission: 'communication.send' }, async ({ ownerI
   const source = query.get('source')
   const where: Prisma.MessageWhereInput = {
     ownerId,
+    // What we sent. Replies from members live in the inbox.
+    direction: 'outbound',
     ...(query.get('channel') && { channel: query.get('channel')! }),
     ...(query.get('status') && { status: query.get('status')! }),
     ...(source === 'automation' && { automationId: { not: null } }),
@@ -27,7 +29,7 @@ export const GET = handler({ permission: 'communication.send' }, async ({ ownerI
       select: { id: true, channel: true, subject: true, body: true, status: true, error: true, toAddress: true, createdAt: true, member: { select: { id: true, name: true } }, prospect: { select: { id: true, name: true } }, campaign: { select: { name: true } }, automation: { select: { name: true } } },
     }),
     prisma.message.count({ where }),
-    prisma.message.groupBy({ by: ['status'], where: { ownerId, createdAt: { gte: since } }, _count: { _all: true } }),
+    prisma.message.groupBy({ by: ['status'], where: { ownerId, direction: 'outbound', createdAt: { gte: since } }, _count: { _all: true } }),
   ])
   const last30: Record<string, number> = {}
   for (const c of counts) last30[c.status] = c._count._all

@@ -38,9 +38,12 @@ export async function createPlan(ownerId: string, data: Record<string, unknown> 
   return prisma.membershipPlan.create({ data: { ownerId, name: 'Unlimited', type: 'recurring', priceCents: 15000, ...data } })
 }
 
+let sessionSlot = 0
 export async function createSession(ownerId: string, data: Record<string, unknown> = {}) {
   const classType = await prisma.classType.create({ data: { ownerId, name: 'CrossFit' } })
-  const startsAt = (data.startsAt as Date) || new Date(Date.now() + 2 * DAY)
+  // Members can no longer hold two overlapping bookings, so default sessions never share a time:
+  // each one starts 90 minutes after the last, from two days out.
+  const startsAt = (data.startsAt as Date) || new Date(Date.now() + 2 * DAY + sessionSlot++ * 90 * 60_000)
   return prisma.classSession.create({
     data: { ownerId, classTypeId: classType.id, startsAt, endsAt: new Date(startsAt.getTime() + HOUR), capacity: 2, waitlistCapacity: 2, ...data },
     include: { classType: true },
@@ -50,4 +53,15 @@ export async function createSession(ownerId: string, data: Record<string, unknow
 /** Run a service function in a transaction, as the API routes do. */
 export function tx<T>(fn: (db: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => Promise<T>) {
   return prisma.$transaction(fn, { timeout: 20_000 })
+}
+
+/**
+ * A signed-in member, as a bearer header, without going through the login endpoint.
+ * Login itself is covered in member-auth.test.ts; minting the session here keeps the
+ * other suites from tripping the login rate limit when they are run back to back.
+ */
+export async function memberBearer(memberId: string) {
+  const { signMemberSession } = await import('@/lib/member-auth')
+  const account = await prisma.memberAccount.findUniqueOrThrow({ where: { memberId } })
+  return `Bearer ${await signMemberSession({ memberId, ownerId: account.ownerId, sessionVersion: account.sessionVersion })}`
 }

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { assertOwned, handler } from '@/lib/api'
 import { addDays, zonedToUtc } from '@/lib/dates'
 import { scheduleSchema } from '@/lib/schemas'
-import { GENERATION_HORIZON_DAYS, generateSessions } from '@/lib/services/classes'
+import { GENERATION_HORIZON_DAYS, assertCoachFreeForSchedule, generateSessions } from '@/lib/services/classes'
 import { getGymSettings } from '@/lib/services/core'
 
 export const dynamic = 'force-dynamic'
@@ -31,7 +31,8 @@ export const POST = handler({ permission: 'classes.manage', write: true, body: s
         endDate: endDate ? zonedToUtc(endDate, '23:59', settings.timezone) : null,
       },
     })
-    const created = await generateSessions(db, schedule, settings, addDays(new Date(), GENERATION_HORIZON_DAYS))
+    await assertCoachFreeForSchedule(db, schedule)
+    const created = await generateSessions(db, schedule, settings, addDays(new Date(), GENERATION_HORIZON_DAYS), new Date(), true)
     return { schedule, created }
   }, { timeout: 20_000 })
   await audit('schedule.create', `Created a recurring class schedule (${result.created} sessions generated)`, { entityType: 'classSchedule', entityId: result.schedule.id })

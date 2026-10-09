@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { createToken } from "@/lib/auth";
+import { createToken, passwordVersion } from "@/lib/auth";
+import { googleSignInDecision } from "@/lib/google-sign-in";
 import { randomBytes } from "crypto";
 import crypto from "crypto";
 import { getTrialEndDate } from "@/lib/billing";
@@ -87,7 +88,15 @@ export async function GET(request: NextRequest) {
 
     const userInfo = await userInfoResponse.json();
 
-    if (!userInfoResponse.ok || !userInfo.email) {
+    const existingForDecision = userInfo?.email ? await prisma.owner.findUnique({ where: { email: String(userInfo.email).toLowerCase().trim() }, select: { emailVerified: true, provider: true, providerAccountId: true } }) : null;
+    const decision = googleSignInDecision(userInfo || {}, existingForDecision);
+    if (userInfoResponse.ok && decision.action === "reject" && decision.reason !== "no_profile") {
+      return NextResponse.redirect(
+        `${appUrl}/login?error=${encodeURIComponent(decision.reason === "unverified_email" ? "Google has not verified that email address. Verify it with Google and try again." : "This account is linked to a different Google account.")}`
+      );
+    }
+
+    if (!userInfoResponse.ok || !userInfo.email || decision.action === "reject") {
       console.error("Failed to fetch Google user info:", userInfo);
       return NextResponse.redirect(
         `${appUrl}/login?error=${encodeURIComponent("Could not retrieve your Google account info.")}`
@@ -166,6 +175,9 @@ export async function GET(request: NextRequest) {
           data: {
             provider: "google",
             providerAccountId: googleId,
+            // The address was never verified, so whoever set the password never proved it was theirs:
+            // it stops working now, and with it every session that began under it.
+            ...(decision.action === "sign_in" && decision.resetPassword && { password: await bcrypt.hash(randomBytes(32).toString("hex"), 10), verificationToken: null, verificationTokenExpiry: null }),
             // Verify email if not already verified
             emailVerified: owner.emailVerified || new Date(),
             // Start trial if it wasn't started yet
@@ -189,6 +201,7 @@ export async function GET(request: NextRequest) {
     const token = await createToken({
       ownerId: owner.id,
       emailVerified: true,
+      pv: passwordVersion(owner.password),
     });
 
     const response = NextResponse.redirect(`${appUrl}/dashboard`);

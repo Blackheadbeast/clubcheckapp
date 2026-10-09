@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import FeedbackButton from "@/components/FeedbackButton";
 import ThemeProvider from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/next"
+
+// Served from this site (no request to Google at runtime), so the content policy needs no exception for it.
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'ClubCheck - Gym Management Made Simple',
@@ -41,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -49,9 +53,9 @@ export default function RootLayout({
               (function() {
                 try {
                   var theme = localStorage.getItem('theme');
+                  // Light unless this browser has chosen otherwise: it is business software, read all day.
                   var isDark = theme === 'dark' ||
-                    (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) ||
-                    (!theme);
+                    (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                   document.documentElement.classList.toggle('dark', isDark);
                 } catch (e) {}
               })();

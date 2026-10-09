@@ -6,12 +6,12 @@ export function getSystemTheme(): 'light' | 'dark' {
 }
 
 export function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark'
+  if (typeof window === 'undefined') return 'light'
   const stored = localStorage.getItem('theme')
   if (stored === 'light' || stored === 'dark' || stored === 'auto') {
     return stored
   }
-  return 'dark'
+  return 'light'
 }
 
 export function applyTheme(theme: Theme) {

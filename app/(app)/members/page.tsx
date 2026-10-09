@@ -84,7 +84,8 @@ function MembersDirectory() {
       return next
     })
 
-  const [adding, setAdding] = useState(false)
+  // "Add member" elsewhere in the app links here with ?new=1 so the form is already open.
+  const [adding, setAdding] = useState(params.get('new') === '1')
   const [importing, setImporting] = useState(false)
   const [composing, setComposing] = useState(false)
   const [bulk, setBulk] = useState<null | { action: 'archive' | 'restore' | 'delete' | 'tag' | 'untag' | 'assign_coach' }>(null)

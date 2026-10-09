@@ -130,25 +130,25 @@ export default function SetupGuidePage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen bg-theme">
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Setup Guide</h1>
+          <h1 className="ui-page-title mb-2">Setup Guide</h1>
           <p className="text-gray-400">
             Follow these steps to get your gym up and running with ClubCheck.
           </p>
         </div>
 
         {/* Progress Overview */}
-        <div className="bg-dark-card p-6 rounded-lg border border-gray-800 mb-8">
+        <div className="bg-theme-card p-6 rounded-lg border border-line mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-100">Your Progress</h2>
             <span className="text-primary font-medium">{completedCount} of {steps.length} complete</span>
           </div>
-          <div className="w-full bg-dark-lighter rounded-full h-3">
+          <div className="w-full bg-theme-lighter rounded-full h-3">
             <div
               className="bg-gradient-to-r from-primary to-primary-dark h-3 rounded-full transition-all duration-500"
               style={{ width: `${(completedCount / steps.length) * 100}%` }}
@@ -174,8 +174,8 @@ export default function SetupGuidePage() {
             return (
               <div
                 key={step.id}
-                className={`bg-dark-card rounded-lg border ${
-                  isComplete ? 'border-green-800' : 'border-gray-800'
+                className={`bg-theme-card rounded-lg border ${
+                  isComplete ? 'border-green-800' : 'border-line'
                 } overflow-hidden`}
               >
                 <div className="p-6">
@@ -215,7 +215,7 @@ export default function SetupGuidePage() {
                       <p className="text-gray-400 mb-4">{step.description}</p>
 
                       {/* Tips */}
-                      <div className="bg-dark-lighter rounded-lg p-4 mb-4">
+                      <div className="bg-theme-lighter rounded-lg p-4 mb-4">
                         <h4 className="text-sm font-medium text-gray-300 mb-2">Tips:</h4>
                         <ul className="space-y-1">
                           {step.tips.map((tip, tipIndex) => (
@@ -232,7 +232,7 @@ export default function SetupGuidePage() {
                         href={step.link}
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
                           isComplete
-                            ? 'bg-dark-lighter text-gray-400 hover:text-gray-100'
+                            ? 'bg-theme-lighter text-gray-400 hover:text-gray-100'
                             : 'bg-primary text-black hover:bg-primary-dark'
                         }`}
                       >
@@ -250,12 +250,12 @@ export default function SetupGuidePage() {
         </div>
 
         {/* Additional Resources */}
-        <div className="mt-12 bg-dark-card p-6 rounded-lg border border-gray-800">
+        <div className="mt-12 bg-theme-card p-6 rounded-lg border border-line">
           <h2 className="text-xl font-semibold text-gray-100 mb-4">Additional Features</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <Link
               href="/leads"
-              className="p-4 bg-dark-lighter rounded-lg border border-gray-700 hover:border-primary transition group"
+              className="p-4 bg-theme-lighter rounded-lg border border-line hover:border-primary transition group"
             >
               <h3 className="font-medium text-gray-100 group-hover:text-primary mb-1">
                 Lead Management
@@ -267,19 +267,19 @@ export default function SetupGuidePage() {
 
             <Link
               href="/communication/campaigns"
-              className="p-4 bg-dark-lighter rounded-lg border border-gray-700 hover:border-primary transition group"
+              className="p-4 bg-theme-lighter rounded-lg border border-line hover:border-primary transition group"
             >
               <h3 className="font-medium text-gray-100 group-hover:text-primary mb-1">
-                Broadcast Emails
+                Campaigns
               </h3>
               <p className="text-sm text-gray-500">
-                Send announcements to all members at once
+                Send an announcement or an offer to a group of members
               </p>
             </Link>
 
             <Link
               href="/settings"
-              className="p-4 bg-dark-lighter rounded-lg border border-gray-700 hover:border-primary transition group"
+              className="p-4 bg-theme-lighter rounded-lg border border-line hover:border-primary transition group"
             >
               <h3 className="font-medium text-gray-100 group-hover:text-primary mb-1">
                 Digital Waivers
@@ -291,7 +291,7 @@ export default function SetupGuidePage() {
 
             <Link
               href="/staff"
-              className="p-4 bg-dark-lighter rounded-lg border border-gray-700 hover:border-primary transition group"
+              className="p-4 bg-theme-lighter rounded-lg border border-line hover:border-primary transition group"
             >
               <h3 className="font-medium text-gray-100 group-hover:text-primary mb-1">
                 Staff Accounts

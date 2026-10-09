@@ -7,23 +7,23 @@ datasource db {
 }
 
 model Owner {
-  id                      String            @id @default(uuid())
-  email                   String            @unique
+  id                      String              @id @default(uuid())
+  email                   String              @unique
   password                String
-  createdAt               DateTime          @default(now())
+  createdAt               DateTime            @default(now())
   stripeCustomerId        String?
   stripeSubscriptionId    String?
   subscriptionStatus      String?
   currentPeriodEnd        DateTime?
-  planType                String            @default("starter")
+  planType                String              @default("starter")
   trialEndsAt             DateTime?
   emailVerified           DateTime?
   phone                   String?
-  verificationToken       String?           @unique
+  verificationToken       String?             @unique
   verificationTokenExpiry DateTime?
   provider                String?
   providerAccountId       String?
-  gymCode                 String?           @unique
+  gymCode                 String?             @unique
   auditLogs               AuditLog[]
   billingEvents           BillingEvent[]
   checkins                Checkin[]
@@ -57,6 +57,14 @@ model Owner {
   automationRuns          AutomationRun[]
   notifications           Notification[]
   documents               Document[]
+  paymentAccount          PaymentAccount?
+  paymentMethods          PaymentMethod[]
+  memberAccounts          MemberAccount[]
+  appointmentTypes        AppointmentType[]
+  staffAvailability       StaffAvailability[]
+  staffTimeOff            StaffTimeOff[]
+  households              Household[]
+  accountCredits          AccountCredit[]
 }
 
 model GymProfile {
@@ -87,19 +95,28 @@ model GymProfile {
   waitlistOfferMinutes   Int       @default(30)
   lateCancelUsesCredit   Boolean   @default(true)
   pastDueGraceDays       Int       @default(7)
+  // Cancel a membership this many days after it goes past due (0 = never cancel automatically)
+  pastDueCancelDays      Int       @default(0)
+  // What members may do for themselves in their account
+  memberSelfCheckin      Boolean   @default(true)
+  memberSelfFreeze       Boolean   @default(true)
+  memberSelfCancel       Boolean   @default(true)
+  memberSelfChangePlan   Boolean   @default(true)
   invoiceSequence        Int       @default(0)
   orderSequence          Int       @default(0)
   owner                  Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Member {
-  id                    String          @id @default(uuid())
+  id                    String               @id @default(uuid())
   name                  String
   email                 String
   phone                 String?
-  status                String          @default("active")
-  qrCode                String          @unique
-  createdAt             DateTime        @default(now())
+  status                String               @default("active")
+  qrCode                String               @unique
+  createdAt             DateTime             @default(now())
+  // When anything on the member last changed: what an outside system syncs from.
+  updatedAt             DateTime             @default(now()) @updatedAt
   ownerId               String
   stripeCustomerId      String?
   stripeSubscriptionId  String?
@@ -110,13 +127,13 @@ model Member {
   lastCheckInAt         DateTime?
   waiverSignature       String?
   waiverSignedAt        DateTime?
-  accessToken           String?         @unique
+  accessToken           String?              @unique
   accessTokenExpiry     DateTime?
-  currentStreak         Int             @default(0)
+  currentStreak         Int                  @default(0)
   lastStreakCheckDate   DateTime?
-  longestStreak         Int             @default(0)
+  longestStreak         Int                  @default(0)
   billingDayOfMonth     Int?
-  billingEnabled        Boolean         @default(false)
+  billingEnabled        Boolean              @default(false)
   lastPaidAt            DateTime?
   lastReminderSentAt    DateTime?
   monthlyFeeCents       Int?
@@ -133,14 +150,22 @@ model Member {
   goals                 String?
   medicalNotes          String?
   leadSource            String?
-  emailOptIn            Boolean         @default(true)
-  smsOptIn              Boolean         @default(false)
-  creditBalanceCents    Int             @default(0)
+  emailOptIn            Boolean              @default(true)
+  smsOptIn              Boolean              @default(false)
+  creditBalanceCents    Int                  @default(0)
+  // smsOptIn above is consent to operational texts (reminders, confirmations). Marketing is separate.
+  smsMarketingOptIn     Boolean              @default(false)
+  // The member texted STOP: nothing at all may be sent until they text START
+  smsStopped            Boolean              @default(false)
+  smsConsentAt          DateTime?
+  smsStoppedAt          DateTime?
+  // Customer on the gym's connected Stripe account (stripeCustomerId above is legacy)
+  connectCustomerId     String?
   archivedAt            DateTime?
   homeLocationId        String?
   assignedStaffId       String?
-  homeLocation          Location?       @relation(fields: [homeLocationId], references: [id], onDelete: SetNull)
-  assignedStaff         Staff?          @relation("MemberCoach", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  homeLocation          Location?            @relation(fields: [homeLocationId], references: [id], onDelete: SetNull)
+  assignedStaff         Staff?               @relation("MemberCoach", fields: [assignedStaffId], references: [id], onDelete: SetNull)
   memberships           Membership[]
   invoices              Invoice[]
   transactions          Transaction[]
@@ -150,9 +175,20 @@ model Member {
   orders                Order[]
   messages              Message[]
   documents             Document[]
+  paymentMethods        PaymentMethod[]
+  account               MemberAccount?
+  notifications         MemberNotification[]
+  devices               MemberDevice[]
+  appointments          Appointment[]
+  authTokens            MemberAuthToken[]
   checkins              Checkin[]
-  owner                 Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner                 Owner                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   paymentRecords        PaymentRecord[]
+  // Billing only: who pays. Everything else about a member stays their own.
+  householdId           String?
+  household             Household?           @relation(fields: [householdId], references: [id], onDelete: SetNull)
+  accountCredits        AccountCredit[]
+  memberDocuments       MemberDocument[]
 
   @@index([ownerId, status])
   @@index([ownerId, createdAt])
@@ -160,6 +196,7 @@ model Member {
   @@index([ownerId, name])
   @@index([ownerId, archivedAt])
   @@index([phone])
+  @@index([householdId])
 }
 
 model Checkin {
@@ -256,6 +293,8 @@ model Prospect {
   lostReason          String?
   interest            String?
   estimatedValueCents Int?
+  smsOptIn            Boolean    @default(false)
+  smsStopped          Boolean    @default(false)
   assignedStaff       Staff?     @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
   activities          Activity[]
   messages            Message[]
@@ -266,27 +305,31 @@ model Prospect {
 }
 
 model Staff {
-  id              String          @id @default(uuid())
-  name            String
-  email           String
-  password        String
-  role            String          @default("front_desk")
-  active          Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  lastLoginAt     DateTime?
-  ownerId         String
-  phone           String?
-  title           String?
-  bio             String?
-  color           String?
-  isCoach         Boolean         @default(false)
-  locationId      String?
-  location        Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  assignedMembers Member[]        @relation("MemberCoach")
-  prospects       Prospect[]
-  schedules       ClassSchedule[]
-  sessions        ClassSession[]
-  owner           Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id               String                 @id @default(uuid())
+  name             String
+  email            String
+  password         String
+  role             String                 @default("front_desk")
+  active           Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  lastLoginAt      DateTime?
+  ownerId          String
+  phone            String?
+  title            String?
+  bio              String?
+  color            String?
+  isCoach          Boolean                @default(false)
+  locationId       String?
+  location         Location?              @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  assignedMembers  Member[]               @relation("MemberCoach")
+  prospects        Prospect[]
+  schedules        ClassSchedule[]
+  sessions         ClassSession[]
+  appointments     Appointment[]
+  appointmentTypes AppointmentTypeStaff[]
+  availability     StaffAvailability[]
+  timeOff          StaffTimeOff[]
+  owner            Owner                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([email, ownerId])
 }
@@ -377,6 +420,7 @@ model Location {
   sessions     ClassSession[]
   transactions Transaction[]
   orders       Order[]
+  appointments Appointment[]
 
   @@index([ownerId])
 }
@@ -448,6 +492,8 @@ model Membership {
   cancelReason         String?
   failedPaymentCount   Int            @default(0)
   lastBilledAt         DateTime?
+  // A plan change that takes effect at the next billing date
+  pendingPlanId        String?
   stripeSubscriptionId String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
@@ -456,6 +502,7 @@ model Membership {
   plan                 MembershipPlan @relation(fields: [planId], references: [id], onDelete: NoAction)
   invoices             Invoice[]
   bookings             Booking[]
+  appointments         Appointment[]
 
   @@index([ownerId, status])
   @@index([memberId, status])
@@ -495,6 +542,7 @@ model Invoice {
   order           Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
   items           InvoiceItem[]
   transactions    Transaction[]
+  appointments    Appointment[]
 
   @@unique([ownerId, number])
   @@unique([membershipId, periodStart])
@@ -538,8 +586,17 @@ model Transaction {
   provider            String        @default("manual")
   providerReference   String?
   cardLast4           String?
+  paymentMethodId     String?
   failureReason       String?
+  // needs_response | under_review | won | lost
+  disputeStatus       String?
+  disputeReason       String?
+  disputedAt          DateTime?
   note                String?
+  // Refunds: requested | duplicate | fraudulent | billing_error | service_issue | cancelled | other
+  refundReason        String?
+  // Set when someone other than the invoice's member paid (a household payer)
+  payerMemberId       String?
   parentTransactionId String?
   legacyPaymentId     String?       @unique
   staffId             String?
@@ -556,6 +613,8 @@ model Transaction {
   @@index([ownerId, type, status, createdAt])
   @@index([memberId, createdAt])
   @@index([invoiceId])
+  @@index([provider, providerReference])
+  @@index([payerMemberId, createdAt])
 }
 
 model Coupon {
@@ -654,6 +713,9 @@ model ClassSession {
   bookings         Booking[]
   checkins         Checkin[]
 
+  // A programmed workout members in this class can see and log. Attendance stays separate.
+  workoutId String?
+
   @@unique([scheduleId, startsAt])
   @@index([ownerId, startsAt])
   @@index([ownerId, locationId, startsAt])
@@ -676,6 +738,8 @@ model Booking {
   checkedInAt    DateTime?
   cancelledAt    DateTime?
   createdAt      DateTime     @default(now())
+  // How it was made, when that is worth knowing: "online" = the public booking page or widget.
+  channel        String?
   updatedAt      DateTime     @updatedAt
   owner          Owner        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   session        ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -840,6 +904,8 @@ model Campaign {
   status         String    @default("draft")
   recipientCount Int       @default(0)
   sentAt         DateTime?
+  // Set for a campaign scheduled to go out later (status: scheduled)
+  scheduledAt    DateTime?
   createdByName  String?
   createdAt      DateTime  @default(now())
   owner          Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -849,37 +915,61 @@ model Campaign {
 }
 
 model Message {
-  id           String      @id @default(uuid())
-  ownerId      String
+  id             String           @id @default(uuid())
+  ownerId        String
   // email | sms | in_app
-  channel      String
-  memberId     String?
-  prospectId   String?
-  campaignId   String?
-  automationId String?
-  toAddress    String?
-  subject      String?
-  body         String
+  channel        String
+  memberId       String?
+  prospectId     String?
+  campaignId     String?
+  automationId   String?
+  toAddress      String?
+  subject        String?
+  body           String
   // queued | sent | delivered | opened | clicked | failed | skipped
-  status       String      @default("queued")
-  error        String?
-  providerId   String?
-  sentAt       DateTime?
-  deliveredAt  DateTime?
-  openedAt     DateTime?
-  clickedAt    DateTime?
-  createdAt    DateTime    @default(now())
-  owner        Owner       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  member       Member?     @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  prospect     Prospect?   @relation(fields: [prospectId], references: [id], onDelete: Cascade)
-  campaign     Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  automation   Automation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  status         String           @default("queued")
+  error          String?
+  providerId     String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  // outbound | inbound
+  direction      String           @default("outbound")
+  // The number or address it came from (the gym's sending number for outbound SMS)
+  fromAddress    String?
+  // marketing | operational | conversation: decides which consent it needs
+  kind           String           @default("marketing")
+  staffId        String?
+  staffName      String?
+  templateId     String?
+  // The provider's own error code, kept for troubleshooting (e.g. Twilio 30007)
+  errorCode      String?
+  // The same logical message is only ever stored (and so sent) once: see MessageKey
+  dedupeKey      String?
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime?
+  // Do not send before / never send after
+  sendAfter      DateTime?
+  expiresAt      DateTime?
+  conversationId String?
+  // Inbound messages: when staff saw it
+  readAt         DateTime?
+  conversation   SmsConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  owner          Owner            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  member         Member?          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  prospect       Prospect?        @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  automation     Automation?      @relation(fields: [automationId], references: [id], onDelete: SetNull)
 
   @@index([ownerId, createdAt])
   @@index([memberId, createdAt])
   @@index([prospectId, createdAt])
   @@index([campaignId])
   @@index([providerId])
+  @@index([conversationId, createdAt])
+  @@index([status, nextAttemptAt])
 }
 
 model Automation {
@@ -959,4 +1049,1294 @@ model Document {
   member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
+}
+
+// The gym's own payment processor account (Stripe Connect). Members are charged
+// on this account, never on ClubCheck's platform account.
+model PaymentAccount {
+  id               String   @id @default(uuid())
+  ownerId          String   @unique
+  provider         String   @default("stripe")
+  providerId       String   @unique
+  chargesEnabled   Boolean  @default(false)
+  payoutsEnabled   Boolean  @default(false)
+  detailsSubmitted Boolean  @default(false)
+  disabledReason   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  owner            Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+// A member's saved card or bank account. Only the processor's reference and
+// display details are stored, never the number.
+model PaymentMethod {
+  id         String   @id @default(uuid())
+  ownerId    String
+  memberId   String
+  provider   String   @default("stripe")
+  providerId String   @unique
+  // card | us_bank_account
+  type       String
+  brand      String?
+  bankName   String?
+  last4      String
+  expMonth   Int?
+  expYear    Int?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  owner      Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, memberId])
+}
+
+// Processor webhook events already handled, so a redelivery is a no-op.
+model PaymentEvent {
+  id        String   @id
+  type      String
+  account   String?
+  createdAt DateTime @default(now())
+}
+
+// A member's sign-in identity. Kept apart from Member so the password hash can
+// never ride along in a member query. One per member; the member row is the
+// person, this is only how they prove who they are.
+model MemberAccount {
+  id              String    @id @default(uuid())
+  ownerId         String
+  memberId        String    @unique
+  passwordHash    String
+  emailVerifiedAt DateTime?
+  // A new address the member asked to switch to; it replaces Member.email once verified
+  pendingEmail    String?
+  // Bumped on password change, reset and "sign out everywhere": older sessions stop working
+  sessionVersion  Int       @default(0)
+  failedLogins    Int       @default(0)
+  lockedUntil     DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  owner           Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  member          Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+// Single-use links for invitations, password resets and email verification.
+// Only a hash of the token is stored, so a database leak cannot be used to sign in.
+model MemberAuthToken {
+  id        String    @id @default(uuid())
+  ownerId   String
+  memberId  String
+  // invite | reset | verify_email
+  type      String
+  tokenHash String    @unique
+  // For verify_email: the address being confirmed
+  email     String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, type])
+}
+
+// The member's notification center. Every member-facing event is written here
+// once (lib/services/member-notifications.ts); email, SMS and push are ways of
+// delivering the same row, so adding a channel never changes what is recorded.
+model MemberNotification {
+  id        String    @id @default(uuid())
+  ownerId   String
+  memberId  String
+  // booking | waitlist | payment | membership | account | message
+  category  String
+  type      String
+  title     String
+  body      String?
+  // Which screen of the member app this is about: home | schedule | checkin | membership | profile
+  screen    String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+  @@index([memberId, readAt])
+}
+
+// A phone or browser that has asked for push notifications. Nothing sends to
+// these yet; registering them is what a push provider will need.
+model MemberDevice {
+  id         String   @id @default(uuid())
+  ownerId    String
+  memberId   String
+  // ios | android | web
+  platform   String
+  pushToken  String   @unique
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+}
+
+// A bookable one-to-one service: personal training, an assessment, a consultation.
+model AppointmentType {
+  id                String                 @id @default(uuid())
+  ownerId           String
+  name              String
+  description       String?
+  color             String                 @default("#8b5cf6")
+  durationMin       Int                    @default(60)
+  // included (no charge) | credit (uses session credits) | paid (charged per appointment)
+  paymentMode       String                 @default("credit")
+  priceCents        Int                    @default(0)
+  taxRateBps        Int                    @default(0)
+  creditsRequired   Int                    @default(1)
+  // Member must hold one of these plans (and, in credit mode, the credits come from them). Empty = no restriction
+  requiredPlanIds   String[]               @default([])
+  // Where it can take place. Empty = any location
+  locationIds       String[]               @default([])
+  // Cancel or reschedule at least this long before to keep the credit or payment
+  cancelWindowHours Int                    @default(12)
+  // How soon and how far ahead members may book
+  minNoticeMinutes  Int                    @default(120)
+  maxAdvanceDays    Int                    @default(30)
+  slotIntervalMin   Int                    @default(30)
+  memberBookable    Boolean                @default(true)
+  memberReschedule  Boolean                @default(true)
+  isActive          Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  owner             Owner                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  staff             AppointmentTypeStaff[]
+  appointments      Appointment[]
+
+  @@index([ownerId, isActive])
+}
+
+// Which staff offer which appointment types.
+model AppointmentTypeStaff {
+  typeId  String
+  staffId String
+  ownerId String
+  type    AppointmentType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  staff   Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@id([typeId, staffId])
+  @@index([staffId])
+}
+
+// A staff member's weekly hours. Times are minutes from midnight in the gym's
+// timezone, so "9:00" stays 9:00 across daylight-saving changes.
+model StaffAvailability {
+  id          String  @id @default(uuid())
+  ownerId     String
+  staffId     String
+  // 0 = Sunday
+  weekday     Int
+  startMinute Int
+  endMinute   Int
+  // work | break
+  kind        String  @default("work")
+  // Where they work during these hours. Null = any location
+  locationId  String?
+  owner       Owner   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  staff       Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, weekday])
+}
+
+// Dated exceptions to the weekly hours: holidays, leave, a morning off.
+model StaffTimeOff {
+  id        String   @id @default(uuid())
+  ownerId   String
+  staffId   String
+  startsAt  DateTime
+  endsAt    DateTime
+  // vacation | personal | holiday | other
+  kind      String   @default("vacation")
+  note      String?
+  createdAt DateTime @default(now())
+  owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startsAt])
+}
+
+// One booked appointment. Also the record a future commission report reads:
+// who delivered what, to whom, where, when and for how much.
+model Appointment {
+  id                 String          @id @default(uuid())
+  ownerId            String
+  typeId             String
+  memberId           String
+  staffId            String
+  locationId         String?
+  startsAt           DateTime
+  endsAt             DateTime
+  // booked | completed | no_show | cancelled | late_cancelled
+  status             String          @default("booked")
+  // Snapshots of the type's terms at the time of booking
+  paymentMode        String
+  priceCents         Int             @default(0)
+  cancelWindowHours  Int             @default(12)
+  // Session credits taken from membershipId, and whether they were given back
+  membershipId       String?
+  creditsUsed        Int             @default(0)
+  creditsReturned    Boolean         @default(false)
+  invoiceId          String?
+  // member | staff
+  source             String          @default("staff")
+  bookedByName       String?
+  notes              String?
+  staffNotes         String?
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancelReason       String?
+  completedAt        DateTime?
+  rescheduleCount    Int             @default(0)
+  previousStartsAt   DateTime?
+  reminderDaySentAt  DateTime?
+  reminderSoonSentAt DateTime?
+  createdAt          DateTime        @default(now())
+  // How it was made, when that is worth knowing: "online" = the public booking page or widget.
+  channel            String?
+  updatedAt          DateTime        @updatedAt
+  type               AppointmentType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  member             Member          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  staff              Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  location           Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  membership         Membership?     @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  invoice            Invoice?        @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  claims             TimeClaim[]
+
+  // The workout planned for this session, if the coach attached one.
+  workoutId String?
+
+  @@index([ownerId, startsAt])
+  @@index([ownerId, status, startsAt])
+  @@index([staffId, startsAt])
+  @@index([memberId, startsAt])
+}
+
+// The database-level guarantee against double booking. A live appointment
+// holds one row per five-minute slot for its staff member and one for its
+// member; the unique index makes a second claim on the same slot impossible,
+// whatever two simultaneous requests believe they checked.
+model TimeClaim {
+  id            String      @id @default(uuid())
+  ownerId       String
+  appointmentId String
+  // "staff:<id>" or "member:<id>"
+  resource      String
+  slot          DateTime
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([resource, slot])
+  @@index([appointmentId])
+}
+
+// One thread of text messages between the gym and one phone number.
+model SmsConversation {
+  id              String    @id @default(uuid())
+  ownerId         String
+  // E.164. A number that matches no member (or more than one) stays unattached until staff link it.
+  phone           String
+  memberId        String?
+  prospectId      String?
+  lastMessageAt   DateTime  @default(now())
+  lastInboundAt   DateTime?
+  lastOutboundAt  DateTime?
+  lastPreview     String?
+  lastDirection   String?
+  unreadCount     Int       @default(0)
+  // The last word was the member's: someone should reply
+  needsResponse   Boolean   @default(false)
+  assignedStaffId String?
+  createdAt       DateTime  @default(now())
+  messages        Message[]
+
+  @@unique([ownerId, phone])
+  @@index([ownerId, lastMessageAt])
+  @@index([ownerId, unreadCount])
+  @@index([memberId])
+}
+
+// Every change to someone's SMS consent, kept as history: who, when, how, and for which number.
+model SmsConsentEvent {
+  id         String   @id @default(uuid())
+  ownerId    String
+  memberId   String?
+  prospectId String?
+  phone      String?
+  // operational | marketing | all
+  scope      String
+  // opted_in | opted_out
+  status     String
+  // staff | member_portal | keyword | import | website_form | lead_form
+  source     String
+  // What was actually done: "Ticked in the member app", "Texted STOP", "Recorded by Jasmine at the desk"
+  method     String?
+  actorName  String?
+  createdAt  DateTime @default(now())
+
+  @@index([ownerId, memberId, createdAt])
+  @@index([ownerId, phone])
+}
+
+// Claims a logical message ("this reminder for this appointment") so it can only be created once,
+// whatever retries, double clicks or duplicate webhooks ask for it again.
+model MessageKey {
+  key       String   @id
+  ownerId   String
+  messageId String?
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+// A gym's own sending number (E.164). Inbound texts to it belong to that gym.
+model SmsNumber {
+  number    String   @id
+  ownerId   String   @unique
+  createdAt DateTime @default(now())
+}
+
+// A group of members billed together. One of them (the payer) has the card or bank account that
+// every member's invoices are charged to. Memberships, bookings, attendance and credits stay per member.
+model Household {
+  id            String   @id @default(uuid())
+  ownerId       String
+  name          String
+  payerMemberId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  owner         Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members       Member[]
+
+  @@index([ownerId])
+}
+
+// Money the gym owes a member, kept on account and spent on invoices. Member.creditBalanceCents is
+// always the sum of remainingCents here; every grant and every use is a row, never a silent change.
+model AccountCredit {
+  id                  String              @id @default(uuid())
+  ownerId             String
+  memberId            String
+  originalCents       Int
+  remainingCents      Int
+  // proration | staff | refund | overpayment | opening_balance
+  source              String
+  reason              String?
+  // Spent automatically on the next membership invoice. Staff can hold a credit back.
+  autoApply           Boolean             @default(true)
+  membershipId        String?
+  sourceInvoiceId     String?
+  sourceTransactionId String?
+  createdById         String?
+  createdByName       String?
+  createdAt           DateTime            @default(now())
+  owner               Owner               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  member              Member              @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  uses                CreditApplication[]
+
+  @@index([ownerId, memberId, createdAt])
+}
+
+model CreditApplication {
+  id            String        @id @default(uuid())
+  ownerId       String
+  creditId      String
+  // applied (spent on an invoice) | removed (taken back by staff)
+  kind          String        @default("applied")
+  amountCents   Int
+  invoiceId     String?
+  transactionId String?
+  note          String?
+  byName        String?
+  createdAt     DateTime      @default(now())
+  credit        AccountCredit @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@index([creditId])
+  @@index([ownerId, invoiceId])
+}
+
+// One row per plan change, with the full calculation that was shown and agreed to.
+model PlanChange {
+  id           String    @id @default(uuid())
+  ownerId      String
+  membershipId String
+  memberId     String
+  fromPlanId   String
+  toPlanId     String
+  // now | next_period
+  effective    String
+  // applied | scheduled | cancelled
+  status       String    @default("applied")
+  // staff | member
+  source       String    @default("staff")
+  calculation  Json
+  invoiceId    String?
+  creditId     String?
+  byId         String?
+  byName       String?
+  createdAt    DateTime  @default(now())
+  appliedAt    DateTime?
+
+  @@index([ownerId, membershipId, createdAt])
+  @@index([ownerId, memberId])
+}
+
+// Makes a money-moving request safe to repeat: the same key returns the first result.
+model IdempotencyKey {
+  key         String   @id
+  ownerId     String
+  scope       String
+  requestHash String
+  response    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([ownerId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Workout programming
+// ---------------------------------------------------------------------------
+
+// A movement. ownerId null = a system exercise every gym can use and none can change.
+model Exercise {
+  id               String   @id @default(uuid())
+  ownerId          String?
+  // Stable key for system exercises, so seeding them twice changes nothing
+  slug             String?  @unique
+  name             String
+  description      String?
+  instructions     String?
+  // Free text with suggestions (squat, hinge, push, pull, carry, olympic, gymnastics, core, conditioning, mobility, cardio…)
+  category         String
+  movementPattern  String?
+  primaryMuscle    String?
+  secondaryMuscles String[] @default([])
+  equipment        String[] @default([])
+  // beginner | intermediate | advanced
+  difficulty       String   @default("intermediate")
+  // What a set of this is measured in: weight_reps | reps | time | distance
+  measure          String   @default("weight_reps")
+  videoUrl         String?
+  imageUrl         String?
+  // Staff only
+  coachNotes       String?
+  isActive         Boolean  @default(true)
+  createdByName    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([ownerId, isActive, name])
+}
+
+// A workout coaches build once and reuse. What members actually follow is a WorkoutVersion.
+model Workout {
+  id               String           @id @default(uuid())
+  ownerId          String
+  name             String
+  // strength | conditioning | hypertrophy | skill | mobility | mixed | other
+  type             String           @default("mixed")
+  difficulty       String           @default("intermediate")
+  estimatedMinutes Int?
+  currentVersionId String?
+  createdById      String?
+  createdByName    String?
+  archivedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  versions         WorkoutVersion[]
+
+  @@index([ownerId, archivedAt, name])
+}
+
+// An immutable snapshot of a workout. Once a member has trained from a version it is never edited;
+// a later change to the workout makes a new version, and history keeps pointing at the old one.
+model WorkoutVersion {
+  id               String   @id @default(uuid())
+  ownerId          String
+  workoutId        String
+  version          Int
+  name             String
+  description      String?
+  instructions     String?
+  type             String
+  difficulty       String
+  estimatedMinutes Int?
+  equipment        String[] @default([])
+  // { blocks: [{ id, type, title, rounds, items: [{ id, exerciseId, exerciseName, sets, reps, … scaling: [] }] }] }
+  content          Json
+  createdByName    String?
+  createdAt        DateTime @default(now())
+  workout          Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutId, version])
+  @@index([ownerId])
+}
+
+model Program {
+  id            String       @id @default(uuid())
+  ownerId       String
+  name          String
+  description   String?
+  goals         String?
+  difficulty    String       @default("intermediate")
+  audience      String?
+  weeks         Int          @default(4)
+  createdById   String?
+  createdByName String?
+  archivedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  days          ProgramDay[]
+
+  @@index([ownerId, archivedAt, name])
+}
+
+// One training day of a program. It points at a reusable workout; nothing is copied.
+model ProgramDay {
+  id        String  @id @default(uuid())
+  ownerId   String
+  programId String
+  week      Int
+  // 1 = Monday … 7 = Sunday
+  day       Int
+  workoutId String
+  title     String?
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, week, day])
+  @@index([ownerId, workoutId])
+}
+
+model ProgramAssignment {
+  id            String    @id @default(uuid())
+  ownerId       String
+  programId     String
+  memberId      String
+  coachId       String?
+  // The date week 1 begins counting from, at noon UTC of the gym's local date
+  startDate     DateTime
+  endDate       DateTime?
+  // scheduled | active | paused | completed | cancelled
+  status        String    @default("scheduled")
+  pausedAt      DateTime?
+  // Whole days spent paused, which push the rest of the program back
+  pausedDays    Int       @default(0)
+  // Set when the assignment came from "everyone on this membership plan"
+  sourcePlanId  String?
+  createdByName String?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([ownerId, memberId, status])
+  @@index([ownerId, programId, status])
+  @@index([ownerId, coachId, status])
+}
+
+// One member doing one workout on one occasion: what was prescribed (by version) and how it went.
+model WorkoutSession {
+  id               String           @id @default(uuid())
+  ownerId          String
+  memberId         String
+  workoutId        String
+  workoutVersionId String
+  assignmentId     String?
+  programDayId     String?
+  classSessionId   String?
+  appointmentId    String?
+  // The gym-local date it is for, at noon UTC
+  scheduledDate    DateTime?
+  // not_started | in_progress | completed | skipped
+  status           String           @default("not_started")
+  startedAt        DateTime?
+  completedAt      DateTime?
+  durationSec      Int?
+  // Whole-workout result where the workout has one: { timeSec } for time, { rounds, reps } for AMRAP
+  result           Json?
+  // The member's own note, visible to them and their coaches
+  memberNotes      String?
+  // Staff only. Never sent to the member.
+  coachNotes       String?
+  // Written by the coach for the member to read
+  coachFeedback    String?
+  coachId          String?
+  coachName        String?
+  programName      String?
+  assignedByName   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  sets             WorkoutSetLog[]
+  items            WorkoutItemLog[]
+
+  // A program day, a class or an appointment gives a member one session, however many times it is opened.
+  @@unique([assignmentId, programDayId])
+  @@unique([memberId, classSessionId])
+  @@unique([memberId, appointmentId])
+  @@index([ownerId, memberId, status, completedAt])
+  @@index([ownerId, memberId, scheduledDate])
+  @@index([ownerId, scheduledDate, status])
+  @@index([workoutVersionId])
+}
+
+// What the member actually did for one set. The prescription lives in the version and is never touched.
+model WorkoutSetLog {
+  id           String         @id @default(uuid())
+  ownerId      String
+  sessionId    String
+  memberId     String
+  // The prescribed item (in the version's content) this set belongs to
+  itemId       String
+  // The exercise actually performed, which differs from the prescribed one after a scale or substitution
+  exerciseId   String?
+  exerciseName String
+  setNumber    Int
+  weight       Float?
+  // lb | kg
+  weightUnit   String?
+  reps         Int?
+  durationSec  Int?
+  distanceM    Float?
+  rpe          Float?
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  session      WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, itemId, setNumber])
+  @@index([ownerId, memberId, exerciseId, createdAt])
+}
+
+// How the member approached one prescribed exercise: as written, scaled, substituted or skipped.
+model WorkoutItemLog {
+  id           String         @id @default(uuid())
+  ownerId      String
+  sessionId    String
+  itemId       String
+  // rx | scaled | substituted | skipped
+  performedAs  String         @default("rx")
+  scalingId    String?
+  // The exercise done instead, by name as well so history survives the exercise being renamed
+  exerciseId   String?
+  exerciseName String?
+  note         String?
+  updatedAt    DateTime       @updatedAt
+  session      WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, itemId])
+}
+
+model PersonalRecord {
+  id            String   @id @default(uuid())
+  ownerId       String
+  memberId      String
+  exerciseId    String?
+  workoutId     String?
+  // What the record is of, by name, as it was called at the time
+  name          String
+  // heaviest_weight | reps_at_weight | estimated_1rm | most_reps | longest_duration | longest_distance | fastest_time | most_rounds
+  type          String
+  // For reps_at_weight: the weight the reps were done at ("225lb"). Empty otherwise.
+  bucket        String   @default("")
+  value         Float
+  unit          String
+  // The best before this one. Null means this is the first time there was anything to compare.
+  previousValue Float?
+  detail        String?
+  sessionId     String
+  achievedAt    DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([ownerId, memberId, achievedAt])
+  @@index([ownerId, memberId, exerciseId, type, bucket, achievedAt])
+  @@index([sessionId])
+}
+
+// ---------------------------------------------------------------------------
+// Public API and webhooks
+// ---------------------------------------------------------------------------
+
+// A credential for one gym. The key itself is never stored: only its SHA-256 hash, and a short
+// prefix so staff can tell keys apart.
+model ApiKey {
+  id            String    @id @default(uuid())
+  ownerId       String
+  name          String
+  description   String?
+  // First characters of the key, shown in lists ("cc_live_a1b2c3d4").
+  prefix        String
+  keyHash       String    @unique
+  scopes        String[]  @default([])
+  // Requests a minute for this key. Null = the default.
+  rateLimit     Int?
+  createdById   String?
+  createdByName String?
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime?
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  revokedByName String?
+
+  @@index([ownerId, createdAt])
+}
+
+// One row per public API request, keyed by the request ID returned to the caller.
+model ApiRequestLog {
+  id         String   @id
+  ownerId    String?
+  apiKeyId   String?
+  method     String
+  path       String
+  status     Int
+  errorCode  String?
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  @@index([ownerId, createdAt])
+  @@index([apiKeyId, createdAt])
+}
+
+// Fixed one-minute request counters, shared by every server instance.
+model ApiRateWindow {
+  // "key:<apiKeyId>:<minute>" or "gym:<ownerId>:<minute>"
+  id        String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model WebhookEndpoint {
+  id             String            @id @default(uuid())
+  ownerId        String
+  url            String
+  description    String?
+  isActive       Boolean           @default(true)
+  // The signing secret, encrypted at rest. It is shown once, when the endpoint is created or the secret rolled.
+  secretCipher   String
+  secretHint     String
+  // Event types this endpoint receives. ["*"] = everything.
+  events         String[]          @default([])
+  createdByName  String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  // Set when repeated failures switched it off.
+  disabledAt     DateTime?
+  disabledReason String?
+  deliveries     WebhookDelivery[]
+
+  @@index([ownerId, createdAt])
+}
+
+// Something that happened, recorded once in the same transaction as the change itself.
+model WebhookEvent {
+  // "evt_..." : the ID receivers deduplicate on.
+  id         String            @id
+  ownerId    String
+  type       String
+  // One event per underlying operation: a second attempt to record the same one is ignored.
+  dedupeKey  String
+  // The exact JSON sent, kept so every retry carries the same payload.
+  payload    Json
+  createdAt  DateTime          @default(now())
+  deliveries WebhookDelivery[]
+
+  @@unique([ownerId, dedupeKey])
+  @@index([ownerId, createdAt])
+  @@index([ownerId, type, createdAt])
+}
+
+model WebhookDelivery {
+  id             String           @id @default(uuid())
+  ownerId        String
+  endpointId     String
+  eventId        String
+  // pending | succeeded | failed (will retry) | dead (gave up)
+  status         String           @default("pending")
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime?        @default(now())
+  // Held by a worker until this time, so two workers do not send the same delivery at once.
+  lockedUntil    DateTime?
+  lastStatusCode Int?
+  lastError      String?
+  lastAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime         @default(now())
+  endpoint       WebhookEndpoint  @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event          WebhookEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tries          WebhookAttempt[]
+
+  @@unique([endpointId, eventId])
+  @@index([status, nextAttemptAt])
+  @@index([ownerId, createdAt])
+  @@index([endpointId, createdAt])
+}
+
+model WebhookAttempt {
+  id         String          @id @default(uuid())
+  deliveryId String
+  attempt    Int
+  statusCode Int?
+  error      String?
+  // The first part of what the receiver answered, for debugging.
+  response   String?
+  durationMs Int
+  manual     Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  delivery   WebhookDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Online booking: the public page and website widget
+// ---------------------------------------------------------------------------
+
+// One per gym. What the public booking page shows and allows. Classes, appointment types,
+// locations, prices and rules all stay where they already live; this only says which of
+// them the public may see, and how the page looks.
+model BookingSite {
+  id                 String   @id @default(uuid())
+  ownerId            String   @unique
+  // The public address: /book/<slug>. Lowercase letters, digits and hyphens.
+  slug               String   @unique
+  enabled            Boolean  @default(false)
+  // Shown instead of the business name when set.
+  displayName        String?
+  tagline            String?
+  primaryColor       String   @default("#2563eb")
+  // rounded | pill | square
+  buttonStyle        String   @default("rounded")
+  // light | dark | auto
+  appearance         String   @default("light")
+  showLogo           Boolean  @default(true)
+  // Empty = every active location.
+  locationIds        String[] @default([])
+  // Class types the public may book. allClassTypes ignores the list.
+  allClassTypes      Boolean  @default(true)
+  classTypeIds       String[] @default([])
+  // Appointment types the public may book (each must also be bookable by members).
+  appointmentTypeIds String[] @default([])
+  // Everyone must sign in or create an account before booking.
+  requireAccount     Boolean  @default(false)
+  // People with no account may book with just a name, email and phone.
+  allowGuests        Boolean  @default(true)
+  // How far ahead the public may book. Null = the gym's own booking window.
+  advanceDays        Int?
+  cancellationPolicy String?
+  contactEmail       String?
+  contactPhone       String?
+  termsUrl           String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([slug])
+}
+
+// Visits to the public page, one row a day, for a rough conversion figure.
+model BookingSiteDaily {
+  ownerId String
+  // Midnight UTC of the gym's local day.
+  day     DateTime
+  visits  Int      @default(0)
+
+  @@id([ownerId, day])
+}
+
+// ---------------------------------------------------------------------------
+// Documents and e-signatures
+// ---------------------------------------------------------------------------
+
+// A document a gym asks people to sign: a waiver, an agreement, a policy. The wording lives in
+// its versions; this row is what stays the same across them.
+model DocumentTemplate {
+  id                    String                    @id @default(uuid())
+  ownerId               String
+  name                  String
+  description           String?
+  // waiver | liability_release | membership_agreement | terms | policy | media_release | medical_form | custom
+  type                  String                    @default("custom")
+  // The version new assignments use. Null until something is published.
+  publishedVersionId    String?
+  // How long a signature stays good. Null = it does not expire.
+  validForDays          Int?
+  // How long someone has to sign after it is sent. Null = no deadline.
+  signWithinDays        Int?
+  allowDecline          Boolean                   @default(true)
+  declineReasonRequired Boolean                   @default(false)
+  createdById           String?
+  createdByName         String?
+  archivedAt            DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  versions              DocumentTemplateVersion[]
+
+  @@index([ownerId, archivedAt, name])
+}
+
+// One wording of a template. A draft can be edited; once published it never changes, and editing
+// starts the next version.
+model DocumentTemplateVersion {
+  id               String           @id @default(uuid())
+  ownerId          String
+  templateId       String
+  version          Int
+  // draft | published | archived (replaced by a later version)
+  status           String           @default("draft")
+  title            String
+  // The document text in the editor's own plain markup (see lib/documents/content.ts).
+  body             String
+  // Things the signer fills in: [{ key, label, type, required, options? }]
+  fields           Json             @default("[]")
+  requireSignature Boolean          @default(true)
+  createdByName    String?
+  publishedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  template         DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([ownerId])
+}
+
+// When a template must be signed before something can go ahead.
+model DocumentRequirement {
+  id                 String   @id @default(uuid())
+  ownerId            String
+  templateId         String
+  // member_signup | membership_purchase | class_booking | appointment_booking
+  trigger            String
+  // Narrow it to particular plans, class types or appointment types. Empty = all of them.
+  planIds            String[] @default([])
+  classTypeIds       String[] @default([])
+  appointmentTypeIds String[] @default([])
+  // Stop the member's own booking or purchase until it is signed. Off: it is only assigned.
+  blocking           Boolean  @default(true)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  @@index([ownerId, trigger, isActive])
+}
+
+// One person's copy of a document: the exact version they were given, with their details filled
+// in, and after signing the record of what they agreed to. A signed copy is never rewritten.
+model MemberDocument {
+  id              String                 @id @default(uuid())
+  ownerId         String
+  memberId        String
+  templateId      String
+  versionId       String
+  version         Int
+  name            String
+  type            String
+  // draft | sent | viewed | partially_completed | signed | declined | expired | voided
+  status          String                 @default("sent")
+  // What they were shown: title, the text with merge fields filled in, the fields to complete.
+  content         Json
+  fieldValues     Json                   @default("{}")
+  // Why it exists: staff | member_signup | membership_purchase | class_booking | appointment_booking
+  source          String                 @default("staff")
+  assignedByName  String?
+  assignedAt      DateTime               @default(now())
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  signedAt        DateTime?
+  declinedAt      DateTime?
+  declineReason   String?
+  voidedAt        DateTime?
+  voidReason      String?
+  voidedByName    String?
+  expiredAt       DateTime?
+  remindedAt      DateTime?
+  // Unsigned after this: expired.
+  signBy          DateTime?
+  // A signature is good until this. Null = no end.
+  validUntil      DateTime?
+  lastActivityAt  DateTime               @default(now())
+  // Set once, at signing, and never again.
+  signerName      String?
+  signatureMethod String?
+  // The signature itself: typed text, or the strokes of a drawn one.
+  signature       Json?
+  consentAt       DateTime?
+  signedIp        String?
+  signedUserAgent String?
+  // The complete signed record, and its SHA-256, fixed at the moment of signing.
+  finalSnapshot   Json?
+  snapshotHash    String?
+  // Where the generated PDF is kept, in whatever file storage is configured.
+  pdfKey          String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  member          Member                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  events          DocumentEvent[]
+  tokens          DocumentSigningToken[]
+
+  @@index([ownerId, status, createdAt])
+  @@index([ownerId, memberId, templateId])
+  @@index([ownerId, validUntil])
+  @@index([ownerId, signBy])
+}
+
+// The audit trail. Rows are only ever added.
+model DocumentEvent {
+  id         String         @id @default(uuid())
+  ownerId    String
+  documentId String
+  // assigned | sent | resent | viewed | fields_saved | signature_started | signed | declined | voided | expired | reminded | downloaded | link_opened
+  type       String
+  actorType  String
+  actorId    String?
+  actorName  String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+  document   MemberDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+}
+
+// An emailed signing link. Only the SHA-256 of the token is kept.
+model DocumentSigningToken {
+  id         String         @id @default(uuid())
+  ownerId    String
+  documentId String
+  tokenHash  String         @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime       @default(now())
+  document   MemberDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+// ---------------------------------------------------------------------------
+// Payroll and commissions
+// ---------------------------------------------------------------------------
+
+// How one staff member is paid. The row with no location is their default; a row with a
+// location replaces it for work done there.
+model StaffCompensation {
+  id                 String   @id @default(uuid())
+  ownerId            String
+  staffId            String
+  locationId         String?
+  // none | hourly | salary | flat
+  basePay            String   @default("none")
+  hourlyRateCents    Int      @default(0)
+  annualSalaryCents  Int      @default(0)
+  // A fixed amount each pay period
+  flatPerPeriodCents Int      @default(0)
+  // Paid on top of the base for each completed appointment / class taught
+  perSessionCents    Int      @default(0)
+  perClassCents      Int      @default(0)
+  notes              String?
+  updatedByName      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([ownerId, staffId])
+}
+
+model CommissionPlan {
+  id          String                 @id @default(uuid())
+  ownerId     String
+  name        String
+  description String?
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  rules       CommissionRule[]
+  assignments CommissionAssignment[]
+
+  @@index([ownerId, isActive])
+}
+
+model CommissionRule {
+  id                 String         @id @default(uuid())
+  ownerId            String
+  planId             String
+  // membership_sale | membership_upgrade | membership_renewal | package_sale | appointment | class
+  trigger            String
+  // percent (of the money actually received, before tax) | flat (per sale, completed appointment or class taught)
+  rateType           String
+  percentBps         Int            @default(0)
+  flatCents          Int            @default(0)
+  // Empty = any
+  planIds            String[]       @default([])
+  appointmentTypeIds String[]       @default([])
+  classTypeIds       String[]       @default([])
+  // Appointments: also pay when the member did not show
+  includeNoShow      Boolean        @default(false)
+  sortOrder          Int            @default(0)
+  plan               CommissionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+}
+
+// Which commission plan a staff member is on, and from when to when (dates in the gym's timezone).
+model CommissionAssignment {
+  id            String         @id @default(uuid())
+  ownerId       String
+  staffId       String
+  planId        String
+  startsOn      String
+  endsOn        String?
+  createdByName String?
+  createdAt     DateTime       @default(now())
+  plan          CommissionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, staffId])
+}
+
+// Who is credited with selling a membership or package, and in what shares (they add up to 100).
+model SaleAttribution {
+  id            String   @id @default(uuid())
+  ownerId       String
+  membershipId  String
+  staffId       String
+  staffName     String
+  sharePercent  Int      @default(100)
+  createdByName String?
+  createdAt     DateTime @default(now())
+
+  @@unique([membershipId, staffId])
+  @@index([ownerId, staffId])
+}
+
+model PayrollPeriod {
+  id              String    @id @default(uuid())
+  ownerId         String
+  name            String
+  // Inclusive dates in the gym's timezone, and the same range as instants (endsAt exclusive)
+  startDate       String
+  endDate         String
+  startsAt        DateTime
+  endsAt          DateTime
+  // open | review | approved | finalized
+  status          String    @default("open")
+  notes           String?
+  createdByName   String?
+  submittedAt     DateTime?
+  submittedByName String?
+  approvedAt      DateTime?
+  approvedByName  String?
+  finalizedAt     DateTime?
+  finalizedByName String?
+  reopenedAt      DateTime?
+  reopenedByName  String?
+  reopenReason    String?
+  // What was approved and locked: totals per staff member, written at finalization
+  totals          Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([ownerId, startsAt])
+}
+
+// The earnings ledger. One line per thing that was earned, reversed or adjusted. Lines are only
+// ever added; the one change a line sees is being placed in a pay period.
+model PayrollEntry {
+  id                 String   @id @default(uuid())
+  ownerId            String
+  staffId            String
+  staffName          String
+  periodId           String?
+  // base_hourly | base_salary | base_flat | session_pay | class_pay | commission | refund_reversal | adjustment
+  kind               String
+  // adjustment: bonus | deduction | commission_adjustment | correction | other
+  adjustmentType     String?
+  // What makes this line the only one of its kind: the same event can never be entered twice
+  sourceKey          String
+  // transaction | appointment | class | time | period | manual
+  sourceType         String
+  sourceId           String?
+  invoiceId          String?
+  memberId           String?
+  memberName         String?
+  locationId         String?
+  // Commission lines: the rule as it stood when the line was written
+  trigger            String?
+  commissionPlanId   String?
+  commissionPlanName String?
+  rateType           String?
+  percentBps         Int?
+  flatCents          Int?
+  sharePercent       Int      @default(100)
+  // Money actually received that the commission was worked out on: before tax, and with tax
+  basisCents         Int      @default(0)
+  grossCents         Int      @default(0)
+  // Hours, for hourly pay
+  minutes            Int?
+  rateCents          Int?
+  // Signed: reversals and deductions are negative
+  amountCents        Int
+  description        String
+  reason             String?
+  reversesEntryId    String?
+  earnedAt           DateTime
+  // Earned in a period that had already been locked, so paid in this one
+  carried            Boolean  @default(false)
+  createdByType      String   @default("system")
+  createdById        String?
+  createdByName      String?
+  createdAt          DateTime @default(now())
+
+  @@unique([ownerId, sourceKey])
+  @@index([ownerId, periodId, staffId])
+  @@index([ownerId, staffId, earnedAt])
+  @@index([ownerId, sourceType, sourceId])
+  @@index([ownerId, invoiceId])
+}
+
+// An event (a payment, a refund, a completed appointment, a class) that payroll has already
+// looked at. Each is worked out once, with the rules in force at that moment.
+model PayrollSource {
+  key         String   @id
+  ownerId     String
+  entries     Int      @default(0)
+  processedAt DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+// Hours worked, entered for a pay period.
+model PayrollTimeEntry {
+  id            String    @id @default(uuid())
+  ownerId       String
+  periodId      String
+  staffId       String
+  workDate      String
+  minutes       Int
+  locationId    String?
+  note          String?
+  voidedAt      DateTime?
+  voidedByName  String?
+  createdByName String?
+  createdAt     DateTime  @default(now())
+
+  @@index([ownerId, periodId, staffId])
+}
+
+// What happened to payroll, and who did it. Only ever added to.
+model PayrollEvent {
+  id        String   @id @default(uuid())
+  ownerId   String
+  periodId  String?
+  staffId   String?
+  type      String
+  actorType String
+  actorId   String?
+  actorName String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([ownerId, periodId, createdAt])
 }

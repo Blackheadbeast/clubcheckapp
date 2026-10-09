@@ -9,9 +9,9 @@ export default function HomePage() {
   const [yearly, setYearly] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] overflow-x-hidden">
+    <div className="keep-dark min-h-screen bg-[#0a0a0a] overflow-x-hidden">
       {/* NAV */}
-      <nav className="border-b border-gray-800/50 bg-[#0a0a0a]/80 backdrop-blur-xl sticky top-0 z-50">
+      <nav className="border-b border-line/50 bg-[#0a0a0a]/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2.5">
@@ -29,7 +29,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/signup"
-                className="bg-primary hover:bg-primary-dark text-black font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
+                className="ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card px-5 py-2 rounded-lg transition-colors text-sm"
               >
                 Start Free Trial
               </Link>
@@ -53,13 +53,13 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/signup"
-              className="bg-primary hover:bg-primary-dark text-black font-semibold px-8 py-3.5 rounded-lg transition-colors text-base"
+              className="ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card px-8 py-3.5 rounded-lg transition-colors text-base"
             >
               Start 14-Day Free Trial
             </Link>
             <a
               href="mailto:blueloomventuresllc@gmail.com?subject=ClubCheck Demo Request"
-              className="text-gray-300 hover:text-gray-100 font-medium px-8 py-3.5 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors text-base"
+              className="text-gray-300 hover:text-gray-100 font-medium px-8 py-3.5 rounded-lg border border-line hover:border-gray-600 transition-colors text-base"
             >
               Book a Demo
             </a>
@@ -70,7 +70,7 @@ export default function HomePage() {
 
           {/* Stripe badge + trust signals */}
           <div className="flex flex-col items-center mt-12 gap-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-800 bg-[#111]">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-line bg-[#111]">
               <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -86,7 +86,7 @@ export default function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="py-20 px-4 border-t border-gray-800/50">
+      <section className="py-20 px-4 border-t border-line/50">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-100 text-center mb-14">
             Up and running in three steps.
@@ -137,7 +137,7 @@ export default function HomePage() {
               { name: 'Yoga & pilates studios', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
               { name: 'Weightlifting clubs', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
             ].map((gym, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-800/50 bg-[#111]">
+              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-line/50 bg-[#111]">
                 <svg className="w-5 h-5 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={gym.icon} />
                 </svg>
@@ -194,7 +194,7 @@ export default function HomePage() {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />,
               },
             ].map((feature, i) => (
-              <div key={i} className="p-5 rounded-lg border border-gray-800/50 bg-[#111]">
+              <div key={i} className="p-5 rounded-lg border border-line/50 bg-[#111]">
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
                   <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {feature.icon}
@@ -215,7 +215,7 @@ export default function HomePage() {
             Gym owners love ClubCheck.
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-lg border border-gray-800 bg-[#111]">
+            <div className="p-6 rounded-lg border border-line bg-[#111]">
               <div className="flex gap-1 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
@@ -234,7 +234,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="p-6 rounded-lg border border-gray-800 bg-[#111]">
+            <div className="p-6 rounded-lg border border-line bg-[#111]">
               <div className="flex gap-1 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
@@ -284,7 +284,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {/* Starter */}
-            <div className="p-6 rounded-lg border border-gray-800 bg-[#111]">
+            <div className="p-6 rounded-lg border border-line bg-[#111]">
               <h3 className="text-lg font-semibold text-gray-100 mb-1">Starter</h3>
               <p className="text-gray-500 text-sm mb-5">Up to 75 members</p>
               <div className="mb-6">
@@ -315,7 +315,7 @@ export default function HomePage() {
               </ul>
               <Link
                 href="/signup"
-                className="block w-full text-center py-3 rounded-lg border border-gray-700 text-gray-300 hover:text-gray-100 hover:border-gray-600 font-medium text-sm transition-colors"
+                className="block w-full text-center py-3 rounded-lg border border-line text-gray-300 hover:text-gray-100 hover:border-gray-600 font-medium text-sm transition-colors"
               >
                 Start Free Trial
               </Link>
@@ -399,7 +399,7 @@ export default function HomePage() {
                 a: 'Any device with a camera and a browser. An iPad or Android tablet at the front desk works perfectly.',
               },
             ].map((item, i) => (
-              <div key={i} className="border border-gray-800 rounded-lg overflow-hidden">
+              <div key={i} className="border border-line rounded-lg overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#111] transition-colors"
@@ -434,7 +434,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/signup"
-            className="inline-block bg-primary hover:bg-primary-dark text-black font-semibold px-8 py-3.5 rounded-lg transition-colors text-base"
+            className="inline-block ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card px-8 py-3.5 rounded-lg transition-colors text-base"
           >
             Start Free Trial
           </Link>
@@ -445,7 +445,7 @@ export default function HomePage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-gray-800/50 py-10 px-4">
+      <footer className="border-t border-line/50 py-10 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-8 mb-8">
             <div>
@@ -468,7 +468,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800/50 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="border-t border-line/50 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
             <p className="text-gray-600 text-xs">
               &copy; {new Date().getFullYear()} ClubCheck. Operated by BlueLoom Ventures LLC.
             </p>

@@ -138,9 +138,13 @@ export async function DELETE(
       return NextResponse.json({ error: writeAccess.error }, { status: writeAccess.status })
     }
 
-    await prisma.prospect.delete({
+    // Only ever this gym's own lead. One that is not there, or is another gym's, is "not found".
+    const removed = await prisma.prospect.deleteMany({
       where: { id, ownerId: owner.ownerId },
     })
+    if (removed.count === 0) {
+      return NextResponse.json({ error: 'Prospect not found' }, { status: 404 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

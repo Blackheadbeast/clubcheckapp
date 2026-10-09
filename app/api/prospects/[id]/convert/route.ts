@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getOwnerFromCookie } from '@/lib/auth'
+import { requireWriteAccess } from '@/lib/billing'
 import { isDemoOwner, DEMO_READ_ONLY_MESSAGE } from '@/lib/demo'
 import { PLAN_LIMITS } from '@/lib/stripe'
 import QRCode from 'qrcode'
@@ -19,6 +20,15 @@ export async function POST(
 
     if (!owner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // The shared demo account is read-only, and an account whose subscription has lapsed cannot make changes.
+    if (isDemoOwner(owner.ownerId)) {
+      return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403 })
+    }
+    const writeAccess = await requireWriteAccess(owner.ownerId)
+    if (!writeAccess.allowed) {
+      return NextResponse.json({ error: writeAccess.error }, { status: writeAccess.status })
     }
 
     if (isDemoOwner(owner.ownerId)) {

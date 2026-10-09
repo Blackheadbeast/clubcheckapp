@@ -41,18 +41,18 @@ const actionCategories = [
 
 function getActionBadgeColor(action: string): string {
   if (action.includes('delete') || action === 'subscription_cancel') {
-    return 'bg-red-900/30 text-red-400 border-red-800'
+    return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/25'
   }
   if (action.includes('create') || action === 'subscription_start') {
-    return 'bg-green-900/30 text-green-400 border-green-800'
+    return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
   }
   if (action.includes('login') || action === 'logout') {
-    return 'bg-blue-900/30 text-blue-400 border-blue-800'
+    return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
   }
   if (action.includes('update') || action.includes('change')) {
-    return 'bg-yellow-900/30 text-yellow-400 border-yellow-800'
+    return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25'
   }
-  return 'bg-gray-800 text-gray-300 border-gray-700'
+  return 'bg-subtle text-fg-muted border-line'
 }
 
 function formatAction(action: string): string {
@@ -134,7 +134,7 @@ export default function AuditLogsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-theme-heading">Audit Logs</h1>
+          <h1 className="ui-page-title">Audit Logs</h1>
           <p className="text-theme-secondary mt-1">
             Track all security-relevant actions in your gym account
           </p>
@@ -164,7 +164,7 @@ export default function AuditLogsPage() {
             <div className="flex items-end">
               <button
                 onClick={() => fetchLogs(1)}
-                className="bg-primary hover:bg-primary-dark text-black font-semibold px-4 py-2 rounded-lg transition"
+                className="ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card px-4 py-2 rounded-lg transition"
               >
                 Apply Filters
               </button>
@@ -232,7 +232,7 @@ export default function AuditLogsPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-theme">
+                  <tbody className="divide-y divide-line">
                     {logs.map((log) => (
                       <tr key={log.id} className="hover:bg-theme-lighter transition">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-theme-secondary">
@@ -250,8 +250,8 @@ export default function AuditLogsPage() {
                           <div className="flex items-center gap-2">
                             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                               log.actorType === 'owner'
-                                ? 'bg-purple-900/30 text-purple-400'
-                                : 'bg-gray-800 text-gray-400'
+                                ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400'
+                                : 'bg-subtle text-fg-muted'
                             }`}>
                               {log.actorType}
                             </span>

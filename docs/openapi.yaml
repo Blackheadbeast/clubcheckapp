@@ -1,0 +1,3985 @@
+# Generated to match app/api/v1. tests/public-api.test.ts checks that every path and method here exists and none is missing.
+openapi: 3.1.0
+info:
+  title: ClubCheck Public API
+  version: 1.0.0
+  description: >-
+    REST API and webhooks for connecting other software to one ClubCheck gym. See PUBLIC-API.md for the guide: authentication, scopes, pagination, rate limits,
+    idempotency and webhook signature verification.
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: YOUR-CLUBCHECK-DOMAIN
+        description: The domain your ClubCheck account is served from
+tags:
+  - name: Meta
+  - name: Members
+  - name: Memberships
+  - name: Classes
+  - name: Bookings
+  - name: Appointments
+  - name: Attendance
+  - name: Payments
+  - name: Invoices
+  - name: Workouts
+  - name: Programs
+  - name: Leads
+security:
+  - ApiKey: []
+paths:
+  /:
+    get:
+      tags:
+        - Meta
+      summary: Who this key is
+      security:
+        - ApiKey: []
+      x-scope: null
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      object:
+                        type: string
+                        const: api_key_info
+                      apiVersion:
+                        type: string
+                      gym:
+                        type: object
+                        properties:
+                          name:
+                            type:
+                              - string
+                              - 'null'
+                          timezone:
+                            type: string
+                          currency:
+                            type: string
+                      key:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          scopes:
+                            type: array
+                            items:
+                              type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /members:
+    get:
+      tags:
+        - Members
+      summary: List members
+      security:
+        - ApiKey:
+            - members:read
+      x-scope: members:read
+      parameters:
+        - name: updatedSince
+          in: query
+          description: Changed at or after. Orders results oldest change first
+          schema:
+            type: string
+            format: date-time
+        - name: createdSince
+          in: query
+          description: Created at or after
+          schema:
+            type: string
+            format: date-time
+        - name: status
+          in: query
+          description: 'One of: active, trial, past_due, frozen, cancelled, inactive'
+          schema:
+            type: string
+            enum:
+              - active
+              - trial
+              - past_due
+              - frozen
+              - cancelled
+              - inactive
+        - name: locationId
+          in: query
+          description: Home location
+          schema:
+            type: string
+        - name: email
+          in: query
+          description: Exact email address
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Name, email or phone
+          schema:
+            type: string
+        - name: archived
+          in: query
+          description: Default false
+          schema:
+            type: string
+            enum:
+              - 'false'
+              - 'true'
+              - all
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Member'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags:
+        - Members
+      summary: Create a member
+      security:
+        - ApiKey:
+            - members:write
+      x-scope: members:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MemberInput'
+                - required:
+                    - name
+                    - email
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /members/{id}:
+    get:
+      tags:
+        - Members
+      summary: Read a member
+      security:
+        - ApiKey:
+            - members:read
+      x-scope: members:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    patch:
+      tags:
+        - Members
+      summary: Update a member
+      security:
+        - ApiKey:
+            - members:write
+      x-scope: members:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MemberInput'
+                - type: object
+                  properties:
+                    status:
+                      type: string
+                      description: Only for a member with no membership
+                    archived:
+                      type: boolean
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    delete:
+      tags:
+        - Members
+      summary: Archive a member
+      security:
+        - ApiKey:
+            - members:write
+      x-scope: members:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /membership-plans:
+    get:
+      tags:
+        - Memberships
+      summary: List membership plans
+      security:
+        - ApiKey:
+            - memberships:read
+      x-scope: memberships:read
+      parameters:
+        - name: active
+          in: query
+          description: false includes retired plans
+          schema:
+            type: string
+            enum:
+              - 'true'
+              - 'false'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MembershipPlan'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /memberships:
+    get:
+      tags:
+        - Memberships
+      summary: List memberships
+      security:
+        - ApiKey:
+            - memberships:read
+      x-scope: memberships:read
+      parameters:
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: planId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'One of: trial, active, past_due, frozen, cancelled, expired'
+          schema:
+            type: string
+            enum:
+              - trial
+              - active
+              - past_due
+              - frozen
+              - cancelled
+              - expired
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Membership'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags:
+        - Memberships
+      summary: Start a membership
+      security:
+        - ApiKey:
+            - memberships:write
+      x-scope: memberships:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memberId
+                - planId
+              properties:
+                memberId:
+                  type: string
+                  description: Opaque identifier
+                planId:
+                  type: string
+                  description: Opaque identifier
+                startDate:
+                  type: string
+                  format: date-time
+                paymentMethod:
+                  type: string
+                  enum:
+                    - card
+                    - ach
+                    - cash
+                    - check
+                    - other
+                  default: other
+                discountPercent:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                couponCode:
+                  type: string
+                collectNow:
+                  type: boolean
+                  description: Charge the saved card or bank account now (card and ach only)
+                skipTrial:
+                  type: boolean
+                locationId:
+                  type:
+                    - string
+                    - 'null'
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Membership'
+                      - type: object
+                        properties:
+                          invoice:
+                            oneOf:
+                              - $ref: '#/components/schemas/Invoice'
+                              - type: 'null'
+                          charge:
+                            type:
+                              - object
+                              - 'null'
+                            properties:
+                              status:
+                                type: string
+                              message:
+                                type:
+                                  - string
+                                  - 'null'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/RuleRefused'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /memberships/{id}:
+    get:
+      tags:
+        - Memberships
+      summary: Read a membership
+      security:
+        - ApiKey:
+            - memberships:read
+      x-scope: memberships:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Membership'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /memberships/{id}/{action}:
+    post:
+      tags:
+        - Memberships
+      summary: Freeze, unfreeze, cancel, resume or change the plan of a membership
+      security:
+        - ApiKey:
+            - memberships:write
+      x-scope: memberships:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - freeze
+              - unfreeze
+              - cancel
+              - resume
+              - change-plan
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                until:
+                  type:
+                    - string
+                    - 'null'
+                  format: date-time
+                  description: 'freeze: when it thaws'
+                reason:
+                  type:
+                    - string
+                    - 'null'
+                when:
+                  type: string
+                  enum:
+                    - now
+                    - period_end
+                  description: 'cancel: required'
+                planId:
+                  type: string
+                  description: 'change-plan: required'
+                effective:
+                  type: string
+                  enum:
+                    - now
+                    - next_period
+                  default: next_period
+                preview:
+                  type: boolean
+                  description: 'change-plan: return the proration and change nothing'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Membership'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /classes:
+    get:
+      tags:
+        - Classes
+      summary: The class schedule
+      security:
+        - ApiKey:
+            - classes:read
+      x-scope: classes:read
+      parameters:
+        - name: from
+          in: query
+          description: 'Default: now'
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: 'Default: seven days after from. At most 62 days'
+          schema:
+            type: string
+            format: date-time
+        - name: locationId
+          in: query
+          schema:
+            type: string
+        - name: classTypeId
+          in: query
+          schema:
+            type: string
+        - name: coachId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Default scheduled
+          schema:
+            type: string
+            enum:
+              - scheduled
+              - cancelled
+              - all
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Class'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /classes/{id}:
+    get:
+      tags:
+        - Classes
+      summary: Read a class
+      security:
+        - ApiKey:
+            - classes:read
+      x-scope: classes:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Class'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /bookings:
+    get:
+      tags:
+        - Bookings
+      summary: List bookings
+      security:
+        - ApiKey:
+            - bookings:read
+      x-scope: bookings:read
+      parameters:
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: classId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'One of: booked, waitlisted, offered, attended, no_show, cancelled, late_cancelled'
+          schema:
+            type: string
+            enum:
+              - booked
+              - waitlisted
+              - offered
+              - attended
+              - no_show
+              - cancelled
+              - late_cancelled
+        - name: from
+          in: query
+          description: Class starts at or after
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Class starts before
+          schema:
+            type: string
+            format: date-time
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags:
+        - Bookings
+      summary: Book a member into a class
+      security:
+        - ApiKey:
+            - bookings:write
+      x-scope: bookings:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - classId
+                - memberId
+              properties:
+                classId:
+                  type: string
+                  description: Opaque identifier
+                memberId:
+                  type: string
+                  description: Opaque identifier
+                joinWaitlist:
+                  type: boolean
+                  description: Join the waitlist if the class is full
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Booking'
+                      - type: object
+                        properties:
+                          waitlistPosition:
+                            type:
+                              - integer
+                              - 'null'
+                          usedCredit:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/RuleRefused'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /bookings/{id}:
+    get:
+      tags:
+        - Bookings
+      summary: Read a booking
+      security:
+        - ApiKey:
+            - bookings:read
+      x-scope: bookings:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    delete:
+      tags:
+        - Bookings
+      summary: Cancel a booking
+      security:
+        - ApiKey:
+            - bookings:write
+      x-scope: bookings:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Booking'
+                      - type: object
+                        properties:
+                          late:
+                            type: boolean
+                          creditReturned:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/RuleRefused'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /appointment-types:
+    get:
+      tags:
+        - Appointments
+      summary: List appointment types
+      security:
+        - ApiKey:
+            - appointments:read
+      x-scope: appointments:read
+      parameters:
+        - name: active
+          in: query
+          description: 'One of: true, false'
+          schema:
+            type: string
+            enum:
+              - 'true'
+              - 'false'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AppointmentType'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /appointments/slots:
+    get:
+      tags:
+        - Appointments
+      summary: Free start times for an appointment type on a day
+      security:
+        - ApiKey:
+            - appointments:read
+      x-scope: appointments:read
+      parameters:
+        - name: typeId
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: date
+          in: query
+          description: YYYY-MM-DD in the gym's timezone
+          schema:
+            type: string
+            format: date
+          required: true
+        - name: staffId
+          in: query
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          description: Hide times that clash with this member
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Slot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /appointments:
+    get:
+      tags:
+        - Appointments
+      summary: List appointments
+      security:
+        - ApiKey:
+            - appointments:read
+      x-scope: appointments:read
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: staffId
+          in: query
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'One of: booked, completed, cancelled, late_cancelled, no_show'
+          schema:
+            type: string
+            enum:
+              - booked
+              - completed
+              - cancelled
+              - late_cancelled
+              - no_show
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appointment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags:
+        - Appointments
+      summary: Book an appointment
+      security:
+        - ApiKey:
+            - appointments:write
+      x-scope: appointments:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - typeId
+                - memberId
+                - startsAt
+              properties:
+                typeId:
+                  type: string
+                  description: Opaque identifier
+                memberId:
+                  type: string
+                  description: Opaque identifier
+                startsAt:
+                  type: string
+                  format: date-time
+                staffId:
+                  type:
+                    - string
+                    - 'null'
+                  description: Omit for anyone who is free
+                locationId:
+                  type:
+                    - string
+                    - 'null'
+                notes:
+                  type:
+                    - string
+                    - 'null'
+                  maxLength: 500
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/RuleRefused'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /appointments/{id}:
+    get:
+      tags:
+        - Appointments
+      summary: Read an appointment
+      security:
+        - ApiKey:
+            - appointments:read
+      x-scope: appointments:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    patch:
+      tags:
+        - Appointments
+      summary: Move an appointment
+      security:
+        - ApiKey:
+            - appointments:write
+      x-scope: appointments:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - startsAt
+              properties:
+                startsAt:
+                  type: string
+                  format: date-time
+                staffId:
+                  type:
+                    - string
+                    - 'null'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/RuleRefused'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    delete:
+      tags:
+        - Appointments
+      summary: Cancel an appointment
+      security:
+        - ApiKey:
+            - appointments:write
+      x-scope: appointments:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: reason
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Appointment'
+                      - type: object
+                        properties:
+                          late:
+                            type: boolean
+                          creditsReturned:
+                            type: boolean
+                          refunded:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/RuleRefused'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /attendance:
+    get:
+      tags:
+        - Attendance
+      summary: List check-ins
+      security:
+        - ApiKey:
+            - attendance:read
+      x-scope: attendance:read
+      parameters:
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: classId
+          in: query
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Attendance'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /attendance/{id}:
+    get:
+      tags:
+        - Attendance
+      summary: Read a check-in
+      security:
+        - ApiKey:
+            - attendance:read
+      x-scope: attendance:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Attendance'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /payments:
+    get:
+      tags:
+        - Payments
+      summary: List payments, refunds and failed attempts
+      security:
+        - ApiKey:
+            - payments:read
+      x-scope: payments:read
+      parameters:
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: invoiceId
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: 'One of: payment, refund'
+          schema:
+            type: string
+            enum:
+              - payment
+              - refund
+        - name: status
+          in: query
+          description: 'One of: succeeded, failed, pending, processing'
+          schema:
+            type: string
+            enum:
+              - succeeded
+              - failed
+              - pending
+              - processing
+        - name: method
+          in: query
+          schema:
+            type: string
+        - name: createdSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: createdBefore
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: processorReference
+          in: query
+          description: The payment processor's own ID
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /payments/{id}:
+    get:
+      tags:
+        - Payments
+      summary: Read a payment
+      security:
+        - ApiKey:
+            - payments:read
+      x-scope: payments:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /invoices:
+    get:
+      tags:
+        - Invoices
+      summary: List invoices
+      security:
+        - ApiKey:
+            - invoices:read
+      x-scope: invoices:read
+      parameters:
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: membershipId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'One of: draft, open, paid, void, uncollectible'
+          schema:
+            type: string
+            enum:
+              - draft
+              - open
+              - paid
+              - void
+              - uncollectible
+        - name: number
+          in: query
+          schema:
+            type: string
+        - name: createdSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /invoices/{id}:
+    get:
+      tags:
+        - Invoices
+      summary: Read an invoice
+      security:
+        - ApiKey:
+            - invoices:read
+      x-scope: invoices:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Invoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /workouts:
+    get:
+      tags:
+        - Workouts
+      summary: List workouts
+      security:
+        - ApiKey:
+            - workouts:read
+      x-scope: workouts:read
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: archived
+          in: query
+          description: 'One of: false, true, all'
+          schema:
+            type: string
+            enum:
+              - 'false'
+              - 'true'
+              - all
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Workout'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /workouts/{id}:
+    get:
+      tags:
+        - Workouts
+      summary: Read a workout with its blocks
+      security:
+        - ApiKey:
+            - workouts:read
+      x-scope: workouts:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Workout'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /workouts/{id}/assign:
+    post:
+      tags:
+        - Workouts
+      summary: Assign a workout to members for a day
+      security:
+        - ApiKey:
+            - workouts:write
+      x-scope: workouts:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memberIds
+                - date
+              properties:
+                memberIds:
+                  type: array
+                  items:
+                    type: string
+                    description: Opaque identifier
+                  minItems: 1
+                  maxItems: 200
+                date:
+                  type: string
+                  format: date
+                coachId:
+                  type:
+                    - string
+                    - 'null'
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      assigned:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WorkoutSession'
+                      alreadyAssigned:
+                        type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /workout-sessions:
+    get:
+      tags:
+        - Workouts
+      summary: List members' workout sessions
+      security:
+        - ApiKey:
+            - workouts:read
+      x-scope: workouts:read
+      parameters:
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: workoutId
+          in: query
+          schema:
+            type: string
+        - name: programAssignmentId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'One of: not_started, in_progress, completed, skipped'
+          schema:
+            type: string
+            enum:
+              - not_started
+              - in_progress
+              - completed
+              - skipped
+        - name: completedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkoutSession'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /programs:
+    get:
+      tags:
+        - Programs
+      summary: List programs
+      security:
+        - ApiKey:
+            - programs:read
+      x-scope: programs:read
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: archived
+          in: query
+          description: 'One of: false, true, all'
+          schema:
+            type: string
+            enum:
+              - 'false'
+              - 'true'
+              - all
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Program'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /programs/{id}:
+    get:
+      tags:
+        - Programs
+      summary: Read a program with its training days
+      security:
+        - ApiKey:
+            - programs:read
+      x-scope: programs:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Program'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /programs/{id}/assignments:
+    get:
+      tags:
+        - Programs
+      summary: List who is on a program
+      security:
+        - ApiKey:
+            - programs:read
+      x-scope: programs:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 'One of: scheduled, active, paused, completed, cancelled'
+          schema:
+            type: string
+            enum:
+              - scheduled
+              - active
+              - paused
+              - completed
+              - cancelled
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProgramAssignment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags:
+        - Programs
+      summary: Assign a program
+      security:
+        - ApiKey:
+            - programs:write
+      x-scope: programs:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - startDate
+              description: Give memberIds or planId, not both
+              properties:
+                memberIds:
+                  type: array
+                  items:
+                    type: string
+                    description: Opaque identifier
+                  maxItems: 500
+                planId:
+                  type: string
+                  description: Opaque identifier
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type:
+                    - string
+                    - 'null'
+                  format: date
+                coachId:
+                  type:
+                    - string
+                    - 'null'
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      assigned:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProgramAssignment'
+                      alreadyOn:
+                        type: array
+                        items:
+                          type: string
+                          description: Opaque identifier
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /leads:
+    get:
+      tags:
+        - Leads
+      summary: List leads
+      security:
+        - ApiKey:
+            - leads:read
+      x-scope: leads:read
+      parameters:
+        - name: status
+          in: query
+          description: 'One of: new, contacted, trial_scheduled, trial_completed, follow_up, converted, lost'
+          schema:
+            type: string
+            enum:
+              - new
+              - contacted
+              - trial_scheduled
+              - trial_completed
+              - follow_up
+              - converted
+              - lost
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: locationId
+          in: query
+          schema:
+            type: string
+        - name: createdSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lead'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    post:
+      tags:
+        - Leads
+      summary: Create a lead
+      security:
+        - ApiKey:
+            - leads:write
+      x-scope: leads:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/LeadInput'
+                - required:
+                    - name
+                    - email
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Lead'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /leads/{id}:
+    get:
+      tags:
+        - Leads
+      summary: Read a lead
+      security:
+        - ApiKey:
+            - leads:read
+      x-scope: leads:read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Lead'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    patch:
+      tags:
+        - Leads
+      summary: Update a lead or move it along the pipeline
+      security:
+        - ApiKey:
+            - leads:write
+      x-scope: leads:write
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/LeadInput'
+                - type: object
+                  properties:
+                    trialDate:
+                      type:
+                        - string
+                        - 'null'
+                      format: date-time
+                    lostReason:
+                      type:
+                        - string
+                        - 'null'
+                    status:
+                      type: string
+                      enum:
+                        - new
+                        - contacted
+                        - trial_scheduled
+                        - trial_completed
+                        - follow_up
+                        - lost
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Lead'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+webhooks:
+  event:
+    post:
+      summary: An event from ClubCheck
+      description: >-
+        Sent to each webhook endpoint subscribed to the event's type. Types: member.created, member.updated, member.archived, membership.created,
+        membership.updated, membership.cancelled, membership.frozen, membership.resumed, booking.created, booking.updated, booking.cancelled,
+        booking.checked_in, appointment.created, appointment.updated, appointment.cancelled, appointment.completed, appointment.no_show, payment.succeeded,
+        payment.failed, payment.refunded, invoice.created, invoice.paid, invoice.failed, workout.completed, program.assigned, program.completed, lead.created,
+        lead.updated, and webhook.test. Answer any 2xx within 10 seconds. Retries carry the same event ID and body.
+      parameters:
+        - name: ClubCheck-Event-Id
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Same as the body's id
+        - name: ClubCheck-Event-Type
+          in: header
+          required: true
+          schema:
+            type: string
+            enum:
+              - member.created
+              - member.updated
+              - member.archived
+              - membership.created
+              - membership.updated
+              - membership.cancelled
+              - membership.frozen
+              - membership.resumed
+              - booking.created
+              - booking.updated
+              - booking.cancelled
+              - booking.checked_in
+              - appointment.created
+              - appointment.updated
+              - appointment.cancelled
+              - appointment.completed
+              - appointment.no_show
+              - payment.succeeded
+              - payment.failed
+              - payment.refunded
+              - invoice.created
+              - invoice.paid
+              - invoice.failed
+              - workout.completed
+              - program.assigned
+              - program.completed
+              - lead.created
+              - lead.updated
+              - webhook.test
+        - name: ClubCheck-Delivery-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: ClubCheck-Timestamp
+          in: header
+          required: true
+          schema:
+            type: integer
+          description: Unix seconds when this attempt was sent
+        - name: ClubCheck-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+            example: v1=5f2b…
+          description: v1= followed by hex HMAC-SHA256 of "<timestamp>.<raw body>" under the endpoint's signing secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEvent'
+      responses:
+        '200':
+          description: Received. Any 2xx counts.
+components:
+  securitySchemes:
+    ApiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: cc_live_…
+      description: An API key created in Settings → Developer / API. Each operation lists the scope it needs under x-scope.
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    pageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      description: Larger values are treated as 100
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+        maxLength: 200
+      description: 'Unique per operation. A repeat with the same key and body returns the first response with Idempotent-Replayed: true.'
+  headers:
+    X-Request-Id:
+      description: Identifies this request. Quote it when reporting a problem.
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Requests allowed in the current one-minute window
+      schema:
+        type: integer
+    X-RateLimit-Remaining:
+      description: Requests left in the window
+      schema:
+        type: integer
+    X-RateLimit-Reset:
+      description: When the window ends, Unix seconds
+      schema:
+        type: integer
+  responses:
+    BadRequest:
+      description: 'The request is wrong: validation_error, invalid_json, invalid_parameter'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: missing_api_key, invalid_api_key, api_key_revoked or api_key_expired
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: insufficient_scope, or the gym's subscription does not allow changes
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No such resource in this gym
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: 'Conflicts with the current state: duplicate_email, idempotency_key_reused, request_in_progress'
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RuleRefused:
+      description: A booking, appointment or membership rule refused it; the code names the rule
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: rate_limited
+      headers:
+        Retry-After:
+          description: Seconds to wait
+          schema:
+            type: integer
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - requestId
+          properties:
+            code:
+              type: string
+              description: Stable, machine-readable
+            message:
+              type: string
+              description: For people; may be reworded
+            requestId:
+              type: string
+              example: req_3f9a1c0b7d2e4f6a8b1c2d3e
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+    Pagination:
+      type: object
+      required:
+        - page
+        - pageSize
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: member
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          enum:
+            - active
+            - trial
+            - past_due
+            - frozen
+            - cancelled
+            - inactive
+        dateOfBirth:
+          type:
+            - string
+            - 'null'
+          format: date
+        address:
+          type: object
+          properties:
+            line1:
+              type:
+                - string
+                - 'null'
+            city:
+              type:
+                - string
+                - 'null'
+            state:
+              type:
+                - string
+                - 'null'
+            postalCode:
+              type:
+                - string
+                - 'null'
+        leadSource:
+          type:
+            - string
+            - 'null'
+        emailOptIn:
+          type: boolean
+        smsOptIn:
+          type: boolean
+        homeLocationId:
+          type:
+            - string
+            - 'null'
+        householdId:
+          type:
+            - string
+            - 'null'
+        creditBalanceCents:
+          type: integer
+        lastCheckInAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        archivedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MemberInput:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        phone:
+          type:
+            - string
+            - 'null'
+        dateOfBirth:
+          type:
+            - string
+            - 'null'
+          format: date
+        addressLine1:
+          type:
+            - string
+            - 'null'
+        city:
+          type:
+            - string
+            - 'null'
+        state:
+          type:
+            - string
+            - 'null'
+        postalCode:
+          type:
+            - string
+            - 'null'
+        leadSource:
+          type:
+            - string
+            - 'null'
+        goals:
+          type:
+            - string
+            - 'null'
+        emailOptIn:
+          type: boolean
+        smsOptIn:
+          type: boolean
+        homeLocationId:
+          type:
+            - string
+            - 'null'
+        assignedStaffId:
+          type:
+            - string
+            - 'null'
+    MembershipPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: membership_plan
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        type:
+          type: string
+          enum:
+            - recurring
+            - class_pack
+            - drop_in
+            - trial
+            - free
+            - pt_package
+        priceCents:
+          type: integer
+        billingInterval:
+          type: string
+        intervalCount:
+          type: integer
+        trialDays:
+          type: integer
+        credits:
+          type:
+            - integer
+            - 'null'
+        isActive:
+          type: boolean
+        isPublic:
+          type: boolean
+    Membership:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: membership
+        memberId:
+          type: string
+          description: Opaque identifier
+        planId:
+          type: string
+          description: Opaque identifier
+        planName:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          enum:
+            - trial
+            - active
+            - past_due
+            - frozen
+            - cancelled
+            - expired
+        priceCents:
+          type: integer
+        discountPercent:
+          type: integer
+        autoRenew:
+          type: boolean
+        creditsRemaining:
+          type:
+            - integer
+            - 'null'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        currentPeriodStart:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        currentPeriodEnd:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        trialEndsAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        frozenAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        freezeEndsAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        cancelAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        cancelledAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        cancelReason:
+          type:
+            - string
+            - 'null'
+        pendingPlanId:
+          type:
+            - string
+            - 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Class:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: class
+        name:
+          type:
+            - string
+            - 'null'
+        classTypeId:
+          type: string
+          description: Opaque identifier
+        category:
+          type:
+            - string
+            - 'null'
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - scheduled
+            - cancelled
+        cancelReason:
+          type:
+            - string
+            - 'null'
+        capacity:
+          type: integer
+        waitlistCapacity:
+          type: integer
+        bookedCount:
+          type: integer
+        waitlistCount:
+          type: integer
+        spotsLeft:
+          type: integer
+        coach:
+          type:
+            - object
+            - 'null'
+          properties:
+            id:
+              type: string
+              description: Opaque identifier
+            name:
+              type: string
+        locationId:
+          type:
+            - string
+            - 'null'
+        locationName:
+          type:
+            - string
+            - 'null'
+        room:
+          type:
+            - string
+            - 'null'
+        workoutId:
+          type:
+            - string
+            - 'null'
+        recurring:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: booking
+        classId:
+          type: string
+          description: Opaque identifier
+        memberId:
+          type: string
+          description: Opaque identifier
+        membershipId:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          enum:
+            - booked
+            - waitlisted
+            - offered
+            - attended
+            - no_show
+            - cancelled
+            - late_cancelled
+        source:
+          type: string
+        creditUsed:
+          type: boolean
+        waitlistedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        offerExpiresAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        checkedInAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        cancelledAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AppointmentType:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: appointment_type
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        durationMin:
+          type: integer
+        paymentMode:
+          type: string
+          enum:
+            - included
+            - credit
+            - paid
+        priceCents:
+          type: integer
+        creditsRequired:
+          type: integer
+        cancelWindowHours:
+          type: integer
+        minNoticeMinutes:
+          type: integer
+        maxAdvanceDays:
+          type: integer
+        locationIds:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        staff:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Opaque identifier
+              name:
+                type: string
+    Slot:
+      type: object
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        staff:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Opaque identifier
+              name:
+                type: string
+              locationId:
+                type:
+                  - string
+                  - 'null'
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: appointment
+        typeId:
+          type: string
+          description: Opaque identifier
+        typeName:
+          type:
+            - string
+            - 'null'
+        memberId:
+          type: string
+          description: Opaque identifier
+        staff:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Opaque identifier
+            name:
+              type:
+                - string
+                - 'null'
+        locationId:
+          type:
+            - string
+            - 'null'
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - booked
+            - completed
+            - cancelled
+            - late_cancelled
+            - no_show
+        paymentMode:
+          type: string
+        priceCents:
+          type: integer
+        invoiceId:
+          type:
+            - string
+            - 'null'
+        source:
+          type: string
+        notes:
+          type:
+            - string
+            - 'null'
+        cancelledAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        cancelReason:
+          type:
+            - string
+            - 'null'
+        completedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        rescheduleCount:
+          type: integer
+        previousStartsAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        workoutId:
+          type:
+            - string
+            - 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Attendance:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: attendance
+        memberId:
+          type: string
+          description: Opaque identifier
+        checkedInAt:
+          type: string
+          format: date-time
+        type:
+          type: string
+        source:
+          type:
+            - string
+            - 'null'
+        classId:
+          type:
+            - string
+            - 'null'
+        locationId:
+          type:
+            - string
+            - 'null'
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: payment
+        type:
+          type: string
+          enum:
+            - payment
+            - refund
+        status:
+          type: string
+          enum:
+            - succeeded
+            - failed
+            - pending
+            - processing
+        amountCents:
+          type: integer
+        refundedCents:
+          type: integer
+        currency:
+          type: string
+        memberId:
+          type:
+            - string
+            - 'null'
+        payerMemberId:
+          type:
+            - string
+            - 'null'
+        invoiceId:
+          type:
+            - string
+            - 'null'
+        locationId:
+          type:
+            - string
+            - 'null'
+        method:
+          type: string
+        cardLast4:
+          type:
+            - string
+            - 'null'
+        processor:
+          type: string
+        processorReference:
+          type:
+            - string
+            - 'null'
+        failureReason:
+          type:
+            - string
+            - 'null'
+        refundReason:
+          type:
+            - string
+            - 'null'
+        refundOfPaymentId:
+          type:
+            - string
+            - 'null'
+        disputeStatus:
+          type:
+            - string
+            - 'null'
+        createdAt:
+          type: string
+          format: date-time
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: invoice
+        number:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - open
+            - paid
+            - void
+            - uncollectible
+        memberId:
+          type:
+            - string
+            - 'null'
+        membershipId:
+          type:
+            - string
+            - 'null'
+        currency:
+          type: string
+        subtotalCents:
+          type: integer
+        discountCents:
+          type: integer
+        taxCents:
+          type: integer
+        totalCents:
+          type: integer
+        amountPaidCents:
+          type: integer
+        refundedCents:
+          type: integer
+        balanceCents:
+          type: integer
+        dueDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        paidAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        periodStart:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        periodEnd:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+              type:
+                type: string
+              quantity:
+                type: integer
+              unitPriceCents:
+                type: integer
+              amountCents:
+                type: integer
+              planId:
+                type:
+                  - string
+                  - 'null'
+              productId:
+                type:
+                  - string
+                  - 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Workout:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: workout
+        name:
+          type:
+            - string
+            - 'null'
+        description:
+          type:
+            - string
+            - 'null'
+        type:
+          type:
+            - string
+            - 'null'
+        difficulty:
+          type:
+            - string
+            - 'null'
+        estimatedMinutes:
+          type:
+            - integer
+            - 'null'
+        equipment:
+          type: array
+          items:
+            type: string
+        version:
+          type:
+            - integer
+            - 'null'
+        archived:
+          type: boolean
+        instructions:
+          type:
+            - string
+            - 'null'
+          description: Single workout only
+        blocks:
+          type: array
+          description: Single workout only. Each block has a type and its items (exercise, sets, reps, weight, scaling options).
+          items:
+            type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WorkoutSession:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: workout_session
+        memberId:
+          type: string
+          description: Opaque identifier
+        workoutId:
+          type: string
+          description: Opaque identifier
+        workoutVersionId:
+          type: string
+          description: Opaque identifier
+        programAssignmentId:
+          type:
+            - string
+            - 'null'
+        classId:
+          type:
+            - string
+            - 'null'
+        appointmentId:
+          type:
+            - string
+            - 'null'
+        programName:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          enum:
+            - not_started
+            - in_progress
+            - completed
+            - skipped
+        scheduledDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        startedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        completedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        durationSec:
+          type:
+            - integer
+            - 'null'
+        result:
+          type:
+            - object
+            - 'null'
+          properties:
+            timeSec:
+              type: integer
+            rounds:
+              type: integer
+            reps:
+              type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Program:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: program
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        goals:
+          type:
+            - string
+            - 'null'
+        audience:
+          type:
+            - string
+            - 'null'
+        difficulty:
+          type: string
+        weeks:
+          type: integer
+        archived:
+          type: boolean
+        days:
+          type: array
+          description: Single program only
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+              day:
+                type: integer
+                minimum: 1
+                maximum: 7
+                description: 1 = Monday
+              workoutId:
+                type: string
+                description: Opaque identifier
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProgramAssignment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: program_assignment
+        programId:
+          type: string
+          description: Opaque identifier
+        memberId:
+          type: string
+          description: Opaque identifier
+        status:
+          type: string
+          enum:
+            - scheduled
+            - active
+            - paused
+            - completed
+            - cancelled
+        coachId:
+          type:
+            - string
+            - 'null'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        pausedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Lead:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Opaque identifier
+        object:
+          type: string
+          const: lead
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          enum:
+            - new
+            - contacted
+            - trial_scheduled
+            - trial_completed
+            - follow_up
+            - converted
+            - lost
+        source:
+          type:
+            - string
+            - 'null'
+        interest:
+          type:
+            - string
+            - 'null'
+        notes:
+          type:
+            - string
+            - 'null'
+        estimatedValueCents:
+          type:
+            - integer
+            - 'null'
+        assignedStaffId:
+          type:
+            - string
+            - 'null'
+        locationId:
+          type:
+            - string
+            - 'null'
+        trialDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        nextFollowUpAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        contactedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        convertedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        convertedMemberId:
+          type:
+            - string
+            - 'null'
+        lostReason:
+          type:
+            - string
+            - 'null'
+        smsOptIn:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LeadInput:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+        phone:
+          type:
+            - string
+            - 'null'
+        source:
+          type:
+            - string
+            - 'null'
+        interest:
+          type:
+            - string
+            - 'null'
+        notes:
+          type:
+            - string
+            - 'null'
+        assignedStaffId:
+          type:
+            - string
+            - 'null'
+        locationId:
+          type:
+            - string
+            - 'null'
+        estimatedValueCents:
+          type:
+            - integer
+            - 'null'
+        nextFollowUpAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+    WebhookEvent:
+      type: object
+      required:
+        - id
+        - type
+        - apiVersion
+        - createdAt
+        - data
+      properties:
+        id:
+          type: string
+          example: evt_8c1f0a2b3d4e5f6a7b8c9d0e
+          description: 'Unique. The same on every retry: deduplicate on it.'
+        type:
+          type: string
+          example: lead.created
+        apiVersion:
+          type: string
+          const: v1
+        createdAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+          properties:
+            object:
+              type: object
+              description: The resource, in the same shape the API returns it

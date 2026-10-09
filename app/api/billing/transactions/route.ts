@@ -4,12 +4,14 @@ import { Paginated, handler, paging } from '@/lib/api'
 import { resolveRange } from '@/lib/dates'
 import { getGymSettings } from '@/lib/services/core'
 import { csvResponse } from '@/lib/csv'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/billing/transactions?range=&type=&status=&method=&search=&locationId=&format=csv
-export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, query }) => {
+export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, query, actor }) => {
   const { page, pageSize, skip, take } = paging(query)
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const settings = await getGymSettings(ownerId)
   const range = query.get('range') ? resolveRange(query.get('range'), query.get('from'), query.get('to'), settings.timezone) : null
   const search = (query.get('search') || '').trim()
@@ -19,7 +21,7 @@ export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, que
     ...(query.get('type') && { type: query.get('type')! }),
     ...(query.get('status') && { status: query.get('status')! }),
     ...(query.get('method') && { method: query.get('method')! }),
-    ...(query.get('locationId') && { locationId: query.get('locationId')! }),
+    ...(scope.locationId && { locationId: scope.locationId }),
     ...(search && {
       OR: [
         { id: { startsWith: search.toLowerCase() } },

@@ -10,9 +10,9 @@ import { prisma } from '@/lib/prisma'
 import { ApiError, badRequest, conflict, notFound } from '@/lib/api'
 import { addDays, addInterval, addMonths } from '@/lib/dates'
 import { formatDate, formatMoney } from '@/lib/format'
-import { getPaymentProvider } from '@/lib/payments/provider'
 import { Db, ActorRef, SYSTEM, getGymSettings, logActivity, notify } from './core'
-import { LineItem, PaymentMethod, createInvoice, quoteCoupon, recordFailedPayment, recordPayment } from './payments'
+import { LineItem, PaymentMethod, createInvoice, quoteCoupon, recordPayment } from './payments'
+import { memberEvent, membershipEvent } from './events'
 
 export const PLAN_TYPES = ['recurring', 'class_pack', 'drop_in', 'trial', 'free', 'pt_package'] as const
 export type PlanType = (typeof PLAN_TYPES)[number]
@@ -52,7 +52,11 @@ export async function syncMemberStatus(db: Db, memberId: string) {
         : has('frozen')
           ? 'frozen'
           : 'cancelled'
-  await db.member.updateMany({ where: { id: memberId, status: { not: status } }, data: { status } })
+  const changed = await db.member.updateMany({ where: { id: memberId, status: { not: status } }, data: { status } })
+  if (changed.count) {
+    const member = await db.member.findUnique({ where: { id: memberId }, select: { ownerId: true } })
+    if (member) await memberEvent(db, member.ownerId, 'member.updated', memberId)
+  }
 }
 
 export interface SellInput {
@@ -63,10 +67,12 @@ export interface SellInput {
   paymentMethod: PaymentMethod
   discountPercent?: number
   couponCode?: string | null
-  /** Take payment for the first invoice now (not valid for card: no processor is connected). */
+  /** Record payment for the first invoice now. Card and bank payments are charged after the sale commits (collectInvoice). */
   collectNow?: boolean
   skipTrial?: boolean
   locationId?: string | null
+  /** Who is credited with the sale for commission. Defaults to the staff member making it. */
+  soldByStaffIds?: string[]
   actor?: ActorRef
 }
 
@@ -149,6 +155,9 @@ export async function sellMembership(db: Db, input: SellInput) {
   }
 
   const membership = await db.membership.create({ data })
+  // Recorded before any payment, so payroll knows whose sale the money belongs to.
+  const { creditSale } = await import('./payroll-config')
+  await creditSale(db, { ownerId: input.ownerId, membershipId: membership.id, actor, staffIds: input.soldByStaffIds })
 
   let invoice = null
   if (items.length > 0) {
@@ -170,16 +179,17 @@ export async function sellMembership(db: Db, input: SellInput) {
       await db.membership.update({ where: { id: membership.id }, data: { lastBilledAt: new Date() } })
     }
     if (input.collectNow && invoice.status === 'open') {
-      if (input.paymentMethod === 'card') {
-        throw badRequest('No card processor is connected. Take the card on your terminal and record it as "other", or leave the invoice open.', 'card_unavailable')
+      // Charging a saved card or bank account talks to the processor, so it happens
+      // after this transaction commits; only desk payments are recorded here.
+      if (input.paymentMethod !== 'card' && input.paymentMethod !== 'ach') {
+        await recordPayment(db, {
+          ownerId: input.ownerId,
+          invoiceId: invoice.id,
+          method: input.paymentMethod,
+          locationId: input.locationId,
+          actor,
+        })
       }
-      await recordPayment(db, {
-        ownerId: input.ownerId,
-        invoiceId: invoice.id,
-        method: input.paymentMethod,
-        locationId: input.locationId,
-        actor,
-      })
     }
   } else if (input.couponCode) {
     throw badRequest('There is nothing to discount on this membership yet.')
@@ -199,6 +209,7 @@ export async function sellMembership(db: Db, input: SellInput) {
     const { fireTrigger } = await import('./automations')
     await fireTrigger(db, input.ownerId, 'member_joined', { memberId: member.id, dedupeKey: member.id, context: { membership_name: plan.name } })
   }
+  await membershipEvent(db, input.ownerId, 'membership.created', membership.id)
   return { membership, invoice, plan }
 }
 
@@ -239,6 +250,7 @@ export async function freezeMembership(
     actor: input.actor,
   })
   await syncMemberStatus(db, membership.memberId)
+  await membershipEvent(db, membership.ownerId, 'membership.frozen', membership.id)
   return updated
 }
 
@@ -270,6 +282,7 @@ export async function unfreezeMembership(db: Db, input: { ownerId: string; membe
     actor: input.actor,
   })
   await syncMemberStatus(db, membership.memberId)
+  await membershipEvent(db, membership.ownerId, 'membership.resumed', membership.id)
   return updated
 }
 
@@ -318,6 +331,8 @@ export async function cancelMembership(
       metadata: { membershipId: membership.id },
       actor: input.actor,
     })
+    // Still running until the date it was set to end on: a change, not yet an ending.
+    await membershipEvent(db, membership.ownerId, 'membership.updated', membership.id)
     return { membership: updated, effective, immediate: false }
   }
 
@@ -343,6 +358,7 @@ export async function resumeMembership(db: Db, input: { ownerId: string; members
     metadata: { membershipId: membership.id },
     actor: input.actor,
   })
+  await membershipEvent(db, input.ownerId, 'membership.updated', membership.id)
   return updated
 }
 
@@ -377,32 +393,32 @@ async function endMembership(
   const { releaseBookingsForMembership } = await import('./bookings')
   await releaseBookingsForMembership(db, membership.ownerId, membership.id)
   await syncMemberStatus(db, membership.memberId)
+  await membershipEvent(db, membership.ownerId, 'membership.cancelled', membership.id)
   return updated
 }
 
 /** Move to another recurring plan. The new price applies from the next billing date; no proration. */
-export async function changePlan(db: Db, input: { ownerId: string; membershipId: string; planId: string; actor?: ActorRef }) {
-  const membership = await loadMembership(db, input.ownerId, input.membershipId)
-  if (!LIVE_STATUSES.includes(membership.status)) throw badRequest('This membership has ended.', 'already_ended')
-  if (membership.plan.type !== 'recurring') throw badRequest('Only recurring memberships can change plan.', 'not_recurring')
-  const plan = await db.membershipPlan.findFirst({ where: { id: input.planId, ownerId: input.ownerId, isActive: true } })
-  if (!plan) throw notFound('Membership plan')
-  if (plan.type !== 'recurring') throw badRequest('Choose a recurring plan to switch to.', 'not_recurring')
-  if (plan.id === membership.planId) throw badRequest('The member is already on that plan.')
+/**
+ * A plan change that was set to start at the next billing date: switch the plan and price now that
+ * the date has come. The period about to be billed is then the first on the new plan.
+ */
+async function applyPendingPlan(db: Db, m: Membership & { plan: MembershipPlan }) {
+  if (!m.pendingPlanId) return m
+  const plan = await db.membershipPlan.findFirst({ where: { id: m.pendingPlanId, ownerId: m.ownerId, type: 'recurring' } })
+  if (!plan) return db.membership.update({ where: { id: m.id }, data: { pendingPlanId: null }, include: { plan: true } })
   const updated = await db.membership.update({
-    where: { id: membership.id },
-    data: { planId: plan.id, priceCents: effectivePrice(plan.priceCents, membership.discountPercent) },
+    where: { id: m.id },
+    data: { planId: plan.id, priceCents: effectivePrice(plan.priceCents, m.discountPercent), pendingPlanId: null },
+    include: { plan: true },
   })
+  await db.planChange.updateMany({ where: { ownerId: m.ownerId, membershipId: m.id, status: 'scheduled' }, data: { status: 'applied', appliedAt: new Date() } })
   await logActivity(db, {
-    ownerId: input.ownerId,
-    memberId: membership.memberId,
-    type: 'membership_changed',
-    title: `Membership changed from ${membership.plan.name} to ${plan.name}`,
-    detail: `${formatMoney(updated.priceCents)} ${intervalLabel(plan)} from the next billing date`,
-    metadata: { membershipId: membership.id, fromPlanId: membership.planId, toPlanId: plan.id },
-    actor: input.actor,
+    ownerId: m.ownerId, memberId: m.memberId, type: 'membership_changed',
+    title: `Membership changed from ${m.plan.name} to ${plan.name}`, detail: `${formatMoney(updated.priceCents)} ${intervalLabel(plan)}, as scheduled`,
+    metadata: { membershipId: m.id, fromPlanId: m.planId, toPlanId: plan.id },
   })
-  return { membership: updated, from: membership.plan, to: plan }
+  await membershipEvent(db, m.ownerId, 'membership.updated', m.id)
+  return updated
 }
 
 /**
@@ -447,9 +463,11 @@ export interface BillingRunSummary {
 
 /**
  * Advance every membership on an account to `now`: convert finished trials,
- * raise renewal invoices, attempt collection, apply scheduled cancellations,
- * end freezes and expire packs. Each membership runs in its own transaction so
- * one bad record cannot block the rest.
+ * raise renewal invoices, apply scheduled cancellations, end freezes and expire
+ * packs. Each membership runs in its own transaction so one bad record cannot
+ * block the rest. Charging the invoices it raises is a separate step
+ * (runCollections), because a processor call must never sit inside a database
+ * transaction that could roll back after money has moved.
  */
 export async function runMembershipBilling(ownerId: string, now = new Date()): Promise<BillingRunSummary> {
   const summary: BillingRunSummary = {
@@ -457,7 +475,6 @@ export async function runMembershipBilling(ownerId: string, now = new Date()): P
     markedPastDue: 0, cancelled: 0, expired: 0, unfrozen: 0, errors: [],
   }
   const settings = await getGymSettings(ownerId)
-  const provider = getPaymentProvider(ownerId)
   const candidates = await prisma.membership.findMany({
     where: { ownerId, status: { in: LIVE_STATUSES } },
     select: { id: true },
@@ -483,6 +500,20 @@ export async function runMembershipBilling(ownerId: string, now = new Date()): P
           return
         }
 
+        // Business rule: stop carrying a membership that has gone unpaid for too long.
+        if (m.status === 'past_due' && settings.pastDueCancelDays > 0) {
+          const cutoff = addDays(now, -(settings.pastDueGraceDays + settings.pastDueCancelDays))
+          const stale = await db.invoice.findFirst({
+            where: { membershipId: m.id, status: 'open', dueDate: { lt: cutoff }, transactions: { none: { status: 'pending' } } },
+            select: { number: true },
+          })
+          if (stale) {
+            await endMembership(db, m, 'cancelled', `Unpaid: ${stale.number} is more than ${settings.pastDueCancelDays} days past due`)
+            summary.cancelled++
+            return
+          }
+        }
+
         if (m.plan.type !== 'recurring') {
           const usedUp = m.creditsRemaining === 0 && (await db.booking.count({
             where: { membershipId: m.id, status: { in: ['booked', 'offered'] }, session: { startsAt: { gt: now } } },
@@ -503,7 +534,13 @@ export async function runMembershipBilling(ownerId: string, now = new Date()): P
           }
           const periodStart: Date = m.currentPeriodEnd
           const wasTrial: boolean = m.status === 'trial'
+          m = await applyPendingPlan(db, m)
           const { invoice, periodEnd, created } = await billPeriod(db, m, periodStart, settings.timezone, settings.defaultTaxRateBps)
+          // Credit on the account (a downgrade, a goodwill credit) comes off the new invoice before anything is charged.
+          if (created && invoice.status === 'open') {
+            const { applyCreditsToInvoice } = await import('./account-credit')
+            await applyCreditsToInvoice(db, { ownerId, invoiceId: invoice.id })
+          }
           m = await db.membership.update({
             where: { id: m.id },
             data: {
@@ -523,20 +560,7 @@ export async function runMembershipBilling(ownerId: string, now = new Date()): P
               title: `Trial ended, ${m.plan.name} is now active`, metadata: { membershipId: m.id },
             })
             await syncMemberStatus(db, m.memberId)
-          }
-          if (created && invoice.status === 'open' && m.paymentMethod === 'card' && provider.canAutoCharge) {
-            const result = await provider.charge({
-              ownerId, invoiceId: invoice.id, memberId: m.memberId, amountCents: invoice.totalCents,
-              currency: settings.currency, description: `${m.plan.name} ${invoice.number}`,
-            })
-            if (result.status === 'succeeded') {
-              await recordPayment(db, { ownerId, invoiceId: invoice.id, method: 'card', provider: provider.name, providerReference: result.reference, cardLast4: result.cardLast4 })
-              summary.paymentsCollected++
-            } else if (result.status === 'failed') {
-              await recordFailedPayment(db, { ownerId, invoiceId: invoice.id, method: 'card', failureReason: result.failureReason })
-              summary.paymentsFailed++
-              m = await db.membership.findUniqueOrThrow({ where: { id: m.id }, include: { plan: true } })
-            }
+            await membershipEvent(db, ownerId, 'membership.updated', m.id)
           }
         }
 
@@ -549,6 +573,7 @@ export async function runMembershipBilling(ownerId: string, now = new Date()): P
           })
           if (overdue) {
             await db.membership.update({ where: { id: m.id }, data: { status: 'past_due' } })
+            await membershipEvent(db, ownerId, 'membership.updated', m.id)
             const member = await db.member.findUnique({ where: { id: m.memberId }, select: { name: true } })
             await logActivity(db, {
               ownerId, memberId: m.memberId, type: 'membership_past_due',

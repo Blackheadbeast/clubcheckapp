@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import { sameSecret } from '@/lib/cron'
 
 /**
  * Apply referral credit to the referring owner.
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     // This endpoint should only be called internally (from webhook)
     const authHeader = request.headers.get('x-internal-key')
-    if (authHeader !== process.env.JWT_SECRET) {
+    if (!sameSecret(authHeader, process.env.JWT_SECRET)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

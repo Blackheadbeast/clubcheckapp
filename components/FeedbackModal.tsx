@@ -76,7 +76,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative bg-dark-card border border-gray-800 rounded-xl shadow-2xl w-full max-w-md">
+      <div className="relative bg-theme-card border border-line rounded-xl shadow-2xl w-full max-w-md">
         {submitted ? (
           // Success State
           <div className="p-8 text-center">
@@ -92,7 +92,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           // Form State
           <>
             {/* Header */}
-            <div className="p-6 border-b border-gray-800">
+            <div className="p-6 border-b border-line">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-100">Send Feedback</h2>
@@ -100,7 +100,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 </div>
                 <button
                   onClick={handleClose}
-                  className="text-gray-500 hover:text-gray-300 p-2 rounded-lg hover:bg-dark-lighter transition"
+                  className="text-gray-500 hover:text-gray-300 p-2 rounded-lg hover:bg-theme-lighter transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -168,7 +168,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="What could we improve? Any features you'd like to see?"
                   rows={4}
-                  className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 placeholder-gray-500 resize-none"
+                  className="ui-input h-11 placeholder-gray-500 resize-none"
                 />
               </div>
 
@@ -183,7 +183,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               <button
                 type="submit"
                 disabled={loading || rating === 0}
-                className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

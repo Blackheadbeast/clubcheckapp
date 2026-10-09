@@ -3,13 +3,15 @@ import { handler } from '@/lib/api'
 import { csvResponse } from '@/lib/csv'
 import { memberOrder, memberWhere } from '@/lib/services/members'
 import { LIVE_STATUSES } from '@/lib/services/memberships'
+import { effectiveLocation, homeScope } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/members/export - CSV of the directory, honouring the current filters
-export const GET = handler({ permission: 'members.delete', rateLimit: { key: 'export', windowMs: 5 * 60_000, maxRequests: 10 } }, async ({ ownerId, query, audit }) => {
+export const GET = handler({ permission: 'members.delete', rateLimit: { key: 'export', windowMs: 5 * 60_000, maxRequests: 10 } }, async ({ ownerId, query, audit, actor }) => {
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const members = await prisma.member.findMany({
-    where: memberWhere(ownerId, query),
+    where: memberWhere(ownerId, query, homeScope(scope)),
     orderBy: memberOrder(query),
     take: 20_000,
     select: {

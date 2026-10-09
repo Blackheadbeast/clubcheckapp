@@ -11,7 +11,7 @@ const schema = z.object({
   body: z.string().trim().min(1, 'Write the message').max(5000),
 })
 
-export const GET = handler({ permission: 'communication.send' }, async ({ ownerId }) => prisma.messageTemplate.findMany({ where: { ownerId }, orderBy: { name: 'asc' } }))
+export const GET = handler({ permission: ['communication.text', 'communication.send'] }, async ({ ownerId }) => prisma.messageTemplate.findMany({ where: { ownerId }, orderBy: { name: 'asc' } }))
 
 export const POST = handler({ permission: 'communication.send', write: true, body: schema }, async ({ ownerId, body }) =>
   prisma.messageTemplate.create({ data: { ownerId, ...body, subject: body.channel === 'email' ? body.subject : null } })

@@ -113,7 +113,7 @@ function InvoiceDrawer({ id, onClose, onChanged }: { id: string | null; onClose:
         footer={inv && inv.status === 'open' && can('billing.manage') ? (
           <>
             {inv.amountPaidCents === 0 && <Button variant="ghost" className="mr-auto text-red-600" onClick={() => setVoiding(true)}>Void invoice</Button>}
-            <Button variant="primary" onClick={() => setPay({ id: inv.id, number: inv.number, balanceCents: balance, creditBalanceCents: inv.member?.creditBalanceCents })}>Take payment</Button>
+            <Button variant="primary" onClick={() => setPay({ id: inv.id, number: inv.number, balanceCents: balance, creditBalanceCents: inv.member?.creditBalanceCents, memberId: inv.member?.id })}>Take payment</Button>
           </>
         ) : undefined}
       >

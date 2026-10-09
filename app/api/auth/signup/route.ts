@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { createToken } from "@/lib/auth";
+import { createToken, passwordVersion } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import crypto from "crypto";
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       console.error("Failed to send verification email:", err);
     });
 
-    const token = await createToken({ ownerId: owner.id, emailVerified: false });
+    const token = await createToken({ ownerId: owner.id, emailVerified: false, pv: passwordVersion(owner.password) });
 
     // Next.js 15: cookies() is async and MUST be awaited
     const cookieStore = await cookies();

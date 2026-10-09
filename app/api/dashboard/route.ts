@@ -6,14 +6,15 @@ import { isDemoOwner } from '@/lib/demo'
 import { getOwnerFromCookie } from '@/lib/auth'
 import { getGymSettings } from '@/lib/services/core'
 import { dashboard } from '@/lib/services/reports'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // GET /api/dashboard?range=30d&from=&to=&locationId=
-export const GET = handler({ permission: null }, async ({ ownerId, query, can }) => {
-  const locationId = query.get('locationId')
-  await assertOwned(ownerId, 'location', locationId, 'Location')
+export const GET = handler({ permission: null }, async ({ ownerId, query, can, actor }) => {
+  await assertOwned(ownerId, 'location', query.get('locationId'), 'Location')
+  const { locationId } = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const settings = await getGymSettings(ownerId)
   const range = resolveRange(query.get('range'), query.get('from'), query.get('to'), settings.timezone)
   const [data, profile, totals] = await Promise.all([

@@ -247,7 +247,7 @@ export default function KioskPage() {
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="Enter PIN"
                 autoFocus
-                className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
+                className="w-full px-4 py-3 bg-theme-lighter border border-line rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
               />
             </div>
             <div>
@@ -259,7 +259,7 @@ export default function KioskPage() {
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="Confirm PIN"
-                className="w-full px-4 py-3 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
+                className="w-full px-4 py-3 bg-theme-lighter border border-line rounded-lg text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-primary"
               />
             </div>
             {pinError && (
@@ -268,7 +268,7 @@ export default function KioskPage() {
             <button
               type="submit"
               disabled={pinLoading || pin.length < 4}
-              className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-3 rounded-lg transition disabled:opacity-50"
+              className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 rounded-lg transition disabled:opacity-50"
             >
               {pinLoading ? 'Setting...' : 'Set PIN & Start Kiosk'}
             </button>
@@ -296,7 +296,7 @@ export default function KioskPage() {
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
               placeholder="PIN"
               autoFocus
-              className="w-full px-4 py-4 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-center text-3xl tracking-[0.5em] focus:outline-none focus:border-primary"
+              className="w-full px-4 py-4 bg-theme-lighter border border-line rounded-lg text-gray-100 text-center text-3xl tracking-[0.5em] focus:outline-none focus:border-primary"
             />
             {pinError && (
               <div className="bg-red-900/20 border border-red-900 text-red-400 px-4 py-2 rounded-lg text-sm">{pinError}</div>
@@ -304,7 +304,7 @@ export default function KioskPage() {
             <button
               type="submit"
               disabled={pinLoading || pin.length < 4}
-              className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-3 rounded-lg transition disabled:opacity-50 text-lg"
+              className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 rounded-lg transition disabled:opacity-50 text-lg"
             >
               {pinLoading ? 'Verifying...' : 'Unlock'}
             </button>
@@ -322,7 +322,7 @@ export default function KioskPage() {
         <h1 className="text-2xl font-bold text-primary">ClubCheck Kiosk</h1>
         <button
           onClick={handleLock}
-          className="text-gray-400 hover:text-gray-200 text-sm border border-gray-700 px-3 py-1.5 rounded-lg transition"
+          className="text-gray-400 hover:text-gray-200 text-sm border border-line px-3 py-1.5 rounded-lg transition"
         >
           Lock Kiosk
         </button>
@@ -397,13 +397,13 @@ export default function KioskPage() {
                   onChange={(e) => setManualInput(e.target.value)}
                   placeholder="Enter phone number or scan QR..."
                   autoFocus
-                  className="w-full px-4 py-4 bg-theme-lighter border border-gray-700 rounded-lg text-gray-100 text-lg focus:outline-none focus:border-primary"
+                  className="w-full px-4 py-4 bg-theme-lighter border border-line rounded-lg text-gray-100 text-lg focus:outline-none focus:border-primary"
                 />
               </div>
               <button
                 type="submit"
                 disabled={checking || !manualInput.trim()}
-                className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-4 rounded-lg transition disabled:opacity-50 text-lg"
+                className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-4 rounded-lg transition disabled:opacity-50 text-lg"
               >
                 {checking ? 'Checking in...' : 'Check In'}
               </button>

@@ -103,7 +103,7 @@ function SignupForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
                 placeholder="you@gym.com"
               />
             </div>
@@ -120,7 +120,7 @@ function SignupForm() {
                 required
                 minLength={6}
                 autoComplete="new-password"
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
@@ -136,7 +136,7 @@ function SignupForm() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 autoComplete="tel"
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
                 placeholder="(555) 123-4567"
               />
             </div>
@@ -151,7 +151,7 @@ function SignupForm() {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 autoComplete="off"
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100 font-mono"
+                className="ui-input h-11 font-mono"
                 placeholder="GYM-XXXXXX"
               />
             </div>
@@ -165,7 +165,7 @@ function SignupForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Sign Up'}
             </button>
@@ -174,7 +174,7 @@ function SignupForm() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
+              <div className="w-full border-t border-line"></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-3 bg-theme-card text-gray-500">or</span>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOwnerFromCookie } from "@/lib/auth";
-import { isAdminEmail } from "@/lib/admin";
+import { platformAdmin } from "@/lib/admin";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import crypto from "crypto";
@@ -10,16 +10,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 async function requireAdmin() {
-  const auth = await getOwnerFromCookie();
-  if (!auth?.ownerId) return null;
-
-  const owner = await prisma.owner.findUnique({
-    where: { id: auth.ownerId },
-    select: { email: true },
-  });
-
-  if (!owner || !isAdminEmail(owner.email)) return null;
-  return auth;
+  const admin = await platformAdmin();
+  return admin.ok ? { ownerId: admin.ownerId } : null;
 }
 
 function generateSalesCode(): string {

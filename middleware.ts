@@ -12,8 +12,14 @@ const protectedPaths = [
   "/leads",
   "/prospects",
   "/schedule",
+  "/appointments",
+  "/today",
+  "/home",
   "/broadcast",
   "/communication",
+  "/coaching",
+  "/documents",
+  "/payroll",
   "/checkin",
   "/pos",
   "/reports",
@@ -37,10 +43,15 @@ const publicApiPrefixes = [
   "/api/cron/",
   "/api/member-portal",
   "/api/portal/",
+  "/api/member-auth/",
   "/api/waiver/",
   "/api/auth/",
   "/api/sales/",
   "/api/admin/",
+  // The public API: authenticated by API key inside each route.
+  "/api/v1/",
+  // Online booking: open to the public, limited and scoped inside each route.
+  "/api/public/",
 ];
 
 const authPaths = ["/login", "/signup", "/staff-login"];
@@ -63,6 +74,18 @@ function getSecret() {
   return new TextEncoder().encode(s);
 }
 
+/** Whether an Origin header names this site: the host the request arrived on, or the configured address. */
+function sameSite(origin: string, request: NextRequest) {
+  try {
+    const host = new URL(origin).host;
+    if (host === request.nextUrl.host || host === request.headers.get("host")) return true;
+    const configured = process.env.NEXT_PUBLIC_APP_URL;
+    return !!configured && host === new URL(configured).host;
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value;
   const salesToken = request.cookies.get("sales-auth-token")?.value;
@@ -70,10 +93,23 @@ export async function middleware(request: NextRequest) {
 
   // --- API routes ---
   if (pathname.startsWith("/api/")) {
+    // A zero byte in an address is never legitimate, and the database cannot hold one: refuse it as bad input.
+    if (/%00|\u0000/i.test(request.nextUrl.pathname + request.nextUrl.search)) {
+      return NextResponse.json({ error: "The request contains characters that cannot be stored.", code: "invalid_characters" }, { status: 400 });
+    }
     // Never trust a client-supplied copy of our internal header.
     const headers = new Headers(request.headers);
     headers.delete(REQUIREMENT_HEADER);
     const isPublic = publicApiPrefixes.some((p) => pathname.startsWith(p));
+    // A request that changes something and is signed in by cookie must come from this site. Browsers
+    // already keep the cookie off cross-site posts (SameSite=Lax); this does not depend on that.
+    // Requests with no Origin (servers, scripts, older same-site forms) are not browsers being tricked.
+    if (!isPublic && !["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+      const origin = request.headers.get("origin");
+      if (origin && !sameSite(origin, request)) {
+        return NextResponse.json({ error: "This request came from another site.", code: "cross_site" }, { status: 403 });
+      }
+    }
     const requirement = isPublic ? null : legacyRequirement(pathname, request.method);
     if (requirement && requirement !== "any") {
       headers.set(REQUIREMENT_HEADER, requirement);
@@ -96,6 +132,16 @@ export async function middleware(request: NextRequest) {
       }
     }
     return NextResponse.next({ request: { headers } });
+  }
+
+  // --- Member account pages ---
+  // The portal itself checks the session on every API call; this only saves a signed-out
+  // member from loading an empty page.
+  if (pathname === "/member/me" || pathname.startsWith("/member/me/")) {
+    if (!request.cookies.get("member-session")?.value) {
+      return NextResponse.redirect(new URL("/member/login", request.url));
+    }
+    return NextResponse.next();
   }
 
   // --- Sales Auth Pages ---
@@ -141,7 +187,7 @@ export async function middleware(request: NextRequest) {
     if (token) {
       try {
         await jwtVerify(token, getSecret());
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        return NextResponse.redirect(new URL("/home", request.url));
       } catch {
         // Invalid token — let them access login/signup/staff-login
       }
@@ -201,6 +247,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except Next internals and static files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|mp4|webmanifest|txt|xml)$).*)"],
+  // Every API route without exception (a path that merely ends like a file name is still an API
+  // call and still needs its permission check), and every page except Next internals and static files.
+  matcher: ["/api/:path*", "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|mp4|webmanifest|txt|xml)$).*)"],
 };

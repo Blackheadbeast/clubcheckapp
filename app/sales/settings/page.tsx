@@ -167,7 +167,7 @@ export default function SalesSettingsPage() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
               />
             </div>
             <div>
@@ -178,7 +178,7 @@ export default function SalesSettingsPage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
               />
             </div>
             <div>
@@ -189,7 +189,7 @@ export default function SalesSettingsPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-2 bg-theme-lighter border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-gray-100"
+                className="ui-input h-11"
               />
             </div>
 
@@ -207,7 +207,7 @@ export default function SalesSettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-primary hover:bg-primary-dark text-black font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
+              className="ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-2 px-6 rounded-lg transition disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Update Password'}
             </button>

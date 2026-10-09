@@ -69,7 +69,7 @@ export default function VerifyEmailPage() {
             We&apos;ve sent you a verification link. Click the link in your email to activate your account and start your 14-day free trial.
           </p>
 
-          <div className="bg-theme-lighter border border-gray-700 rounded-xl p-4 mb-6">
+          <div className="bg-theme-lighter border border-line rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
               <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -99,7 +99,7 @@ export default function VerifyEmailPage() {
             <button
               onClick={handleResend}
               disabled={resending}
-              className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {resending ? (
                 <>

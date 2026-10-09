@@ -24,6 +24,11 @@ export interface GymSettings {
   waitlistOfferMinutes: number
   lateCancelUsesCredit: boolean
   pastDueGraceDays: number
+  pastDueCancelDays: number
+  memberSelfCheckin: boolean
+  memberSelfFreeze: boolean
+  memberSelfCancel: boolean
+  memberSelfChangePlan: boolean
 }
 
 export async function getGymSettings(ownerId: string, db: Db = prisma): Promise<GymSettings> {
@@ -41,6 +46,11 @@ export async function getGymSettings(ownerId: string, db: Db = prisma): Promise<
     waitlistOfferMinutes: profile?.waitlistOfferMinutes ?? 30,
     lateCancelUsesCredit: profile?.lateCancelUsesCredit ?? true,
     pastDueGraceDays: profile?.pastDueGraceDays ?? 7,
+    pastDueCancelDays: profile?.pastDueCancelDays ?? 0,
+    memberSelfCheckin: profile?.memberSelfCheckin ?? true,
+    memberSelfFreeze: profile?.memberSelfFreeze ?? true,
+    memberSelfCancel: profile?.memberSelfCancel ?? true,
+    memberSelfChangePlan: profile?.memberSelfChangePlan ?? true,
   }
 }
 
@@ -87,6 +97,10 @@ export async function logActivity(db: Db, input: ActivityInput) {
       ...(input.createdAt && { createdAt: input.createdAt }),
     },
   })
+  if (input.memberId) {
+    const { notifyMemberOfActivity } = await import('./member-notifications')
+    await notifyMemberOfActivity(db, input)
+  }
 }
 
 export async function notify(
@@ -96,7 +110,14 @@ export async function notify(
   await db.notification.create({ data: input })
 }
 
-/** Lock a row for the rest of the transaction so concurrent requests serialize on it. */
-export async function lockRow(db: Db, table: 'ClassSession' | 'Product' | 'Member' | 'Invoice' | 'Transaction' | 'Membership', id: string) {
-  await db.$queryRawUnsafe(`SELECT id FROM "${table}" WHERE id = $1 FOR UPDATE`, id)
+/**
+ * Lock a row for the rest of the transaction so concurrent requests serialize on it.
+ *
+ * FOR NO KEY UPDATE, not FOR UPDATE: everyone who takes this lock still waits their turn, but it
+ * does not collide with the key-share lock Postgres takes on a parent row when a child row that
+ * points at it is inserted. With FOR UPDATE, two transactions that each inserted a payment for a
+ * member and then went to lock that member would deadlock.
+ */
+export async function lockRow(db: Db, table: 'ClassSession' | 'Product' | 'Member' | 'Invoice' | 'Transaction' | 'Membership' | 'Staff' | 'Appointment' | 'Household' | 'WorkoutSession' | 'Workout' | 'ProgramAssignment' | 'MemberDocument', id: string) {
+  await db.$queryRawUnsafe(`SELECT id FROM "${table}" WHERE id = $1 FOR NO KEY UPDATE`, id)
 }

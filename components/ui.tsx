@@ -32,8 +32,8 @@ export function cn(...parts: (string | false | null | undefined)[]) {
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-accent-fg hover:brightness-95 shadow-card font-semibold',
-  secondary: 'bg-surface text-fg border border-line hover:bg-subtle shadow-card',
+  primary: 'bg-accent text-accent-fg hover:brightness-[1.04] active:brightness-95 shadow-card font-semibold',
+  secondary: 'bg-surface text-fg border border-line hover:bg-subtle hover:border-fg-subtle/40 shadow-card',
   ghost: 'text-fg-muted hover:text-fg hover:bg-subtle',
   danger: 'bg-red-600 text-white hover:bg-red-700 shadow-card',
 }
@@ -55,7 +55,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type}
       disabled={disabled || loading}
       className={cn(
-        'ui-focus inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
+        'ui-focus inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100',
         size === 'sm' ? 'h-8 px-2.5 text-xs' : size === 'lg' ? 'h-11 px-5 text-sm' : 'h-9 px-3.5 text-sm',
         BUTTON_VARIANTS[variant],
         className
@@ -215,17 +215,20 @@ export function MoneyInput({ cents, onChange, ...props }: { cents: number; onCha
 export type Tone = 'neutral' | 'green' | 'red' | 'amber' | 'blue' | 'violet'
 
 const TONES: Record<Tone, string> = {
-  neutral: 'bg-subtle text-fg-muted border-line',
-  green: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400',
-  red: 'bg-red-500/10 text-red-700 border-red-500/20 dark:text-red-400',
-  amber: 'bg-amber-500/10 text-amber-800 border-amber-500/25 dark:text-amber-400',
-  blue: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-400',
-  violet: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-400',
+  neutral: 'bg-subtle text-fg-muted border-transparent',
+  green: 'bg-emerald-500/10 text-emerald-700 border-transparent dark:text-emerald-400',
+  red: 'bg-red-500/10 text-red-700 border-transparent dark:text-red-400',
+  amber: 'bg-amber-500/15 text-amber-800 border-transparent dark:text-amber-400',
+  blue: 'bg-sky-500/10 text-sky-700 border-transparent dark:text-sky-400',
+  violet: 'bg-violet-500/10 text-violet-700 border-transparent dark:text-violet-400',
 }
 
-export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
+const DOTS: Record<Tone, string> = { neutral: 'bg-fg-subtle', green: 'bg-emerald-500', red: 'bg-red-500', amber: 'bg-amber-500', blue: 'bg-sky-500', violet: 'bg-violet-500' }
+
+export function Badge({ tone = 'neutral', children, className, dot }: { tone?: Tone; children: ReactNode; className?: string; /** A coloured dot before the label: for a status, so it reads at a glance. */ dot?: boolean }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-xs font-medium', TONES[tone], className)}>
+    <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium', TONES[tone], className)}>
+      {dot && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', DOTS[tone])} aria-hidden />}
       {children}
     </span>
   )
@@ -238,6 +241,7 @@ const STATUS_TONES: Record<string, Tone> = {
   trial_scheduled: 'violet', trial_completed: 'violet', follow_up: 'amber', waitlisted: 'amber', draft: 'neutral',
   past_due: 'red', overdue: 'red', failed: 'red', no_show: 'red', lost: 'red', uncollectible: 'red',
   frozen: 'amber', paused: 'amber', late_cancelled: 'amber', partially_refunded: 'amber', skipped: 'neutral',
+  in_progress: 'amber', missed: 'red', not_started: 'neutral',
   cancelled: 'neutral', inactive: 'neutral', expired: 'neutral', void: 'neutral', refunded: 'neutral', archived: 'neutral',
 }
 
@@ -249,7 +253,7 @@ const STATUS_LABELS: Record<string, string> = {
 /** One consistent look for every status in the product. */
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
   return (
-    <Badge tone={STATUS_TONES[status] || 'neutral'} className={className}>
+    <Badge dot tone={STATUS_TONES[status] || 'neutral'} className={className}>
       {STATUS_LABELS[status] || titleCase(status)}
     </Badge>
   )
@@ -260,15 +264,16 @@ export function StatusBadge({ status, className }: { status: string; className?:
 // ---------------------------------------------------------------------------
 
 export function Card({ children, className, padded = true }: { children: ReactNode; className?: string; padded?: boolean }) {
-  return <div className={cn('rounded-xl border border-line bg-surface shadow-card', padded && 'p-4 sm:p-5', className)}>{children}</div>
+  // min-w-0: inside a grid or flex row a card may shrink to its column, so long names truncate instead of widening the page.
+  return <div className={cn('min-w-0 rounded-2xl border border-line bg-surface shadow-card', padded && 'p-4 sm:p-6', className)}>{children}</div>
 }
 
 export function CardHeader({ title, description, action, className }: { title: ReactNode; description?: ReactNode; action?: ReactNode; className?: string }) {
   return (
     <div className={cn('mb-4 flex items-start justify-between gap-3', className)}>
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-fg-heading">{title}</h2>
-        {description && <p className="mt-0.5 text-xs text-fg-subtle">{description}</p>}
+        <h2 className="ui-section-title">{title}</h2>
+        {description && <p className="mt-0.5 text-sm text-fg-muted">{description}</p>}
       </div>
       {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </div>
@@ -277,11 +282,11 @@ export function CardHeader({ title, description, action, className }: { title: R
 
 export function PageHeader({ title, description, actions, back }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; back?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <div className="min-w-0">
-        {back}
-        <h1 className="truncate text-xl font-semibold tracking-tight text-fg-heading sm:text-2xl">{title}</h1>
-        {description && <p className="mt-1 text-sm text-fg-muted">{description}</p>}
+        {back && <div className="mb-1.5">{back}</div>}
+        <h1 className="ui-page-title truncate">{title}</h1>
+        {description && <p className="mt-1.5 max-w-3xl text-[0.9375rem] leading-6 text-fg-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -289,7 +294,7 @@ export function PageHeader({ title, description, actions, back }: { title: React
 }
 
 export function Page({ children, width = 'wide' }: { children: ReactNode; width?: 'wide' | 'narrow' }) {
-  return <div className={cn('mx-auto w-full px-4 py-5 sm:px-6 sm:py-7', width === 'wide' ? 'max-w-[1400px]' : 'max-w-3xl')}>{children}</div>
+  return <div className={cn('ui-rise mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8', width === 'wide' ? 'max-w-[1440px]' : 'max-w-3xl')}>{children}</div>
 }
 
 export function Tabs<T extends string>({
@@ -313,13 +318,13 @@ export function Tabs<T extends string>({
           aria-selected={tab.key === value}
           onClick={() => onChange(tab.key)}
           className={cn(
-            'ui-focus -mb-px flex shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition',
-            tab.key === value ? 'border-accent text-fg-heading' : 'border-transparent text-fg-muted hover:text-fg'
+            'ui-focus -mb-px flex min-h-10 shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition',
+            tab.key === value ? 'border-accent text-fg-heading' : 'border-transparent text-fg-muted hover:border-line hover:text-fg'
           )}
         >
           {tab.label}
           {tab.count !== undefined && tab.count !== null && (
-            <span className="tabular rounded bg-subtle px-1.5 text-xs text-fg-muted">{tab.count}</span>
+            <span className={cn('tabular rounded-full px-1.5 text-xs', tab.key === value ? 'bg-accent/15 text-accent-text' : 'bg-subtle text-fg-muted')}>{tab.count}</span>
           )}
         </button>
       ))}
@@ -341,7 +346,7 @@ export function Table({ children, className }: { children: ReactNode; className?
 
 export function Th({ children, className, align }: { children?: ReactNode; className?: string; align?: 'right' }) {
   return (
-    <th scope="col" className={cn('whitespace-nowrap border-b border-line px-3 py-2 text-xs font-medium text-fg-subtle first:pl-4 last:pr-4 sm:first:pl-5 sm:last:pr-5', align === 'right' && 'text-right', className)}>
+    <th scope="col" className={cn('whitespace-nowrap border-b border-line bg-subtle/50 px-3 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-fg-muted first:pl-4 last:pr-4 sm:first:pl-6 sm:last:pr-6', align === 'right' && 'text-right', className)}>
       {children}
     </th>
   )
@@ -349,7 +354,7 @@ export function Th({ children, className, align }: { children?: ReactNode; class
 
 export function Td({ children, className, align }: { children?: ReactNode; className?: string; align?: 'right' }) {
   return (
-    <td className={cn('border-b border-line/60 px-3 py-2.5 align-middle text-fg first:pl-4 last:pr-4 sm:first:pl-5 sm:last:pr-5', align === 'right' && 'tabular text-right', className)}>
+    <td className={cn('border-b border-line/70 px-3 py-3 align-middle text-fg first:pl-4 last:pr-4 sm:first:pl-6 sm:last:pr-6', align === 'right' && 'tabular text-right', className)}>
       {children}
     </td>
   )
@@ -388,7 +393,7 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-subtle', className)} />
+  return <div className={cn('ui-skeleton rounded-md', className)} />
 }
 
 export function SkeletonRows({ rows = 6 }: { rows?: number }) {
@@ -408,11 +413,11 @@ export function SkeletonRows({ rows = 6 }: { rows?: number }) {
 
 export function EmptyState({ icon, title, description, action }: { icon?: ReactNode; title: string; description?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-subtle text-fg-subtle">{icon || <Inbox className="h-5 w-5" />}</div>
-      <p className="text-sm font-medium text-fg-heading">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-sm text-fg-muted">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent-text ring-1 ring-inset ring-accent/15">{icon || <Inbox className="h-5 w-5" />}</div>
+      <p className="text-base font-semibold tracking-tight text-fg-heading">{title}</p>
+      {description && <p className="mt-1.5 max-w-md text-sm leading-6 text-fg-muted">{description}</p>}
+      {action && <div className="mt-5 flex flex-wrap items-center justify-center gap-2">{action}</div>}
     </div>
   )
 }
@@ -422,11 +427,11 @@ export function ErrorState({ error, onRetry }: { error: { message: string; statu
   const forbidden = typeof error !== 'string' && error.status === 403
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center" role="alert">
-      <div className={cn('mb-3 flex h-10 w-10 items-center justify-center rounded-full', forbidden ? 'bg-subtle text-fg-subtle' : 'bg-red-500/10 text-red-500')}>
+      <div className={cn('mb-4 flex h-12 w-12 items-center justify-center rounded-2xl', forbidden ? 'bg-subtle text-fg-subtle' : 'bg-red-500/10 text-red-500')}>
         {forbidden ? <Lock className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
       </div>
-      <p className="text-sm font-medium text-fg-heading">{forbidden ? "You don't have access to this" : "Couldn't load this"}</p>
-      <p className="mt-1 max-w-sm text-sm text-fg-muted">{forbidden ? 'Ask the account owner to change your role if you need it.' : message}</p>
+      <p className="text-base font-semibold tracking-tight text-fg-heading">{forbidden ? "You don't have access to this" : "Couldn't load this"}</p>
+      <p className="mt-1.5 max-w-md text-sm leading-6 text-fg-muted">{forbidden ? 'Ask the account owner to change your role if you need it.' : message}</p>
       {onRetry && !forbidden && (
         <Button className="mt-4" size="sm" onClick={onRetry}>
           Try again
@@ -451,6 +456,17 @@ export function FormError({ message }: { message: string | null | undefined }) {
 // People
 // ---------------------------------------------------------------------------
 
+const AVATAR_TINTS = [
+  'bg-sky-500/15 text-sky-700 dark:text-sky-300', 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+  'bg-amber-500/20 text-amber-800 dark:text-amber-300', 'bg-rose-500/15 text-rose-700 dark:text-rose-300', 'bg-teal-500/15 text-teal-700 dark:text-teal-300', 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
+]
+/** The same name always gets the same tint. */
+function tintOf(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  return h % AVATAR_TINTS.length
+}
+
 export function Avatar({ name, src, size = 'md' }: { name: string; src?: string | null; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
   const dims = { sm: 'h-7 w-7 text-[10px]', md: 'h-9 w-9 text-xs', lg: 'h-12 w-12 text-sm', xl: 'h-20 w-20 text-xl' }[size]
   const [broken, setBroken] = useState(false)
@@ -459,8 +475,8 @@ export function Avatar({ name, src, size = 'md' }: { name: string; src?: string 
     return <img src={src} alt="" onError={() => setBroken(true)} className={cn('shrink-0 rounded-full border border-line object-cover', dims)} />
   }
   return (
-    <span aria-hidden className={cn('flex shrink-0 select-none items-center justify-center rounded-full bg-subtle font-semibold text-fg-muted', dims)}>
-      {initials(name) || '?'}
+    <span aria-hidden className={cn('flex shrink-0 select-none items-center justify-center rounded-full font-semibold', AVATAR_TINTS[tintOf(name)], dims)}>
+      {!initials(name) ? '?' : /^[\p{L}\p{N}]/u.test(initials(name)) ? initials(name) : '#'}
     </span>
   )
 }
@@ -469,6 +485,12 @@ export function Avatar({ name, src, size = 'md' }: { name: string; src?: string 
 // KPI tile
 // ---------------------------------------------------------------------------
 
+const STAT_TONES: Record<Tone, string> = {
+  neutral: 'bg-subtle text-fg-muted', green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', red: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-400', blue: 'bg-sky-500/10 text-sky-600 dark:text-sky-400', violet: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+}
+
+/** One headline number: what it is, the figure, how it is moving, and a line of context. */
 export function Stat({
   label,
   value,
@@ -476,6 +498,9 @@ export function Stat({
   goodWhen = 'up',
   hint,
   href,
+  icon,
+  tone = 'neutral',
+  alert,
 }: {
   label: string
   value: ReactNode
@@ -485,26 +510,34 @@ export function Stat({
   goodWhen?: 'up' | 'down'
   hint?: ReactNode
   href?: string
+  /** A small symbol for the figure, tinted by `tone`. */
+  icon?: ReactNode
+  tone?: Tone
+  /** Something here needs looking at: the card carries a red edge. */
+  alert?: boolean
 }) {
   const showDelta = delta !== undefined && delta !== null && Number.isFinite(delta)
   const good = showDelta && delta !== 0 ? (delta! > 0) === (goodWhen === 'up') : null
   const body = (
     <>
-      <p className="truncate text-xs font-medium text-fg-muted">{label}</p>
-      <p className="tabular mt-1.5 text-2xl font-semibold tracking-tight text-fg-heading">{value}</p>
-      <p className="mt-1 flex min-h-[1rem] items-center gap-1.5 text-xs text-fg-subtle">
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 truncate text-sm font-medium text-fg-muted">{label}</p>
+        {icon && <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', STAT_TONES[tone])} aria-hidden>{icon}</span>}
+      </div>
+      <p className={cn('ui-kpi', icon ? 'mt-1' : 'mt-2')}>{value}</p>
+      <p className="mt-1.5 flex min-h-[1.25rem] flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-fg-muted">
         {showDelta && (
-          <span className={cn('tabular font-medium', good === null ? 'text-fg-subtle' : good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-            {delta! > 0 ? '▲' : delta! < 0 ? '▼' : ''} {Math.abs(delta!).toFixed(delta! % 1 === 0 || Math.abs(delta!) >= 100 ? 0 : 1)}%
+          <span className={cn('tabular inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-semibold', good === null ? 'bg-subtle text-fg-muted' : good ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400')}>
+            {delta! > 0 ? '↑' : delta! < 0 ? '↓' : ''} {Math.abs(delta!).toFixed(delta! % 1 === 0 || Math.abs(delta!) >= 100 ? 0 : 1)}%
           </span>
         )}
-        {hint && <span className="truncate">{hint}</span>}
+        {hint && <span className="min-w-0 truncate">{hint}</span>}
       </p>
     </>
   )
-  const cls = 'block rounded-xl border border-line bg-surface p-4 shadow-card'
+  const cls = cn('relative block min-w-0 overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5', alert && 'before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-red-500')
   return href ? (
-    <a href={href} className={cn(cls, 'ui-focus transition hover:border-fg-subtle/40')}>
+    <a href={href} className={cn(cls, 'ui-focus transition duration-150 hover:-translate-y-px hover:border-fg-subtle/40 hover:shadow-raised')}>
       {body}
     </a>
   ) : (
@@ -572,7 +605,7 @@ export function Modal({
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
+      <div className="ui-fade absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
       <div
         ref={panel}
         role="dialog"
@@ -580,13 +613,13 @@ export function Modal({
         aria-labelledby={titleId}
         tabIndex={-1}
         className={cn(
-          'relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-line bg-surface shadow-pop outline-none sm:rounded-2xl',
+          'ui-pop relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-line bg-surface shadow-pop outline-none sm:rounded-2xl',
           size === 'sm' ? 'sm:max-w-sm' : size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-lg'
         )}
       >
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-semibold text-fg-heading">
+            <h2 id={titleId} className="text-lg font-semibold tracking-tight text-fg-heading">
               {title}
             </h2>
             {description && <p className="mt-0.5 text-sm text-fg-muted">{description}</p>}
@@ -660,7 +693,7 @@ interface Toast {
 
 const ToastContext = createContext<{ success: (message: string) => void; error: (message: string) => void } | null>(null)
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children, aboveBottomNav }: { children: ReactNode; /** Lift toasts clear of a fixed bottom tab bar: always, or only where the bar shows ("mobile"). */ aboveBottomNav?: boolean | 'mobile' }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const nextId = useRef(1)
   const push = useCallback((message: string, tone: Toast['tone']) => {
@@ -672,12 +705,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-end" aria-live="polite">
+      <div className={cn('pointer-events-none fixed inset-x-0 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end', aboveBottomNav === 'mobile' ? 'bottom-[calc(3.5rem+env(safe-area-inset-bottom))] pb-2 lg:bottom-0 lg:pb-4' : aboveBottomNav ? 'bottom-[calc(3.5rem+env(safe-area-inset-bottom))] pb-2' : 'bottom-0 pb-[max(1rem,env(safe-area-inset-bottom))]')} aria-live="polite">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role={toast.tone === 'error' ? 'alert' : 'status'}
-            className="pointer-events-auto flex max-w-sm items-start gap-2 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-fg shadow-pop"
+            className="ui-rise pointer-events-auto flex max-w-sm items-start gap-2.5 rounded-xl border border-line bg-surface px-4 py-3 text-sm font-medium text-fg shadow-pop"
           >
             {toast.tone === 'success' ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" aria-hidden />}
             <span>{toast.message}</span>

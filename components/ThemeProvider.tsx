@@ -32,7 +32,8 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
     // Initialize theme from localStorage
     const stored = getStoredTheme()
     setThemeState(stored)
-    applyTheme(stored)
+    // A gym's public booking page wears the gym's chosen appearance, not this browser's staff-app setting.
+    if (!window.location.pathname.startsWith('/book/')) applyTheme(stored)
     setEffectiveTheme(stored === 'auto' ? getSystemTheme() : stored)
     setMounted(true)
   }, [])

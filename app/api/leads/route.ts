@@ -1,22 +1,22 @@
-import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { assertOwned, handler } from '@/lib/api'
 import { LEAD_STAGES, normalizeLeadStage } from '@/lib/format'
-import { dateInput, optionalText } from '@/lib/schemas'
-import { logActivity } from '@/lib/services/core'
-import { fireTrigger, flushOutbox } from '@/lib/services/automations'
+import { createLead, leadCreateSchema } from '@/lib/services/leads'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/leads?search=&assignedStaffId=&source= - the whole pipeline (open leads plus recent wins and losses)
-export const GET = handler({ permission: 'leads.view' }, async ({ ownerId, query }) => {
+export const GET = handler({ permission: 'leads.view' }, async ({ ownerId, query, actor }) => {
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const search = (query.get('search') || '').trim()
   const recent = new Date(Date.now() - 60 * 86_400_000)
   const where: Prisma.ProspectWhereInput = {
     ownerId,
     ...(query.get('assignedStaffId') && { assignedStaffId: query.get('assignedStaffId')! }),
-    ...(query.get('locationId') && { locationId: query.get('locationId')! }),
+    // A lead with no location yet belongs to everyone, so locked staff still see it.
+    ...(scope.locationId && (scope.locked ? { AND: [{ OR: [{ locationId: scope.locationId }, { locationId: null }] }] } : { locationId: scope.locationId })),
     ...(search
       ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { email: { contains: search, mode: 'insensitive' } }, { phone: { contains: search, mode: 'insensitive' } }] }
       : { OR: [{ status: { notIn: ['converted', 'lost'] } }, { updatedAt: { gte: recent } }] }),
@@ -40,29 +40,11 @@ export const GET = handler({ permission: 'leads.view' }, async ({ ownerId, query
   return { leads: shaped, counts }
 })
 
-const createSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(120),
-  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
-  phone: optionalText(30),
-  source: optionalText(100),
-  interest: optionalText(200),
-  notes: optionalText(2000),
-  assignedStaffId: z.string().uuid().nullish(),
-  locationId: z.string().uuid().nullish(),
-  estimatedValueCents: z.number().int().min(0).max(100_000_000).nullish(),
-  nextFollowUpAt: dateInput.nullish(),
-})
-
-export const POST = handler({ permission: 'leads.manage', write: true, body: createSchema }, async ({ ownerId, body, actor, audit }) => {
-  await assertOwned(ownerId, 'staff', body.assignedStaffId, 'Staff member')
+export const POST = handler({ permission: 'leads.manage', write: true, body: leadCreateSchema }, async ({ ownerId, body, actor, audit }) => {
+  // Staff locked to a location create leads there, whatever the form sent.
   await assertOwned(ownerId, 'location', body.locationId, 'Location')
-  const lead = await prisma.$transaction(async (db) => {
-    const created = await db.prospect.create({ data: { ownerId, ...body } })
-    await logActivity(db, { ownerId, prospectId: created.id, type: 'lead_created', title: 'Lead created', detail: body.source ? `Source: ${body.source}` : undefined, actor })
-    await fireTrigger(db, ownerId, 'lead_created', { prospectId: created.id, dedupeKey: created.id })
-    return created
-  })
+  const scope = await effectiveLocation(ownerId, actor, body.locationId)
+  const lead = await createLead(ownerId, body, actor, { lockedLocationId: scope.locked ? scope.locationId : null })
   await audit('prospect_create', `Added lead ${lead.name}`, { entityType: 'lead', entityId: lead.id })
-  await flushOutbox(ownerId)
   return { id: lead.id }
 })

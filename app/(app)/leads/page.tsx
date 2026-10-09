@@ -8,6 +8,7 @@ import { api, ClientError, qs, useApi, useDebounced } from '@/lib/client'
 import { LEAD_STAGES, timeAgo, type LeadStage } from '@/lib/format'
 import { PAYMENT_METHOD_LABELS, planPriceLabel, useLookups } from '@/lib/hooks'
 import { useSession } from '@/components/Session'
+import { TextModal } from '@/components/messaging/Thread'
 import {
   Avatar, Badge, Button, Card, Checkbox, ConfirmModal, EmptyState, ErrorState, Field, FormError, Input, Modal, MoneyInput, Page, PageHeader, SearchInput, Select,
   SkeletonRows, StatusBadge, Table, Td, Textarea, Th, cn, useToast,
@@ -202,6 +203,7 @@ function LeadDrawer({ id, onClose, onChanged, onConvert, onLose }: { id: string 
   const [busy, setBusy] = useState(false)
   const [trialDate, setTrialDate] = useState('')
   const [followUp, setFollowUp] = useState('')
+  const [texting, setTexting] = useState(false)
   const manage = can('leads.manage')
 
   useEffect(() => {
@@ -243,6 +245,7 @@ function LeadDrawer({ id, onClose, onChanged, onConvert, onLose }: { id: string 
   const closed = lead ? ['converted', 'lost'].includes(lead.status) : false
 
   return (
+    <>
     <Modal
       open
       onClose={onClose}
@@ -255,6 +258,7 @@ function LeadDrawer({ id, onClose, onChanged, onConvert, onLose }: { id: string 
             <>
               {lead.status !== 'lost' && <Button variant="ghost" className="mr-auto text-red-600" onClick={() => onLose(lead)}>Mark as lost</Button>}
               {lead.status === 'lost' && <Button className="mr-auto" onClick={() => patch({ status: 'follow_up' }, 'Lead reopened')}>Reopen</Button>}
+              {(can('communication.text') || can('communication.send')) && lead.phone && <Button onClick={() => setTexting(true)}>Text</Button>}
               <Button variant="primary" icon={<UserCheck className="h-4 w-4" />} onClick={() => onConvert(lead)}>Convert to member</Button>
             </>
           )
@@ -330,6 +334,8 @@ function LeadDrawer({ id, onClose, onChanged, onConvert, onLose }: { id: string 
         </div>
       )}
     </Modal>
+    {lead && <TextModal open={texting} onClose={() => setTexting(false)} source={{ leadId: lead.id }} name={lead.name} onChanged={reload} />}
+    </>
   )
 }
 

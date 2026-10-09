@@ -6,7 +6,7 @@ import { getGymSettings } from '@/lib/services/core'
 
 export const dynamic = 'force-dynamic'
 
-// GET ?date=YYYY-MM-DD&days=7&classTypeId= - bookable classes with this member's own booking state
+// GET ?date=YYYY-MM-DD&days=7&classTypeId=&category=&locationId= - bookable classes with this member's own booking state
 export const GET = portalHandler({}, async ({ req, member, ownerId }) => {
   const settings = await getGymSettings(ownerId)
   const query = req.nextUrl.searchParams
@@ -19,23 +19,29 @@ export const GET = portalHandler({}, async ({ req, member, ownerId }) => {
   const to = zonedToUtc(addDaysToDate(date, days), '00:00', settings.timezone)
   await ensureSessions(ownerId, to, now)
 
-  const [sessions, mine, classTypes] = await Promise.all([
-    listSessions(ownerId, { from, to, classTypeId: query.get('classTypeId') }),
+  // A location the gym does not own simply matches nothing.
+  const category = query.get('category')
+  const [sessions, mine, classTypes, locations] = await Promise.all([
+    listSessions(ownerId, { from, to, classTypeId: query.get('classTypeId'), locationId: query.get('locationId') }),
     prisma.booking.findMany({ where: { memberId: member.id, status: { in: ['booked', 'offered', 'waitlisted', 'attended'] }, session: { startsAt: { gte: from, lt: to } } }, select: { id: true, sessionId: true, status: true } }),
-    prisma.classType.findMany({ where: { ownerId, isActive: true, category: { not: 'personal_training' } }, orderBy: { name: 'asc' }, select: { id: true, name: true, color: true, description: true } }),
+    prisma.classType.findMany({ where: { ownerId, isActive: true, category: { not: 'personal_training' } }, orderBy: { name: 'asc' }, select: { id: true, name: true, color: true, description: true, category: true } }),
+    prisma.location.findMany({ where: { ownerId, isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ])
   const opensBefore = new Date(now.getTime() + settings.bookingWindowDays * 86_400_000)
   const closesWithin = settings.bookingCutoffMinutes * 60_000
   return {
     today,
     classTypes,
+    categories: Array.from(new Set(classTypes.map((t) => t.category))),
+    locations,
     sessions: sessions
       // One-to-one sessions are arranged with the trainer, not booked from the public schedule.
-      .filter((s) => s.classType.category !== 'personal_training')
+      .filter((s) => s.classType.category !== 'personal_training' && (!category || s.classType.category === category))
       .map((s) => {
         const booking = mine.find((b) => b.sessionId === s.id)
         return {
-          id: s.id, name: s.title, color: s.classType.color, classTypeId: s.classType.id, startsAt: s.startsAt, endsAt: s.endsAt,
+          id: s.id, name: s.title, color: s.classType.color, classTypeId: s.classType.id, category: s.classType.category, startsAt: s.startsAt, endsAt: s.endsAt,
+          durationMin: Math.round((s.endsAt.getTime() - s.startsAt.getTime()) / 60_000), locationId: s.location?.id || null,
           coach: s.coach?.name || null, location: [s.location?.name, s.room].filter(Boolean).join(' · ') || null,
           capacity: s.capacity, spotsLeft: s.spotsLeft, waitlisted: s.waitlisted, waitlistOpen: s.waitlisted < s.waitlistCapacity,
           // Members see availability, never who else is booked.

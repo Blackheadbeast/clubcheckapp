@@ -3,15 +3,19 @@ import { handler } from '@/lib/api'
 import { permissionsFor, ROLES } from '@/lib/permissions'
 import { isDemoOwner } from '@/lib/demo'
 import { getGymSettings } from '@/lib/services/core'
+import { lockedLocation } from '@/lib/services/today'
+import { homeFor } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 // Everything the app shell needs about the signed-in user, in one request.
 export const GET = handler({ permission: null }, async ({ ownerId, actor }) => {
+  const locked = await lockedLocation(ownerId, actor)
   const [settings, profile, locations, owner, unread] = await Promise.all([
     getGymSettings(ownerId),
     prisma.gymProfile.findUnique({ where: { ownerId }, select: { logoUrl: true } }),
-    prisma.location.findMany({ where: { ownerId, isActive: true }, orderBy: { createdAt: 'asc' }, select: { id: true, name: true } }),
+    // Staff tied to one location are only told about that one.
+    prisma.location.findMany({ where: { ownerId, isActive: true, ...(locked && { id: locked }) }, orderBy: { createdAt: 'asc' }, select: { id: true, name: true } }),
     prisma.owner.findUnique({ where: { id: ownerId }, select: { email: true } }),
     prisma.notification.count({ where: { ownerId, readAt: null, OR: [{ staffId: null }, ...(actor.type === 'staff' ? [{ staffId: actor.id }] : [])] } }),
   ])
@@ -27,6 +31,8 @@ export const GET = handler({ permission: null }, async ({ ownerId, actor }) => {
     permissions: permissionsFor(actor.role),
     gym: { name: settings.name, logoUrl: profile?.logoUrl || null, timezone: settings.timezone, currency: settings.currency },
     locations,
+    lockedLocationId: locked,
+    home: homeFor(actor.role),
     isDemo: isDemoOwner(ownerId),
     unreadNotifications: unread,
   }

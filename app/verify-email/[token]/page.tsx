@@ -78,7 +78,7 @@ export default function VerifyEmailTokenPage() {
               </div>
               <Link
                 href="/dashboard"
-                className="inline-block bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-6 rounded-lg transition"
+                className="inline-block ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-6 rounded-lg transition"
               >
                 Go to Dashboard Now
               </Link>
@@ -98,7 +98,7 @@ export default function VerifyEmailTokenPage() {
               </p>
               <Link
                 href="/verify-email"
-                className="inline-block bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-6 rounded-lg transition"
+                className="inline-block ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-6 rounded-lg transition"
               >
                 Resend Verification Email
               </Link>
@@ -119,7 +119,7 @@ export default function VerifyEmailTokenPage() {
               <div className="space-y-3">
                 <Link
                   href="/login"
-                  className="block bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-6 rounded-lg transition"
+                  className="block ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-6 rounded-lg transition"
                 >
                   Log In
                 </Link>
@@ -146,7 +146,7 @@ export default function VerifyEmailTokenPage() {
               </p>
               <Link
                 href="/verify-email"
-                className="inline-block bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-6 rounded-lg transition"
+                className="inline-block ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-6 rounded-lg transition"
               >
                 Try Again
               </Link>

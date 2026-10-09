@@ -1,11 +1,9 @@
-import { z } from 'zod'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
-import { ApiError, assertOwned, badRequest, handler, notFound } from '@/lib/api'
+import { handler, notFound } from '@/lib/api'
 import { normalizeMemberStatus } from '@/lib/format'
-import { memberData, memberFieldsSchema } from '@/lib/services/members'
+import { memberUpdateSchema, updateMember } from '@/lib/services/members'
 import { memberBalance } from '@/lib/services/payments'
-import { logActivity } from '@/lib/services/core'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,46 +50,9 @@ export const GET = handler({ permission: 'members.view' }, async ({ ownerId, par
   }
 })
 
-const patchSchema = memberFieldsSchema.partial().extend({
-  status: z.enum(['active', 'trial', 'past_due', 'frozen', 'cancelled', 'inactive']).optional(),
-  archived: z.boolean().optional(),
-})
-
 // PATCH /api/members/:id - edit profile, set status, archive or restore
-export const PATCH = handler({ permission: 'members.manage', write: true, body: patchSchema }, async ({ ownerId, params, body, actor, audit, can }) => {
-  const before = await prisma.member.findFirst({ where: { id: params.id, ownerId }, include: { _count: { select: { memberships: true } } } })
-  if (!before) throw notFound('Member')
-  const { status, archived, ...fields } = body
-  if (archived !== undefined && !can('members.delete')) throw new ApiError(403, 'You do not have permission to archive members.', 'forbidden')
-  if (status && before._count.memberships > 0) {
-    throw badRequest("This member's status follows their membership. Freeze or cancel the membership instead.", 'status_derived')
-  }
-  await assertOwned(ownerId, 'location', fields.homeLocationId, 'Location')
-  await assertOwned(ownerId, 'staff', fields.assignedStaffId, 'Coach')
-  if (fields.email && fields.email !== before.email) {
-    const clash = await prisma.member.findFirst({ where: { ownerId, email: fields.email, archivedAt: null, id: { not: before.id } }, select: { name: true } })
-    if (clash) throw new ApiError(409, `${clash.name} already uses that email address.`, 'duplicate_email')
-  }
-
-  const member = await prisma.$transaction(async (db) => {
-    const updated = await db.member.update({
-      where: { id: before.id },
-      data: {
-        ...memberData(fields),
-        ...(status && { status }),
-        ...(archived !== undefined && { archivedAt: archived ? new Date() : null }),
-      },
-    })
-    if (status && status !== before.status) {
-      await logActivity(db, { ownerId, memberId: before.id, type: 'status_changed', title: `Status changed to ${status.replace('_', ' ')}`, actor })
-    }
-    if (archived !== undefined && !!before.archivedAt !== archived) {
-      await logActivity(db, { ownerId, memberId: before.id, type: archived ? 'archived' : 'restored', title: archived ? 'Archived' : 'Restored from archive', actor })
-    }
-    return updated
-  })
-
-  const changed = Object.keys(fields).filter((k) => String((before as any)[k] ?? '') !== String((member as any)[k] ?? ''))
+export const PATCH = handler({ permission: 'members.manage', write: true, body: memberUpdateSchema }, async ({ ownerId, params, body, actor, audit, can }) => {
+  const { before, member, changed, archived } = await updateMember(ownerId, params.id, body, { actor, mayArchive: can('members.delete') })
   await audit(
     archived !== undefined ? (archived ? 'member.archive' : 'member.restore') : 'member.update',
     archived !== undefined ? `${archived ? 'Archived' : 'Restored'} ${member.name}` : `Updated ${member.name}${changed.length ? ` (${changed.join(', ')})` : ''}`,

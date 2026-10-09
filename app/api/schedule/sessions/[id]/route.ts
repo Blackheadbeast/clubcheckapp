@@ -9,6 +9,7 @@ import { cancelSession, promoteWaitlist } from '@/lib/services/bookings'
 import { getGymSettings, lockRow } from '@/lib/services/core'
 import { queueMessage } from '@/lib/services/messaging'
 import { flushOutbox } from '@/lib/services/automations'
+import { assertCoachFreeForClass } from '@/lib/services/conflicts'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,11 +35,14 @@ export const GET = handler({ permission: 'classes.view' }, async ({ ownerId, par
   if (!session) throw notFound('Class')
   const settings = await getGymSettings(ownerId)
   const local = zonedParts(session.startsAt, settings.timezone)
+  const workout = session.workoutId ? await prisma.workout.findFirst({ where: { id: session.workoutId, ownerId }, select: { id: true, name: true } }) : null
   const roster = session.bookings.filter((b) => !['waitlisted', 'offered', 'late_cancelled'].includes(b.status))
   return {
     ...session,
     title: session.title || session.classType.name,
     customTitle: session.title,
+    // The programmed workout for this class, if one is attached. Doing it is separate from attending.
+    workout,
     date: local.date,
     startTime: `${String(local.hour).padStart(2, '0')}:${String(local.minute).padStart(2, '0')}`,
     durationMin: Math.round((session.endsAt.getTime() - session.startsAt.getTime()) / 60_000),
@@ -76,6 +80,13 @@ export const PATCH = handler({ permission: 'classes.manage', write: true, body: 
     const taken = await db.booking.count({ where: { sessionId: before.id, status: { in: SPOT_STATUSES } } })
     if (rest.capacity !== undefined && rest.capacity < taken) {
       throw new ApiError(409, `${taken} people are already booked. Capacity can't go below that.`, 'capacity_below_booked')
+    }
+
+    const endsAt = new Date(startsAt.getTime() + duration * 60_000)
+    const coachId = rest.coachId === undefined ? before.coachId : rest.coachId
+    // Moving the class, lengthening it or changing its coach must not land it on that coach's appointments or other classes.
+    if (coachId && (moved || coachId !== before.coachId || endsAt.getTime() !== before.endsAt.getTime())) {
+      await assertCoachFreeForClass(db, { ownerId, coachId, startsAt, endsAt, tz: settings.timezone, ignoreSessionId: before.id })
     }
 
     const session = await db.classSession.update({
@@ -136,13 +147,16 @@ export const POST = handler({ permission: 'classes.manage', write: true, body: a
   const local = zonedParts(source.startsAt, settings.timezone)
   const time = body.startTime || `${String(local.hour).padStart(2, '0')}:${String(local.minute).padStart(2, '0')}`
   const startsAt = zonedToUtc(body.date, time, settings.timezone)
-  const copy = await prisma.classSession.create({
-    data: {
-      ownerId, classTypeId: source.classTypeId, locationId: source.locationId, coachId: source.coachId, title: source.title, room: source.room,
-      capacity: source.capacity, waitlistCapacity: source.waitlistCapacity, allowedPlanIds: source.allowedPlanIds, notes: source.notes,
-      startsAt, endsAt: new Date(startsAt.getTime() + (source.endsAt.getTime() - source.startsAt.getTime())),
-    },
-  })
+  const endsAt = new Date(startsAt.getTime() + (source.endsAt.getTime() - source.startsAt.getTime()))
+  const copy = await prisma.$transaction(async (db) => {
+    if (source.coachId) await assertCoachFreeForClass(db, { ownerId, coachId: source.coachId, startsAt, endsAt, tz: settings.timezone })
+    return db.classSession.create({
+      data: {
+        ownerId, classTypeId: source.classTypeId, locationId: source.locationId, coachId: source.coachId, title: source.title, room: source.room,
+        capacity: source.capacity, waitlistCapacity: source.waitlistCapacity, allowedPlanIds: source.allowedPlanIds, notes: source.notes, startsAt, endsAt,
+      },
+    })
+  }, { timeout: 15_000 })
   await audit('session.duplicate', 'Duplicated a class', { entityType: 'classSession', entityId: copy.id, metadata: { from: source.id } })
   return { id: copy.id }
 })

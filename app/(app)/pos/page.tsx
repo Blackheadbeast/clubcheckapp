@@ -94,7 +94,7 @@ export default function RegisterPage() {
           ) : products.length === 0 ? (
             <Card><EmptyState icon={<ShoppingBag className="h-5 w-5" />} title="No products yet" description="Add what you sell at the desk, then ring it up here." action={can('pos.manage') ? <Link href="/pos/products"><Button variant="primary">Add products</Button></Link> : undefined} /></Card>
           ) : visible.length === 0 ? (
-            <Card><EmptyState title="No products match" /></Card>
+            <Card><EmptyState title="No products match" description="Try a different search or category." /></Card>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {visible.map((p) => {

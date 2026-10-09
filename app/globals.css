@@ -3,52 +3,70 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * ClubCheck design tokens. Neutrals are a cool "ink" grey rather than pure grey; amber is the
+   * brand colour and is kept for primary actions and the current place in the navigation, so
+   * that status colours (green, red, blue) keep their meaning.
+   */
   :root {
     /* Light theme (default) */
-    --color-bg: 245 245 245;           /* #f5f5f5 */
-    --color-bg-card: 255 255 255;      /* #ffffff */
-    --color-bg-lighter: 229 229 229;   /* #e5e5e5 */
-    --color-border: 212 212 212;       /* #d4d4d4 */
-    --color-text: 23 23 23;            /* #171717 */
-    --color-text-secondary: 82 82 82;  /* #525252 */
-    --color-text-muted: 115 115 115;   /* #737373 */
-    --color-text-heading: 10 10 10;    /* #0a0a0a */
-    --color-text-success: 22 101 52;   /* #166534 green-800 */
-    --color-text-danger: 153 27 27;    /* #991b1b red-800 */
-    --color-text-warning: 146 64 14;   /* #92400e amber-800 */
+    --color-bg: 246 247 249;           /* page */
+    --color-bg-card: 255 255 255;      /* cards, inputs */
+    --color-bg-lighter: 239 241 245;   /* quiet fills, hover */
+    --color-border: 225 228 234;
+    --color-text: 33 40 54;
+    --color-text-secondary: 84 94 111;
+    --color-text-muted: 105 114 131;
+    --color-text-heading: 13 18 28;
+    --color-text-success: 22 101 52;
+    --color-text-danger: 153 27 27;
+    --color-text-warning: 146 64 14;
     --color-accent: 245 158 11;        /* amber-500: fills */
     --color-accent-fg: 23 23 23;       /* text on accent fills */
     --color-accent-text: 180 83 9;     /* amber-700: accent-coloured text on light surfaces */
+    /* The navigation rail is ink in both themes: it is the frame the product sits in. */
+    --color-nav: 15 19 28;
+    --color-nav-raised: 28 34 47;
+    --color-nav-text: 168 177 193;
+    --color-nav-heading: 244 246 250;
+    --color-nav-border: 34 41 56;
     /* Chart series: fixed order, validated for colour-blind separation on this surface */
     --series-1: #2a78d6;
     --series-2: #eb6834;
     --series-3: #1baf7a;
     --series-4: #eda100;
-    --chart-grid: #e7e5e4;
+    --chart-grid: #e6e9ee;
   }
 
-  .dark {
+  .dark,
+  .keep-dark {
     /* Dark theme */
-    --color-bg: 10 10 10;              /* #0a0a0a */
-    --color-bg-card: 23 23 23;         /* #171717 */
-    --color-bg-lighter: 26 26 26;      /* #1a1a1a */
-    --color-border: 38 38 38;          /* #262626 */
-    --color-text: 243 244 246;         /* #f3f4f6 */
-    --color-text-secondary: 156 163 175; /* #9ca3af */
-    --color-text-muted: 107 114 128;   /* #6b7280 */
-    --color-text-heading: 243 244 246; /* #f3f4f6 */
-    --color-text-success: 74 222 128;  /* #4ade80 green-400 */
-    --color-text-danger: 248 113 113;  /* #f87171 red-400 */
-    --color-text-warning: 251 191 36;  /* #fbbf24 amber-400 */
+    --color-bg: 9 11 16;
+    --color-bg-card: 17 20 28;
+    --color-bg-lighter: 26 30 41;
+    --color-border: 38 44 58;
+    --color-text: 229 232 239;
+    --color-text-secondary: 160 168 183;
+    --color-text-muted: 121 130 147;
+    --color-text-heading: 246 247 250;
+    --color-text-success: 74 222 128;
+    --color-text-danger: 248 113 113;
+    --color-text-warning: 251 191 36;
     --color-accent: 245 158 11;
     --color-accent-fg: 23 23 23;
-    --color-accent-text: 251 191 36;   /* amber-400 */
+    --color-accent-text: 251 191 36;
+    --color-nav: 12 14 20;
+    --color-nav-raised: 24 28 39;
+    --color-nav-text: 160 168 183;
+    --color-nav-heading: 246 247 250;
+    --color-nav-border: 30 35 47;
     --series-1: #3987e5;
     --series-2: #d95926;
     --series-3: #199e70;
     --series-4: #c98500;
-    --chart-grid: #2e2e2e;
+    --chart-grid: #262c3a;
   }
+
 }
 
 body {
@@ -61,15 +79,38 @@ body {
 /* Design-system primitives used by components/ui.tsx */
 @layer components {
   .ui-input {
-    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg shadow-card outline-none transition
-      placeholder:text-fg-subtle focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition
+      placeholder:text-fg-subtle hover:border-fg-subtle/50 focus:border-accent focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:bg-subtle disabled:opacity-70;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
   }
   .ui-focus {
-    @apply outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas;
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
+  /* Type scale: one definition each, used by the shared components. */
+  .ui-page-title { @apply text-2xl font-semibold tracking-tight text-fg-heading sm:text-[1.75rem] sm:leading-9; }
+  .ui-section-title { @apply text-base font-semibold tracking-tight text-fg-heading; }
+  .ui-label { @apply text-xs font-medium text-fg-muted; }
+  .ui-eyebrow { @apply text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-fg-subtle; }
+  .ui-kpi { @apply text-[1.75rem] font-semibold leading-8 tracking-tight text-fg-heading; font-variant-numeric: tabular-nums; }
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Motion: short and quiet. Things arrive; they do not perform. */
+/* These fill backwards only: once finished they leave no transform or opacity behind, so a page
+   never becomes its own layer (which would trap its modals underneath the sticky header). */
+@keyframes ui-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ui-pop { from { opacity: 0; transform: translateY(8px) scale(0.985) } to { opacity: 1; transform: none } }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes ui-shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+.ui-fade { animation: ui-fade 140ms ease-out backwards; }
+.ui-pop { animation: ui-pop 180ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.ui-rise { animation: ui-rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.ui-skeleton {
+  background: linear-gradient(90deg, rgb(var(--color-bg-lighter)) 25%, rgb(var(--color-border) / 0.7) 37%, rgb(var(--color-bg-lighter)) 63%);
+  background-size: 400% 100%;
+  animation: ui-shimmer 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -157,3 +198,21 @@ html:not(.dark) .text-primary-light {
   color: #b45309 !important;
 }
 
+
+/* Pages drawn on their own fixed dark background (the marketing page, the not-found page) keep
+   their light-on-dark text whichever theme the visitor uses. */
+html:not(.dark) .keep-dark .text-gray-100 { color: #f3f4f6 !important; }
+html:not(.dark) .keep-dark .text-gray-200 { color: #e5e7eb !important; }
+html:not(.dark) .keep-dark .text-gray-300 { color: #d1d5db !important; }
+html:not(.dark) .keep-dark .text-gray-400 { color: #9ca3af !important; }
+html:not(.dark) .keep-dark .text-gray-500 { color: #8b93a1 !important; }
+html:not(.dark) .keep-dark .text-gray-600 { color: #7b8494 !important; }
+html:not(.dark) .keep-dark .text-green-400 { color: #4ade80 !important; }
+html:not(.dark) .keep-dark .text-red-400 { color: #f87171 !important; }
+html:not(.dark) .keep-dark .text-yellow-400 { color: #facc15 !important; }
+html:not(.dark) .keep-dark .text-primary { color: #f59e0b !important; }
+html:not(.dark) .keep-dark .text-primary-light { color: #fbbf24 !important; }
+
+/* Native controls (checkboxes, date pickers, scrollbars) follow the chosen theme. */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }

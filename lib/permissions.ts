@@ -10,10 +10,16 @@ export const PERMISSIONS = {
   'billing.view': 'View transactions, invoices and balances',
   'billing.manage': 'Take payments, create invoices and coupons',
   'billing.refund': 'Issue refunds and account credits',
+  'billing.households': 'Set up household billing and choose who pays',
   'classes.view': 'View the schedule and rosters',
   'classes.manage': 'Create, edit and cancel classes',
   'bookings.manage': 'Book, cancel and waitlist members',
   'attendance.manage': 'Check members in and mark attendance',
+  'appointments.view': 'View appointments',
+  'appointments.manage': 'Book, reschedule, cancel and mark appointments',
+  'appointments.configure': 'Manage appointment types, packages and staff availability',
+  'workouts.view': 'View the exercise, workout and program libraries and member progress',
+  'workouts.manage': 'Build workouts and programs, assign them and write coach notes',
   'leads.view': 'View leads and the sales pipeline',
   'leads.manage': 'Create, edit and convert leads',
   'pos.sell': 'Ring up product sales',
@@ -21,11 +27,20 @@ export const PERMISSIONS = {
   'reports.view': 'View member, attendance and sales reports',
   'reports.financial': 'View financial reports and revenue',
   'communication.send': 'Send messages and campaigns',
+  'communication.text': 'Text members one to one and use the inbox',
   'automations.manage': 'Manage automations and templates',
   'staff.manage': 'Manage staff accounts and roles',
   'locations.manage': 'Manage locations',
   'settings.manage': 'Change business settings',
   'audit.view': 'View the audit log',
+  'developer.manage': 'Create API keys and webhooks for outside software',
+  'documents.view': 'See which documents members have been sent and signed',
+  'documents.send': 'Send documents to members for signature, and resend them',
+  'documents.download': 'Open and download signed documents',
+  'documents.manage': 'Write document templates, set what is required, and void documents',
+  'payroll.view': 'See pay periods, staff earnings and commissions, and export them',
+  'payroll.manage': 'Set pay rates and commission plans, add adjustments, and approve and finalize payroll',
+  'payroll.reopen': 'Reopen a pay period that has been approved or finalized',
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
@@ -53,6 +68,12 @@ const COACH: Permission[] = [
   'classes.view',
   'bookings.manage',
   'attendance.manage',
+  // Coaches work their own diary; the appointment routes limit them to their own appointments.
+  'appointments.view',
+  'appointments.manage',
+  // Coaches build and assign their own programming; the workout routes limit what they may change.
+  'workouts.view',
+  'workouts.manage',
 ]
 
 export const ROLES: Record<Role, { label: string; description: string; permissions: Permission[] }> = {
@@ -70,7 +91,7 @@ export const ROLES: Record<Role, { label: string; description: string; permissio
     label: 'Manager',
     description: 'Runs day-to-day operations. No staff, location or settings management.',
     permissions: ALL.filter(
-      (p) => !['staff.manage', 'locations.manage', 'settings.manage', 'audit.view'].includes(p)
+      (p) => !['staff.manage', 'locations.manage', 'settings.manage', 'audit.view', 'payroll.reopen'].includes(p)
     ),
   },
   front_desk: {
@@ -82,11 +103,18 @@ export const ROLES: Record<Role, { label: string; description: string; permissio
       'classes.view',
       'bookings.manage',
       'attendance.manage',
+      'appointments.view',
+      'appointments.manage',
       'leads.view',
       'leads.manage',
       'pos.sell',
       'billing.view',
       'billing.manage',
+      // One-to-one texts and the inbox, not campaigns.
+      'communication.text',
+      // Sees what a member still has to sign and can send it again. Reading the signed document itself is not included.
+      'documents.view',
+      'documents.send',
     ],
   },
   coach: {
@@ -110,10 +138,15 @@ export const ROLES: Record<Role, { label: string; description: string; permissio
       'leads.manage',
       'classes.view',
       'bookings.manage',
+      'appointments.view',
+      'appointments.manage',
       'communication.send',
+      'communication.text',
       'billing.view',
       'billing.manage',
       'reports.view',
+      'documents.view',
+      'documents.send',
     ],
   },
   accountant: {
@@ -121,11 +154,17 @@ export const ROLES: Record<Role, { label: string; description: string; permissio
     description: 'Read access to members plus full billing and financial reporting.',
     permissions: [
       'members.view',
+      'appointments.view',
       'billing.view',
       'billing.manage',
       'billing.refund',
+      'billing.households',
       'reports.view',
       'reports.financial',
+      'documents.view',
+      'documents.download',
+      // Reads and exports payroll; does not set pay or approve it.
+      'payroll.view',
     ],
   },
 }
@@ -142,4 +181,15 @@ export function can(role: string | null | undefined, permission: Permission): bo
 
 export function permissionsFor(role: string | null | undefined): Permission[] {
   return isRole(role) ? ROLES[role].permissions : []
+}
+
+/**
+ * Where each role starts its day. The people who run the floor land on Today;
+ * the people who run the business land on the dashboard.
+ */
+export function homeFor(role: string): string {
+  if (role === 'front_desk' || role === 'coach' || role === 'trainer') return '/today'
+  if (role === 'sales') return '/leads'
+  if (role === 'accountant') return '/billing'
+  return '/dashboard'
 }

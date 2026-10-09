@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { handler } from '@/lib/api'
 import { dateInput } from '@/lib/schemas'
-import { cancelMembership, changePlan, freezeMembership, resumeMembership, unfreezeMembership } from '@/lib/services/memberships'
+import { cancelMembership, freezeMembership, resumeMembership, unfreezeMembership } from '@/lib/services/memberships'
 import { flushOutbox } from '@/lib/services/automations'
 
 export const dynamic = 'force-dynamic'
@@ -12,10 +12,10 @@ const actionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('unfreeze') }),
   z.object({ action: z.literal('cancel'), when: z.enum(['now', 'period_end']), reason: z.string().trim().max(300).nullish(), override: z.boolean().optional() }),
   z.object({ action: z.literal('resume') }),
-  z.object({ action: z.literal('change_plan'), planId: z.string().uuid() }),
 ])
 
-// POST /api/memberships/:id - lifecycle actions on one membership
+// POST /api/memberships/:id - lifecycle actions on one membership.
+// Changing plan moves money, so it has its own route with a preview: /api/memberships/:id/plan-change
 export const POST = handler({ permission: 'memberships.manage', write: true, body: actionSchema }, async ({ ownerId, params, body, actor, audit }) => {
   const membershipId = params.id
   const result = await prisma.$transaction(async (db) => {
@@ -35,10 +35,6 @@ export const POST = handler({ permission: 'memberships.manage', write: true, bod
       case 'resume': {
         const m = await resumeMembership(db, { ownerId, membershipId, actor })
         return { membership: m, description: 'Withdrew scheduled cancellation' }
-      }
-      case 'change_plan': {
-        const r = await changePlan(db, { ownerId, membershipId, planId: body.planId, actor })
-        return { membership: r.membership, description: `Changed membership from ${r.from.name} to ${r.to.name}`, before: { plan: r.from.name }, after: { plan: r.to.name } }
       }
     }
   }, { timeout: 15_000 })

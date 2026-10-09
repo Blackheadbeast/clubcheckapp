@@ -2,112 +2,49 @@
 
 import { useState, useEffect } from 'react'
 
+// One entry per page that shows this card. Keep each one true to what the page does today.
 const HELP_CONTENT: Record<string, { title: string; steps: string[] }> = {
-  dashboard: {
-    title: 'Dashboard',
-    steps: [
-      'View key metrics like active members, check-ins today, and estimated revenue.',
-      'Check your billing status and member count at the top.',
-      'Use the quick action cards to jump to Members, Check-in, or Broadcast.',
-    ],
-  },
-  members: {
-    title: 'Members',
-    steps: [
-      'Click "Add Member" to create a new member — they\'ll get a unique QR code.',
-      'Use the search bar or status filters to find members quickly.',
-      'Click a member\'s name to edit their info, send their QR code, or record a payment.',
-      'Use bulk actions (select multiple) to activate, deactivate, or email members.',
-    ],
-  },
-  checkin: {
-    title: 'Check-in',
-    steps: [
-      'Use the "QR Scan" tab to scan a member\'s QR code for instant check-in.',
-      'Use the "Phone" tab to look up a member by phone number.',
-      'View today\'s check-in history below with timestamps and member names.',
-      'Filter by date range to review past check-in activity.',
-    ],
-  },
   kiosk: {
-    title: 'Kiosk Mode',
+    title: 'Kiosk mode',
     steps: [
-      'Set a 4-digit PIN in Settings to protect kiosk access.',
-      'Place a tablet at your front desk and open this page for self-service check-ins.',
-      'Members can scan their QR code or enter their phone number to check in.',
-      'The screen auto-resets after each check-in for the next member.',
-    ],
-  },
-  prospects: {
-    title: 'Prospects',
-    steps: [
-      'Click "Add Prospect" to track a potential new member (name, email, source).',
-      'Update status as they progress: New, Contacted, Toured, Converted, or Lost.',
-      'Click "Convert" on a prospect to create them as a full member automatically.',
-      'Use the status tabs at the top to filter your pipeline.',
-    ],
-  },
-  broadcast: {
-    title: 'Broadcast',
-    steps: [
-      'Choose a target group: all members, active only, inactive, or overdue.',
-      'Write a subject and message body for your email blast.',
-      'Preview your message before sending to make sure it looks right.',
-      'Broadcasts are sent via email to all members in the selected group.',
-    ],
-  },
-  analytics: {
-    title: 'Analytics',
-    steps: [
-      'View check-in trends, revenue charts, and member growth over time.',
-      'Use the date range selector to zoom into a specific period.',
-      'Compare metrics across days, weeks, or months with the chart controls.',
-      'Track peak check-in hours to optimize staffing and classes.',
+      'Set a 4 to 6 digit PIN the first time you open this page. It keeps the kiosk locked to check-in.',
+      'Leave a tablet on this page at the front desk so members can check themselves in.',
+      'Members scan their QR code with the camera, or type their phone number.',
+      'The screen clears itself after each check-in, ready for the next person.',
     ],
   },
   invoices: {
-    title: 'Invoices',
+    title: 'ClubCheck invoices',
     steps: [
-      'View all Stripe invoices with status (paid, open, overdue).',
-      'Click an invoice to open it on Stripe or download the PDF.',
-      'Invoices sync automatically from Stripe — no manual entry needed.',
-      'Use the search/filter to find invoices by date or amount.',
+      'These are the invoices for your own ClubCheck subscription, not your members\' invoices.',
+      'Use View to open an invoice, or PDF to download it for your records.',
+      'Invoices for memberships and sales you charge your members are under Billing, then Invoices.',
     ],
   },
   referrals: {
     title: 'Referrals',
     steps: [
-      'Share your unique referral code with other gym owners.',
-      'When someone signs up with your code, you both benefit.',
-      'Track your referrals and earned credits on this page.',
-      'Copy your referral link with one click to share via email or social media.',
-    ],
-  },
-  staff: {
-    title: 'Staff',
-    steps: [
-      'Click "Add Staff" to create a staff login with name, email, and password.',
-      'Assign a role: Manager (most features) or Front Desk (check-in & view only).',
-      'Share the Gym Code shown on this page — staff need it to log in at /staff-login.',
-      'Deactivate staff members anytime to revoke their access.',
+      'Copy your referral link and share it with another gym owner.',
+      'When they sign up with your link and become a paying customer, you earn one free month.',
+      'Everyone you have referred, and the credit you have earned, is listed below.',
     ],
   },
   settings: {
-    title: 'Settings',
+    title: 'Business settings',
     steps: [
-      'Update your gym name, address, and logo in the Gym Info tab.',
-      'Set a Kiosk PIN to enable self-service check-in mode.',
-      'Configure waivers in the Waiver tab — members can sign digitally.',
-      'Switch theme (Light, Dark, Auto) in the Appearance tab.',
+      'Gym Info holds your gym\'s name, address and logo. Account is your own sign-in.',
+      'Waiver turns the sign-up waiver on and sets its wording. Appearance switches light, dark or automatic.',
+      'Booking rules, member payments, texting, online booking and API keys each have their own page in the tabs above.',
+      'Waivers and agreements that need a signature are managed under Documents.',
     ],
   },
   billing: {
-    title: 'Billing',
+    title: 'Your ClubCheck plan',
     steps: [
-      'Choose between Starter (75 members) and Pro (150 members) plans.',
-      'Toggle between monthly and yearly billing — save ~$200/year with annual.',
-      'Click "Subscribe" to start your paid plan via Stripe Checkout.',
-      'Manage your existing subscription or update payment info from this page.',
+      'This page is about what your gym pays ClubCheck. What members pay you is under Billing.',
+      'Pick Starter (up to 75 members) or Pro (up to 150), billed monthly or yearly.',
+      'Subscribing and changing your card both happen on Stripe\'s secure checkout.',
+      'Past invoices are under Invoice History at the bottom.',
     ],
   },
 }
@@ -142,7 +79,7 @@ export default function PageHelpCard({ pageKey }: PageHelpCardProps) {
 
   if (!expanded) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+      <div className="mx-auto w-full max-w-[1440px] px-4 pt-4 sm:px-6 lg:px-8">
         <button
           onClick={handleExpand}
           className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary bg-theme-card border border-theme rounded-lg px-3 py-1.5 transition hover:border-primary/40"
@@ -162,8 +99,8 @@ export default function PageHelpCard({ pageKey }: PageHelpCardProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
-      <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
+    <div className="mx-auto w-full max-w-[1440px] px-4 pt-4 sm:px-6 lg:px-8">
+      <div className="rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             <svg
@@ -180,8 +117,8 @@ export default function PageHelpCard({ pageKey }: PageHelpCardProps) {
               />
             </svg>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-primary mb-1.5">
-                How to use: {content.title}
+              <h3 className="text-sm font-semibold text-fg-heading mb-1.5">
+                {content.title}
               </h3>
               <ul className="space-y-1">
                 {content.steps.map((step, i) => (

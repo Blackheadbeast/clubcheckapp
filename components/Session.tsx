@@ -12,6 +12,10 @@ export interface Me {
   locations: { id: string; name: string }[]
   isDemo: boolean
   unreadNotifications: number
+  /** Set for staff tied to one location: the only one they may see. */
+  lockedLocationId?: string | null
+  /** Where this role starts its day. */
+  home?: string
 }
 
 interface SessionValue extends Me {
@@ -40,7 +44,7 @@ export function SessionProvider({ children, fallback, errorFallback }: { childre
     try {
       stored = localStorage.getItem(LOCATION_KEY)
     } catch {}
-    setLocation(stored && data.locations.some((l) => l.id === stored) ? stored : null)
+    setLocation(data.lockedLocationId || (stored && data.locations.some((l) => l.id === stored) ? stored : null))
   }, [data])
 
   const setLocationId = useCallback((id: string | null) => {

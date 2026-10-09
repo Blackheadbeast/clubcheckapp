@@ -5,7 +5,7 @@ import { api, ClientError, useApi } from '@/lib/client'
 import { useSession } from '@/components/Session'
 import { Button, Card, CardHeader, Checkbox, ErrorState, Field, FormError, Input, Page, PageHeader, Select, SkeletonRows, useToast } from '@/components/ui'
 
-interface Settings { timezone: string; currency: string; defaultTaxRateBps: number; bookingWindowDays: number; bookingCutoffMinutes: number; cancelWindowHours: number; waitlistOfferMinutes: number; lateCancelUsesCredit: boolean; pastDueGraceDays: number }
+interface Settings { timezone: string; currency: string; defaultTaxRateBps: number; bookingWindowDays: number; bookingCutoffMinutes: number; cancelWindowHours: number; waitlistOfferMinutes: number; lateCancelUsesCredit: boolean; pastDueGraceDays: number; pastDueCancelDays: number; memberSelfCheckin: boolean; memberSelfFreeze: boolean; memberSelfCancel: boolean; memberSelfChangePlan: boolean }
 const ZONES = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Phoenix', 'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu', 'America/Toronto', 'America/Vancouver', 'Europe/London', 'Europe/Dublin', 'Europe/Paris', 'Europe/Berlin', 'Australia/Sydney', 'Australia/Perth', 'Pacific/Auckland']
 
 export default function RulesPage() {
@@ -24,8 +24,8 @@ export default function RulesPage() {
     setBusy(true)
     setProblem(null)
     try {
-      const { timezone, currency, defaultTaxRateBps, bookingWindowDays, bookingCutoffMinutes, cancelWindowHours, waitlistOfferMinutes, lateCancelUsesCredit, pastDueGraceDays } = f
-      await api('/api/business-settings', { method: 'PUT', body: { timezone, currency, defaultTaxRateBps, bookingWindowDays, bookingCutoffMinutes, cancelWindowHours, waitlistOfferMinutes, lateCancelUsesCredit, pastDueGraceDays } })
+      const { timezone, currency, defaultTaxRateBps, bookingWindowDays, bookingCutoffMinutes, cancelWindowHours, waitlistOfferMinutes, lateCancelUsesCredit, pastDueGraceDays, pastDueCancelDays, memberSelfCheckin, memberSelfFreeze, memberSelfCancel, memberSelfChangePlan } = f
+      await api('/api/business-settings', { method: 'PUT', body: { timezone, currency, defaultTaxRateBps, bookingWindowDays, bookingCutoffMinutes, cancelWindowHours, waitlistOfferMinutes, lateCancelUsesCredit, pastDueGraceDays, pastDueCancelDays, memberSelfCheckin, memberSelfFreeze, memberSelfCancel, memberSelfChangePlan } })
       toast.success('Rules saved')
       session.reload()
     } catch (err) {
@@ -63,6 +63,16 @@ export default function RulesPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Default tax rate (%)" hint="Applied to memberships and products that don't set their own."><Input type="number" min={0} max={30} step={0.01} value={f.defaultTaxRateBps / 100} onChange={(e) => setF({ ...f, defaultTaxRateBps: Math.round((parseFloat(e.target.value) || 0) * 100) })} /></Field>
               <Field label="Grace period before past due (days)" hint="How long a renewal invoice can stay unpaid."><Input type="number" min={0} max={60} value={f.pastDueGraceDays} onChange={num('pastDueGraceDays')} /></Field>
+              <Field label="Cancel unpaid memberships after (days past due)" hint="0 keeps them past due until staff decide."><Input type="number" min={0} max={180} value={f.pastDueCancelDays} onChange={num('pastDueCancelDays')} /></Field>
+            </div>
+          </Card>
+          <Card>
+            <CardHeader title="Member self-service" description="What members can do for themselves in their account. Plan rules (freeze limits, notice periods, contracts) always apply." />
+            <div className="space-y-3">
+              <Checkbox checked={f.memberSelfCheckin} onChange={(e) => setF({ ...f, memberSelfCheckin: e.target.checked })} label="Check themselves in from their phone" />
+              <Checkbox checked={f.memberSelfFreeze} onChange={(e) => setF({ ...f, memberSelfFreeze: e.target.checked })} label="Freeze and resume their membership" />
+              <Checkbox checked={f.memberSelfCancel} onChange={(e) => setF({ ...f, memberSelfCancel: e.target.checked })} label="Cancel at the end of the paid period (never mid-contract)" />
+              <Checkbox checked={f.memberSelfChangePlan} onChange={(e) => setF({ ...f, memberSelfChangePlan: e.target.checked })} label="Switch to another public membership from the next billing date" />
             </div>
           </Card>
           <FormError message={problem} />

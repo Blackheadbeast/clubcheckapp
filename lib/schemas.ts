@@ -134,4 +134,9 @@ export const businessSettingsSchema = z.object({
   waitlistOfferMinutes: z.number().int().min(0).max(1440),
   lateCancelUsesCredit: z.boolean(),
   pastDueGraceDays: z.number().int().min(0).max(60),
+  pastDueCancelDays: z.number().int().min(0).max(180).default(0),
+  memberSelfCheckin: z.boolean().optional(),
+  memberSelfFreeze: z.boolean().optional(),
+  memberSelfCancel: z.boolean().optional(),
+  memberSelfChangePlan: z.boolean().optional(),
 })

@@ -7,6 +7,7 @@ import { api, ClientError, useApi, useDebounced } from '@/lib/client'
 import { useLookups } from '@/lib/hooks'
 import { useSession } from '@/components/Session'
 import { Avatar, Badge, Button, Checkbox, ConfirmModal, EmptyState, ErrorState, Field, FormError, IconButton, Input, Modal, Select, SkeletonRows, StatusBadge, Textarea, cn, useToast } from '@/components/ui'
+import { AttachWorkout } from '@/components/coaching/shared'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -186,6 +187,7 @@ interface RosterEntry {
 interface SessionDetail {
   id: string
   title: string
+  workout?: { id: string; name: string } | null
   customTitle: string | null
   status: string
   cancelReason: string | null
@@ -305,6 +307,7 @@ export function SessionDrawer({ sessionId, onClose, onChanged }: { sessionId: st
             )}
             {data.notes && <p className="rounded-lg bg-subtle px-3 py-2 text-sm text-fg-muted">{data.notes}</p>}
             <FormError message={problem} />
+            {data.status !== 'cancelled' && <AttachWorkout what="class" url={`/api/schedule/sessions/${data.id}/workout`} current={data.workout} onChanged={reload} />}
 
             <div>
               <div className="mb-1.5 flex items-center justify-between text-sm">

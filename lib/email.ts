@@ -1,5 +1,19 @@
 import { Resend } from 'resend'
 
+/** Text placed inside an email's HTML: a gym or member name must never become markup. */
+function esc(value: unknown): string {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+/** A link a gym supplied: only ever an http(s) address. */
+function safeUrl(value: string | null | undefined): string {
+  try { const url = new URL(String(value || '')); return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : '#' } catch { return '#' }
+}
+/** A name used as the sender's display name: no characters that could add a second address or a header. */
+function displayName(value: string): string {
+  return value.replace(/[<>"\r\n,;:@]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'ClubCheck'
+}
+
+
 let resendInstance: Resend | null = null
 
 function getResend() {
@@ -71,11 +85,11 @@ function buildQrEmailHtml(memberName: string, isWelcome: boolean, portalToken?: 
             <div style="display:inline-block;width:50px;height:50px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;margin-bottom:16px;">
               <span style="color:#000;font-size:28px;font-weight:bold;line-height:50px;">C</span>
             </div>
-            <h1 style="margin:0;color:#f59e0b;font-size:28px;font-weight:bold;">${heading}</h1>
+            <h1 style="margin:0;color:#f59e0b;font-size:28px;font-weight:bold;">${esc(heading)}</h1>
           </td></tr>
           <tr><td style="padding:20px 40px;">
-            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${memberName},</p>
-            <p style="color:#a3a3a3;font-size:16px;line-height:1.6;margin:0 0 30px;">${intro}</p>
+            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${esc(memberName)},</p>
+            <p style="color:#a3a3a3;font-size:16px;line-height:1.6;margin:0 0 30px;">${esc(intro)}</p>
             <div style="background-color:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin-bottom:30px;">
               <h3 style="margin:0 0 12px;color:#f59e0b;font-size:18px;">How to Check In:</h3>
               <ol style="margin:0;padding-left:20px;color:#a3a3a3;font-size:14px;line-height:1.8;">
@@ -174,9 +188,9 @@ export async function sendWaiverEmail(
             <h1 style="margin:0;color:#f59e0b;font-size:28px;font-weight:bold;">Waiver Required</h1>
           </td></tr>
           <tr><td style="padding:20px 40px;">
-            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${memberName},</p>
+            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${esc(memberName)},</p>
             <p style="color:#a3a3a3;font-size:16px;line-height:1.6;margin:0 0 30px;">
-              Before your first visit to <strong style="color:#e5e5e5;">${gymName}</strong>, please sign our liability waiver. This is a one-time requirement.
+              Before your first visit to <strong style="color:#e5e5e5;">${esc(gymName)}</strong>, please sign our liability waiver. This is a one-time requirement.
             </p>
             <div style="text-align:center;margin:30px 0;">
               <a href="${waiverLink}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-size:16px;font-weight:bold;text-decoration:none;padding:16px 40px;border-radius:8px;">
@@ -352,7 +366,7 @@ export async function sendMemberWelcomeEmail(
                     <tr>
                       <td style="padding: 20px 40px;">
                         <p style="color: #e5e5e5; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                          Hi ${memberName},
+                          Hi ${esc(memberName)},
                         </p>
                         <p style="color: #a3a3a3; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
                           You've been added to the gym! Your personal QR code for check-ins is attached to this email.
@@ -525,7 +539,7 @@ export async function sendBillingReminderEmail(
     const methodLabel = methodLabels[paymentMethod] || paymentMethod
 
     const { data, error } = await resend.emails.send({
-      from: `${gymName} <noreply@clubcheckapp.com>`,
+      from: `${displayName(gymName)} <noreply@clubcheckapp.com>`,
       to: memberEmail,
       subject: `${gymName} - Payment Reminder ($${amount} due ${dueDateStr})`,
       html: `<!DOCTYPE html>
@@ -542,9 +556,9 @@ export async function sendBillingReminderEmail(
             <h1 style="margin:0;color:#f59e0b;font-size:28px;font-weight:bold;">Payment Reminder</h1>
           </td></tr>
           <tr><td style="padding:20px 40px;">
-            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${memberName},</p>
+            <p style="color:#e5e5e5;font-size:16px;line-height:1.6;margin:0 0 20px;">Hi ${esc(memberName)},</p>
             <p style="color:#a3a3a3;font-size:16px;line-height:1.6;margin:0 0 30px;">
-              This is a friendly reminder that your <strong style="color:#e5e5e5;">${gymName}</strong> membership payment is coming up.
+              This is a friendly reminder that your <strong style="color:#e5e5e5;">${esc(gymName)}</strong> membership payment is coming up.
             </p>
             <div style="background-color:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin-bottom:30px;">
               <table style="width:100%;border-collapse:collapse;">
@@ -558,12 +572,12 @@ export async function sendBillingReminderEmail(
                 </tr>
                 <tr>
                   <td style="color:#a3a3a3;font-size:14px;padding:6px 0;">Payment Method:</td>
-                  <td style="color:#e5e5e5;font-size:14px;text-align:right;">${methodLabel}</td>
+                  <td style="color:#e5e5e5;font-size:14px;text-align:right;">${esc(methodLabel)}</td>
                 </tr>
               </table>
             </div>${paymentLink ? `
             <div style="text-align:center;margin:30px 0 20px;">
-              <a href="${paymentLink}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 40px;border-radius:8px;">
+              <a href="${esc(safeUrl(paymentLink))}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 40px;border-radius:8px;">
                 Pay Now
               </a>
             </div>` : ''}
@@ -625,18 +639,18 @@ export async function sendFeedbackNotificationEmail(
 
             <div style="background-color:#f9f9f9;border-radius:8px;padding:20px;margin-bottom:20px;">
               <p style="color:#666;font-size:14px;margin:0 0 4px;font-weight:600;">From:</p>
-              <p style="color:#333;font-size:16px;margin:0;">${ownerEmail}</p>
+              <p style="color:#333;font-size:16px;margin:0;">${esc(ownerEmail)}</p>
             </div>
 
             ${message ? `
             <div style="background-color:#f9f9f9;border-radius:8px;padding:20px;margin-bottom:20px;">
               <p style="color:#666;font-size:14px;margin:0 0 8px;font-weight:600;">Message:</p>
-              <p style="color:#333;font-size:16px;margin:0;line-height:1.6;">${message}</p>
+              <p style="color:#333;font-size:16px;margin:0;line-height:1.6;">${esc(message)}</p>
             </div>
             ` : ''}
 
             <div style="border-top:1px solid #eee;padding-top:16px;margin-top:16px;">
-              <p style="color:#999;font-size:12px;margin:0;">Owner ID: ${ownerId}</p>
+              <p style="color:#999;font-size:12px;margin:0;">Owner ID: ${esc(ownerId)}</p>
             </div>
           </td></tr>
         </table>
@@ -655,4 +669,4 @@ export async function sendFeedbackNotificationEmail(
     console.error('Feedback notification email exception:', error)
     return { success: false, error }
   }
-}
+}export const emailSafety = { esc, safeUrl, displayName }

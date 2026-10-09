@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -23,6 +24,13 @@ export interface AuthPayload {
   role?: StaffRole;
   emailVerified?: boolean;
   salesRepId?: string;
+  /** A fingerprint of the password in force when the session began. Changing the password ends every earlier session. */
+  pv?: string;
+}
+
+/** Not the password and not reversible to its hash: just enough to notice that the password has since changed. */
+export function passwordVersion(passwordHash: string): string {
+  return createHash("sha256").update(`clubcheck:password-version:${passwordHash}`).digest("hex").slice(0, 16);
 }
 
 function getSecret() {
@@ -66,14 +74,17 @@ export async function getOwnerFromCookie(): Promise<AuthPayload | null> {
   const { prisma } = await import("./prisma");
   if (!payload.staffId) {
     // A token must not outlive the account it was issued for.
-    const owner = await prisma.owner.findUnique({ where: { id: payload.ownerId }, select: { id: true } });
+    const owner = await prisma.owner.findUnique({ where: { id: payload.ownerId }, select: { id: true, password: true } });
     if (!owner) return null;
+    // A session from before the password was changed is over.
+    if (payload.pv && payload.pv !== passwordVersion(owner.password)) return null;
   } else {
     const staff = await prisma.staff.findFirst({
       where: { id: payload.staffId, ownerId: payload.ownerId },
-      select: { role: true, active: true },
+      select: { role: true, active: true, password: true },
     });
     if (!staff || !staff.active || !isRole(staff.role) || staff.role === 'owner') return null;
+    if (payload.pv && payload.pv !== passwordVersion(staff.password)) return null;
     role = staff.role;
     payload.role = role;
   }

@@ -87,7 +87,7 @@ export default function WaiverSignPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center">
+      <div className="min-h-screen bg-theme flex items-center justify-center">
         <div className="text-primary text-xl">Loading waiver...</div>
       </div>
     )
@@ -95,8 +95,8 @@ export default function WaiverSignPage() {
 
   if (error && !data) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center p-4">
-        <div className="bg-dark-card p-8 rounded-lg border border-gray-800 max-w-md text-center">
+      <div className="min-h-screen bg-theme flex items-center justify-center p-4">
+        <div className="bg-theme-card p-8 rounded-lg border border-line max-w-md text-center">
           <div className="text-red-400 text-lg mb-4">{error}</div>
           <p className="text-gray-400">
             This waiver link may be invalid or expired. Please contact your gym for assistance.
@@ -112,8 +112,8 @@ export default function WaiverSignPage() {
 
   if (data.alreadySigned || success) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center p-4">
-        <div className="bg-dark-card p-8 rounded-lg border border-gray-800 max-w-md text-center">
+      <div className="min-h-screen bg-theme flex items-center justify-center p-4">
+        <div className="bg-theme-card p-8 rounded-lg border border-line max-w-md text-center">
           <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -134,7 +134,7 @@ export default function WaiverSignPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark py-8 px-4">
+    <div className="min-h-screen bg-theme py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -143,14 +143,14 @@ export default function WaiverSignPage() {
         </div>
 
         {/* Waiver Content */}
-        <div className="bg-dark-card rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-theme-card rounded-lg border border-line p-6 mb-6">
           <div className="mb-4">
             <p className="text-gray-300 text-sm">
               Prepared for: <span className="font-semibold text-gray-100">{data.memberName}</span>
             </p>
           </div>
 
-          <div className="bg-dark-lighter rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
+          <div className="bg-theme-lighter rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
             <div className="text-gray-300 text-sm whitespace-pre-wrap">{data.waiverText}</div>
           </div>
 
@@ -180,7 +180,7 @@ export default function WaiverSignPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 required
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                className="ui-input h-11"
               />
               <p className="text-gray-500 text-xs mt-1">
                 Must match the email on file with the gym
@@ -197,7 +197,7 @@ export default function WaiverSignPage() {
                 onChange={(e) => setSignature(e.target.value)}
                 placeholder="Type your full name"
                 required
-                className="w-full px-4 py-3 bg-dark-lighter border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:border-primary font-signature text-xl"
+                className="ui-input h-11 font-signature text-xl"
                 style={{ fontFamily: "'Brush Script MT', cursive" }}
               />
             </div>
@@ -211,7 +211,7 @@ export default function WaiverSignPage() {
             <button
               type="submit"
               disabled={submitting || !agreed}
-              className="w-full bg-primary hover:bg-primary-dark text-black font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50"
+              className="w-full ui-focus bg-accent hover:brightness-[1.04] active:scale-[0.99] text-accent-fg font-semibold shadow-card py-3 px-6 rounded-lg transition disabled:opacity-50"
             >
               {submitting ? 'Signing...' : 'Sign Waiver'}
             </button>

@@ -106,7 +106,7 @@ export function MemberFields({ value, onChange, compact }: { value: MemberFormVa
           </Field>
           <div className="space-y-2 sm:col-span-2">
             <Checkbox checked={value.emailOptIn} onChange={(e) => set('emailOptIn', e.target.checked)} label="Send marketing emails" />
-            <Checkbox checked={value.smsOptIn} onChange={(e) => set('smsOptIn', e.target.checked)} label="Member has opted in to text messages" />
+            <Checkbox checked={value.smsOptIn} onChange={(e) => set('smsOptIn', e.target.checked)} label="Member has agreed to text reminders and updates" />
           </div>
         </>
       )}

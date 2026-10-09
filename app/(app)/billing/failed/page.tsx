@@ -39,7 +39,7 @@ export default function FailedPaymentsPage() {
             <EmptyState icon={<CheckCircle2 className="h-5 w-5" />} title="Nothing is overdue" description="Every invoice is paid or not yet due." />
           ) : (
             <Table>
-              <thead><tr><Th>Member</Th><Th>Invoice</Th><Th>For</Th><Th>Due</Th><Th align="right">Attempts</Th><Th align="right">Balance</Th><Th /></tr></thead>
+              <thead><tr><Th>Member</Th><Th>Invoice</Th><Th>For</Th><Th>Due</Th><Th>Next automatic retry</Th><Th align="right">Attempts</Th><Th align="right">Balance</Th><Th /></tr></thead>
               <tbody>
                 {rows.map((inv) => (
                   <tr key={inv.id}>
@@ -47,9 +47,10 @@ export default function FailedPaymentsPage() {
                     <Td><Link href={`/billing/invoices?invoice=${inv.id}`} className="ui-focus rounded text-fg-muted hover:underline">{inv.number}</Link></Td>
                     <Td className="max-w-[16rem] truncate text-fg-muted">{inv.items[0]?.description}</Td>
                     <Td className="text-red-600 dark:text-red-400">{date(inv.dueDate)} <span className="text-xs text-fg-subtle">({timeAgo(inv.dueDate)})</span></Td>
+                    <Td className="text-fg-muted">{inv.nextAttemptAt ? date(inv.nextAttemptAt) : inv.attemptCount > 0 ? 'No more retries' : '—'}</Td>
                     <Td align="right">{inv.attemptCount || '—'}</Td>
                     <Td align="right" className="font-medium">{money(inv.totalCents - inv.amountPaidCents)}</Td>
-                    <Td align="right">{can('billing.manage') && <Button size="sm" variant="primary" onClick={() => setPay({ id: inv.id, number: inv.number, balanceCents: inv.totalCents - inv.amountPaidCents })}>Take payment</Button>}</Td>
+                    <Td align="right">{can('billing.manage') && <Button size="sm" variant="primary" onClick={() => setPay({ id: inv.id, number: inv.number, balanceCents: inv.totalCents - inv.amountPaidCents, memberId: inv.member?.id })}>{inv.attemptCount > 0 ? 'Retry or take payment' : 'Take payment'}</Button>}</Td>
                   </tr>
                 ))}
               </tbody>

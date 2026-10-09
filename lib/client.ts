@@ -28,13 +28,20 @@ interface Envelope<T> {
   meta?: Meta
 }
 
+// The public booking page signs people in with a token it holds itself (a cookie would not survive
+// being embedded in another website). When one is set, it goes with every request this page makes.
+let bearer: string | null = null
+export function setApiBearer(token: string | null) {
+  bearer = token
+}
+
 export async function request<T>(url: string, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<Envelope<T>> {
   let res: Response
   try {
     res = await fetch(url, {
       method: options.method || (options.body !== undefined ? 'POST' : 'GET'),
       credentials: 'include',
-      headers: options.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: { ...(options.body !== undefined && { 'Content-Type': 'application/json' }), ...(bearer && { Authorization: `Bearer ${bearer}` }) },
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       signal: options.signal,
     })
@@ -42,8 +49,17 @@ export async function request<T>(url: string, options: { method?: string; body?:
     if ((error as Error).name === 'AbortError') throw error
     throw new ClientError("Can't reach the server. Check your connection and try again.", 0, 'network')
   }
-  if (res.status === 401 && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login'
+  if (res.status === 401 && typeof window !== 'undefined') {
+    const path = window.location.pathname
+    // Members and staff sign in at different doors; never send one to the other's.
+    // The public booking page handles "please sign in" itself, in place.
+    if (path.startsWith('/book')) {
+      // stay put
+    } else if (path.startsWith('/member')) {
+      if (path === '/member/me' || /^\/member\/[A-Za-z0-9_-]{32,}$/.test(path)) window.location.href = '/member/login'
+    } else if (!path.startsWith('/login')) {
+      window.location.href = '/login'
+    }
   }
   const json = await res.json().catch(() => null)
   if (!res.ok) {

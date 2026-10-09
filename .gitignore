@@ -42,3 +42,7 @@ next-env.d.ts
 
 /app/generated/prisma
 .env*.local
+
+# local integration-test database
+.pgdata-test
+.data/

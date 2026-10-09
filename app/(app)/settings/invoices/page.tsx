@@ -50,11 +50,11 @@ export default function InvoicesPage() {
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      paid: 'bg-green-900/20 text-green-400 border-green-900',
-      open: 'bg-yellow-900/20 text-yellow-400 border-yellow-900',
-      void: 'bg-gray-800 text-gray-400 border-gray-700',
-      uncollectible: 'bg-red-900/20 text-red-400 border-red-900',
-      draft: 'bg-gray-800 text-gray-400 border-gray-700',
+      paid: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25',
+      open: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25',
+      void: 'bg-subtle text-fg-muted border-line',
+      uncollectible: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/25',
+      draft: 'bg-subtle text-fg-muted border-line',
     }
     return (
       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${colors[status] || colors.draft}`}>
@@ -78,7 +78,7 @@ export default function InvoicesPage() {
       <div className="max-w-5xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary">Invoices</h1>
+          <h1 className="ui-page-title">Invoices</h1>
           <p className="text-gray-400 mt-1">Your billing history</p>
         </div>
 

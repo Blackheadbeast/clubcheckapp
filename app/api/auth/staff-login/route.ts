@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createToken, StaffRole } from '@/lib/auth'
+import { createToken, passwordVersion, StaffRole } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { rateLimitResponse, AUTH_RATE_LIMIT } from '@/lib/rate-limit'
+import { recordFailedSignIn, signInBlocked } from '@/lib/login-attempts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -60,6 +61,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Too many wrong passwords for this person at this gym, counted across every server instance.
+    const account = `${owner.id}:${email}`
+    if (await signInBlocked('staff', account)) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '900' } }
+      )
+    }
+
     // Find staff member
     const staff = await prisma.staff.findFirst({
       where: {
@@ -68,7 +78,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (!staff) {
+    // The password is checked before anything is said about the account, so a wrong guess learns
+    // nothing about who works here or whether they have been deactivated.
+    const validPassword = staff ? await bcrypt.compare(password, staff.password) : false
+    if (!staff || !validPassword) {
+      await recordFailedSignIn('staff', account)
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -78,14 +92,6 @@ export async function POST(request: NextRequest) {
     if (!staff.active) {
       return NextResponse.json(
         { error: 'Your account has been deactivated' },
-        { status: 401 }
-      )
-    }
-
-    const validPassword = await bcrypt.compare(password, staff.password)
-    if (!validPassword) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
@@ -101,6 +107,7 @@ export async function POST(request: NextRequest) {
       ownerId: owner.id,
       staffId: staff.id,
       role: staff.role as StaffRole,
+      pv: passwordVersion(staff.password),
     })
 
     const response = NextResponse.json({

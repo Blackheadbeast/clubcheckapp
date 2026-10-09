@@ -15,7 +15,7 @@ const walkthroughSteps: WalkthroughStep[] = [
   {
     target: '[data-walkthrough="nav-menu"]',
     title: 'Navigation Menu',
-    description: 'Access all features from here - members, check-ins, analytics, billing, and settings.',
+    description: 'Everything is grouped here: people, schedule, business, engagement and configuration.',
     position: 'left',
   },
   {
@@ -27,7 +27,7 @@ const walkthroughSteps: WalkthroughStep[] = [
   {
     target: '[data-walkthrough="quick-actions"]',
     title: 'Quick Actions',
-    description: 'Quickly add new members, record check-ins, or send broadcasts to your members.',
+    description: 'Add a member, check someone in, or message your members from here.',
     position: 'top',
   },
   {

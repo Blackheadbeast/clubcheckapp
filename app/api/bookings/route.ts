@@ -4,12 +4,14 @@ import { prisma } from '@/lib/prisma'
 import { Paginated, handler, paging } from '@/lib/api'
 import { bookClass } from '@/lib/services/bookings'
 import { flushOutbox } from '@/lib/services/automations'
+import { effectiveLocation } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/bookings?status=&when=upcoming|past&search=&classTypeId=
-export const GET = handler({ permission: 'classes.view' }, async ({ ownerId, query }) => {
+export const GET = handler({ permission: 'classes.view' }, async ({ ownerId, query, actor }) => {
   const { page, pageSize, skip, take } = paging(query)
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
   const status = query.get('status')
   const when = query.get('when') || 'upcoming'
   const search = (query.get('search') || '').trim()
@@ -20,7 +22,7 @@ export const GET = handler({ permission: 'classes.view' }, async ({ ownerId, que
     session: {
       ...(when === 'upcoming' ? { endsAt: { gte: now } } : when === 'past' ? { endsAt: { lt: now } } : {}),
       ...(query.get('classTypeId') && { classTypeId: query.get('classTypeId')! }),
-      ...(query.get('locationId') && { locationId: query.get('locationId')! }),
+      ...(scope.locationId && { locationId: scope.locationId }),
     },
     ...(search && { member: { name: { contains: search, mode: 'insensitive' } } }),
   }

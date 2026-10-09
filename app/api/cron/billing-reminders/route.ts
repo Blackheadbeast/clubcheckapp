@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendBillingReminderEmail } from '@/lib/email'
+import { cronAuthorized } from '@/lib/cron'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  // Validate cron secret
-  const cronSecret = request.headers.get('x-cron-secret') || request.nextUrl.searchParams.get('secret')
-  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+  // Vercel Cron sends the secret as a bearer token. It used to be read only from x-cron-secret or
+  // the URL, so the scheduled run was refused every day; and a secret in a URL ends up in logs.
+  if (!cronAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
         paymentMethod: true,
         billingDayOfMonth: true,
         paymentLink: true,
+        lastReminderSentAt: true,
       },
     })
 
@@ -62,6 +64,12 @@ export async function GET(request: NextRequest) {
       if (daysUntil < 0) daysUntil += 28 // wrapped to next month
 
       if (daysUntil <= reminderDays && daysUntil >= 0) {
+        // Claim the reminder before sending it, so two runs at once (or a retry) cannot both send.
+        const claimed = await prisma.member.updateMany({
+          where: { id: member.id, OR: [{ lastReminderSentAt: null }, { lastReminderSentAt: { lt: startOfMonth } }] },
+          data: { lastReminderSentAt: new Date() },
+        })
+        if (claimed.count === 0) continue
         try {
           await sendBillingReminderEmail(
             member.email,
@@ -72,15 +80,11 @@ export async function GET(request: NextRequest) {
             member.paymentMethod || 'your preferred method',
             member.paymentLink,
           )
-
-          await prisma.member.update({
-            where: { id: member.id },
-            data: { lastReminderSentAt: new Date() },
-          })
-
           sentCount++
         } catch (err) {
-          console.error(`Failed to send reminder to ${member.email}:`, err)
+          // Not sent: give the claim back so the next run tries again. No address in the log.
+          await prisma.member.update({ where: { id: member.id }, data: { lastReminderSentAt: member.lastReminderSentAt } }).catch(() => {})
+          console.error(`[cron] billing reminder for member ${member.id} failed:`, err instanceof Error ? err.message : 'unknown error')
           errorCount++
         }
       }

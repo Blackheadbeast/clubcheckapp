@@ -3,48 +3,35 @@ import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
 
-// Simple in-memory cache for processed events (TTL: 5 minutes)
-// This prevents duplicate processing when Stripe retries
-const processedEvents = new Map<string, number>()
-const EVENT_TTL = 5 * 60 * 1000 // 5 minutes
-
-// Clean up old events periodically
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now()
-    for (const [id, timestamp] of processedEvents.entries()) {
-      if (now - timestamp > EVENT_TTL) {
-        processedEvents.delete(id)
-      }
-    }
-  }, 60000) // Every minute
+// Stripe delivers an event at least once, and to whichever server instance answers. Each event
+// id is therefore recorded in the database before it is handled: a second delivery finds the
+// record and is acknowledged without being handled again. If handling fails the record is removed,
+// so Stripe's retry is handled afresh.
+async function claimEvent(event: Stripe.Event) {
+  const claimed = await prisma.paymentEvent.createMany({ data: [{ id: event.id, type: event.type, account: 'platform' }], skipDuplicates: true })
+  return claimed.count === 1
 }
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
-  const sig = request.headers.get('stripe-signature')!
+  const sig = request.headers.get('stripe-signature')
+  const secret = process.env.STRIPE_WEBHOOK_SECRET
+  // Without the signing secret nothing can be verified, so nothing is accepted.
+  if (!secret) return NextResponse.json({ error: 'Webhook is not configured' }, { status: 503 })
+  if (!sig) return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
 
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
+    event = stripe.webhooks.constructEvent(body, sig, secret)
   } catch (err: unknown) {
-    console.error('Webhook signature verification failed:', err)
+    console.error('Webhook signature verification failed:', err instanceof Error ? err.message : 'unknown error')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  // Idempotency check - skip if already processed
-  if (processedEvents.has(event.id)) {
-    console.log(`Skipping duplicate event: ${event.id}`)
+  if (!(await claimEvent(event))) {
     return NextResponse.json({ received: true, duplicate: true })
   }
-
-  // Mark as processing
-  processedEvents.set(event.id, Date.now())
 
   try {
     switch (event.type) {
@@ -300,7 +287,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook handler error:', error)
+    console.error(`Webhook handler error for ${event.type} ${event.id}:`, error instanceof Error ? error.message : 'unknown error')
+    // Give the event back so Stripe's retry is handled.
+    await prisma.paymentEvent.delete({ where: { id: event.id } }).catch(() => {})
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 }

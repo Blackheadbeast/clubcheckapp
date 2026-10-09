@@ -7,16 +7,21 @@ import { createInvoice, quoteCoupon } from '@/lib/services/payments'
 import { getGymSettings, logActivity } from '@/lib/services/core'
 import { formatMoney } from '@/lib/format'
 import { csvResponse } from '@/lib/csv'
+import { effectiveLocation, homeScope } from '@/lib/services/today'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/billing/invoices?status=&search=&overdue=1&format=csv
-export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, query }) => {
+export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, query, actor }) => {
   const { page, pageSize, skip, take } = paging(query)
+  // Invoices carry no location of their own; they follow the member's home location.
+  const scope = await effectiveLocation(ownerId, actor, query.get('locationId'))
+  const home = scope.locationId ? { member: homeScope(scope) } : {}
   const status = query.get('status')
   const search = (query.get('search') || '').trim()
   const where: Prisma.InvoiceWhereInput = {
     ownerId,
+    ...home,
     ...(status === 'overdue' ? { status: 'open', dueDate: { lt: new Date() } } : status && status !== 'all' ? { status } : {}),
     ...(query.get('memberId') && { memberId: query.get('memberId')! }),
     ...(search && { OR: [{ number: { contains: search, mode: 'insensitive' } }, { member: { name: { contains: search, mode: 'insensitive' } } }] }),
@@ -40,7 +45,7 @@ export const GET = handler({ permission: 'billing.view' }, async ({ ownerId, que
   const [invoices, total, open] = await Promise.all([
     prisma.invoice.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take, select }),
     prisma.invoice.count({ where }),
-    prisma.invoice.aggregate({ where: { ownerId, status: 'open' }, _sum: { totalCents: true, amountPaidCents: true }, _count: true }),
+    prisma.invoice.aggregate({ where: { ownerId, status: 'open', ...home }, _sum: { totalCents: true, amountPaidCents: true }, _count: true }),
   ])
   return new Paginated(invoices, total, page, pageSize, {
     outstandingCents: (open._sum.totalCents || 0) - (open._sum.amountPaidCents || 0),

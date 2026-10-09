@@ -3,12 +3,15 @@
 // Every function that changes who holds a spot locks the ClassSession row
 // first, so two people racing for the last place cannot both get it.
 
+import { returnCredits, spendCredits } from './credits'
+import { assertMemberFree } from './conflicts'
 import type { Booking, ClassSession, Member, Membership, MembershipPlan } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ApiError, badRequest, notFound } from '@/lib/api'
 import { addDaysToDate, zonedParts, zonedToUtc } from '@/lib/dates'
 import { formatDateTime } from '@/lib/format'
 import { Db, ActorRef, GymSettings, SYSTEM, getGymSettings, lockRow, logActivity } from './core'
+import { bookingEvent } from './events'
 import { SPOT_STATUSES } from './classes'
 import { isCreditPlan } from './memberships'
 import { queueMessage } from './messaging'
@@ -141,11 +144,7 @@ async function spotsTaken(db: Db, sessionId: string) {
 /** Turn a booking row into a confirmed spot, consuming a credit when the plan is credit-based. */
 async function confirmSpot(db: Db, bookingId: string, eligibility: Eligibility) {
   if (eligibility.usesCredit && eligibility.membership) {
-    const spent = await db.membership.updateMany({
-      where: { id: eligibility.membership.id, creditsRemaining: { gt: 0 } },
-      data: { creditsRemaining: { decrement: 1 } },
-    })
-    if (spent.count === 0) throw rule('insufficient_credits', `No sessions left on ${eligibility.membership.plan.name}.`)
+    await spendCredits(db, eligibility.membership)
   }
   return db.booking.update({
     where: { id: bookingId },
@@ -163,8 +162,20 @@ async function confirmSpot(db: Db, bookingId: string, eligibility: Eligibility) 
 
 async function returnCredit(db: Db, booking: Booking) {
   if (!booking.creditUsed || !booking.membershipId) return
-  await db.membership.update({ where: { id: booking.membershipId }, data: { creditsRemaining: { increment: 1 } } })
+  await returnCredits(db, booking.membershipId)
   await db.booking.update({ where: { id: booking.id }, data: { creditUsed: false } })
+}
+
+/**
+ * Before a member books a class for themselves: anything that class requires them to have signed.
+ * Runs outside the booking's own transaction, so the documents exist for them to sign even though
+ * the booking is refused.
+ */
+export async function classDocumentsGate(ownerId: string, memberId: string, sessionId: string) {
+  const session = await prisma.classSession.findFirst({ where: { id: sessionId, ownerId }, select: { classTypeId: true } })
+  if (!session) return
+  const { requireDocuments } = await import('./documents')
+  await requireDocuments(ownerId, memberId, { trigger: 'class_booking', classTypeId: session.classTypeId })
 }
 
 export interface BookInput {
@@ -212,6 +223,8 @@ export async function bookClass(db: Db, input: BookInput) {
   const eligibility = await checkEligibility(db, { ownerId: input.ownerId, member, session, settings, ignoreBookingId: existing?.id })
   const taken = await spotsTaken(db, session.id)
   const full = taken >= session.capacity
+  // Taking a spot (not merely joining a waitlist) must not overlap another class or an appointment.
+  if (!full) await assertMemberFree(db, { ownerId: input.ownerId, memberId: member.id, memberName: member.name, startsAt: session.startsAt, endsAt: session.endsAt, ignore: { bookingId: existing?.id }, viaStaff: byStaff, tz })
 
   if (full) {
     const waiting = await db.booking.count({ where: { sessionId: session.id, status: 'waitlisted' } })
@@ -253,7 +266,15 @@ export async function bookClass(db: Db, input: BookInput) {
     metadata: { sessionId: session.id, bookingId: booking.id },
     actor: input.actor,
   })
+  await bookingEvent(db, input.ownerId, 'booking.created', booking.id)
   return { booking, session, waitlistPosition, usedCredit: !full && eligibility.usesCredit }
+}
+
+/** " at Downtown · Studio A" for a text message, or nothing if the class has no place set. */
+async function sessionPlace(db: Db, session: { locationId: string | null; room: string | null }) {
+  const location = session.locationId ? await db.location.findUnique({ where: { id: session.locationId }, select: { name: true } }) : null
+  const place = [location?.name, session.room].filter(Boolean).join(' · ')
+  return place ? ` at ${place}` : ''
 }
 
 /**
@@ -280,11 +301,14 @@ export async function promoteWaitlist(db: Db, session: SessionWithType, settings
     if (settings.waitlistOfferMinutes <= 0) {
       try {
         const eligibility = await checkEligibility(db, { ownerId: session.ownerId, member: next.member, session, settings, ignoreBookingId: next.id })
+        await assertMemberFree(db, { ownerId: session.ownerId, memberId: next.memberId, memberName: next.member.name, startsAt: session.startsAt, endsAt: session.endsAt, ignore: { bookingId: next.id }, viaStaff: true, tz: settings.timezone })
         await confirmSpot(db, next.id, eligibility)
       } catch (error) {
         if (!(error instanceof ApiError)) throw error
-        // No longer eligible (e.g. membership lapsed while waiting): skip to the next person.
+        // No longer eligible (membership lapsed while waiting), or they have since booked something
+        // else at this time: they leave the queue and the spot goes to the next person.
         await db.booking.update({ where: { id: next.id }, data: { status: 'cancelled', cancelledAt: now, waitlistedAt: null } })
+        await logActivity(db, { ownerId: session.ownerId, memberId: next.memberId, type: 'waitlist_expired', title: `Not moved into ${name} from the waitlist`, detail: error.message, metadata: { sessionId: session.id, bookingId: next.id } })
         continue
       }
       await queueMessage(db, {
@@ -292,17 +316,27 @@ export async function promoteWaitlist(db: Db, session: SessionWithType, settings
         subject: `You're in: ${name}`,
         body: `Hi {{first_name}},\n\nA spot opened up and you've been moved off the waitlist into ${name} on ${when}.\n\nCan't make it? Cancel here so someone else can take the spot:\n{{portal_link}}`,
       })
+      await queueMessage(db, {
+        ownerId: session.ownerId, channel: 'sms', memberId: next.memberId, kind: 'operational', dedupeKey: `waitlist:${next.id}:in:${session.startsAt.getTime()}`,
+        body: `{{gym_name}}: a spot opened up and you're in ${name}, ${when}${await sessionPlace(db, session)}. Can't make it? Cancel in the app so someone else can go: {{portal_link}}`,
+      })
       await logActivity(db, {
         ownerId: session.ownerId, memberId: next.memberId, type: 'waitlist_promoted',
         title: `Moved off the waitlist into ${name}`, detail: when, metadata: { sessionId: session.id, bookingId: next.id },
       })
+      await bookingEvent(db, session.ownerId, 'booking.updated', next.id)
     } else {
       const deadline = new Date(Math.min(now.getTime() + settings.waitlistOfferMinutes * 60_000, session.startsAt.getTime()))
       await db.booking.update({ where: { id: next.id }, data: { status: 'offered', offerExpiresAt: deadline, waitlistedAt: next.waitlistedAt } })
+      await bookingEvent(db, session.ownerId, 'booking.updated', next.id)
       await queueMessage(db, {
         ownerId: session.ownerId, channel: 'email', memberId: next.memberId, transactional: true,
         subject: `A spot opened in ${name}`,
         body: `Hi {{first_name}},\n\nA spot just opened in ${name} on ${when}. It's held for you until ${formatDateTime(deadline, settings.timezone)}.\n\nClaim it here:\n{{portal_link}}\n\nIf you don't claim it in time it goes to the next person on the waitlist.`,
+      })
+      await queueMessage(db, {
+        ownerId: session.ownerId, channel: 'sms', memberId: next.memberId, kind: 'operational', dedupeKey: `waitlist:${next.id}:offer:${deadline.getTime()}`, expiresAt: deadline,
+        body: `{{gym_name}}: a spot opened in ${name}, ${when}${await sessionPlace(db, session)}. It's held for you until ${formatDateTime(deadline, settings.timezone)}. Claim it in the app: {{portal_link}}`,
       })
       await logActivity(db, {
         ownerId: session.ownerId, memberId: next.memberId, type: 'waitlist_offered',
@@ -313,6 +347,41 @@ export async function promoteWaitlist(db: Db, session: SessionWithType, settings
     promoted++
   }
   return promoted
+}
+
+/**
+ * Staff move one particular person off the waitlist into a free spot, ahead of the queue if need be.
+ * Every other rule still applies: there must be a free spot, their membership must cover the class,
+ * and they must not be booked elsewhere at that time.
+ */
+export async function promoteBooking(db: Db, input: { ownerId: string; bookingId: string; actor?: ActorRef }) {
+  const found = await db.booking.findFirst({ where: { id: input.bookingId, ownerId: input.ownerId }, select: { sessionId: true } })
+  if (!found) throw notFound('Booking')
+  await lockRow(db, 'ClassSession', found.sessionId)
+  const booking = await db.booking.findUniqueOrThrow({ where: { id: input.bookingId }, include: { member: true } })
+  if (!['waitlisted', 'offered'].includes(booking.status)) throw rule('not_waitlisted', `${booking.member.name} is not on the waitlist.`)
+  const [session, settings] = await Promise.all([loadSession(db, input.ownerId, booking.sessionId), getGymSettings(input.ownerId, db)])
+  const name = sessionName(session)
+  if (session.status !== 'scheduled') throw rule('class_cancelled', `${name} has been cancelled.`)
+  // Someone holding an offer already counts as a spot, so promoting them needs no extra room.
+  const taken = (await spotsTaken(db, session.id)) - (booking.status === 'offered' ? 1 : 0)
+  if (taken >= session.capacity) throw rule('class_full', `${name} is full. Free a spot or raise the capacity first.`)
+  const eligibility = await checkEligibility(db, { ownerId: input.ownerId, member: booking.member, session, settings, ignoreBookingId: booking.id })
+  await assertMemberFree(db, { ownerId: input.ownerId, memberId: booking.memberId, memberName: booking.member.name, startsAt: session.startsAt, endsAt: session.endsAt, ignore: { bookingId: booking.id }, viaStaff: true, tz: settings.timezone })
+  const confirmed = await confirmSpot(db, booking.id, eligibility)
+  const when = formatDateTime(session.startsAt, settings.timezone)
+  await queueMessage(db, {
+    ownerId: input.ownerId, channel: 'email', memberId: booking.memberId, transactional: true,
+    subject: `You're in: ${name}`,
+    body: `Hi {{first_name}},\n\nYou've been moved off the waitlist into ${name} on ${when}.\n\nCan't make it? Cancel here so someone else can take the spot:\n{{portal_link}}`,
+  })
+  await queueMessage(db, {
+    ownerId: input.ownerId, channel: 'sms', memberId: booking.memberId, kind: 'operational', dedupeKey: `waitlist:${booking.id}:in:${session.startsAt.getTime()}`,
+    body: `{{gym_name}}: you're off the waitlist and booked into ${name}, ${when}${await sessionPlace(db, session)}. Can't make it? Cancel in the app so someone else can go: {{portal_link}}`,
+  })
+  await logActivity(db, { ownerId: input.ownerId, memberId: booking.memberId, type: 'waitlist_promoted', title: `Moved off the waitlist into ${name}`, detail: when, metadata: { sessionId: session.id, bookingId: booking.id }, actor: input.actor })
+  await bookingEvent(db, input.ownerId, 'booking.updated', booking.id)
+  return { booking: confirmed, session }
 }
 
 /** Accept a waitlist offer before its deadline. */
@@ -327,12 +396,14 @@ export async function claimOffer(db: Db, input: { ownerId: string; bookingId: st
   }
   const [session, settings] = await Promise.all([loadSession(db, input.ownerId, booking.sessionId), getGymSettings(input.ownerId, db)])
   const eligibility = await checkEligibility(db, { ownerId: input.ownerId, member: booking.member, session, settings, ignoreBookingId: booking.id })
+  await assertMemberFree(db, { ownerId: input.ownerId, memberId: booking.memberId, memberName: booking.member.name, startsAt: session.startsAt, endsAt: session.endsAt, ignore: { bookingId: booking.id }, viaStaff: input.actor?.type !== 'member', tz: settings.timezone })
   const confirmed = await confirmSpot(db, booking.id, eligibility)
   await logActivity(db, {
     ownerId: input.ownerId, memberId: booking.memberId, type: 'class_booked',
     title: `Claimed a waitlist spot in ${sessionName(session)}`, detail: formatDateTime(session.startsAt, settings.timezone),
     metadata: { sessionId: session.id, bookingId: booking.id }, actor: input.actor,
   })
+  await bookingEvent(db, input.ownerId, 'booking.updated', booking.id)
   return { booking: confirmed, session }
 }
 
@@ -353,6 +424,7 @@ export async function expireOffers(ownerId?: string, now = new Date()) {
       })
       if (changed.count === 0) return
       lapsed++
+      await bookingEvent(db, row.ownerId, 'booking.cancelled', row.id)
       const [session, settings, booking] = await Promise.all([
         loadSession(db, row.ownerId, row.sessionId),
         getGymSettings(row.ownerId, db),
@@ -414,6 +486,7 @@ export async function cancelBooking(db: Db, input: CancelInput) {
     metadata: { sessionId: session.id, bookingId: booking.id },
     actor: input.actor,
   })
+  await bookingEvent(db, input.ownerId, 'booking.cancelled', booking.id)
   const promoted = booking.status === 'waitlisted' ? 0 : await promoteWaitlist(db, session, settings)
   return { booking: updated, late, creditReturned: booking.creditUsed && (!late || !settings.lateCancelUsesCredit), promoted, session }
 }
@@ -429,6 +502,7 @@ export async function cancelSession(db: Db, input: { ownerId: string; sessionId:
   for (const booking of bookings) {
     await returnCredit(db, booking)
     await db.booking.update({ where: { id: booking.id }, data: { status: 'cancelled', cancelledAt: new Date(), offerExpiresAt: null, waitlistedAt: null } })
+    await bookingEvent(db, input.ownerId, 'booking.cancelled', booking.id)
     await logActivity(db, {
       ownerId: input.ownerId, memberId: booking.memberId, type: 'class_cancelled',
       title: `${name} was cancelled by the gym`, detail: [when, input.reason].filter(Boolean).join(' · '),
@@ -457,6 +531,7 @@ export async function releaseBookingsForMembership(db: Db, ownerId: string, memb
   for (const booking of bookings) {
     await lockRow(db, 'ClassSession', booking.sessionId)
     await db.booking.update({ where: { id: booking.id }, data: { status: 'cancelled', cancelledAt: now, offerExpiresAt: null, waitlistedAt: null, creditUsed: false } })
+    await bookingEvent(db, ownerId, 'booking.cancelled', booking.id)
     if (booking.status !== 'waitlisted') await promoteWaitlist(db, await loadSession(db, ownerId, booking.sessionId), settings)
   }
   return bookings.length
@@ -505,6 +580,7 @@ export async function markAttendance(
       context: { class_name: name, class_time: formatDateTime(session.startsAt, settings.timezone) },
     })
   }
+  await bookingEvent(db, input.ownerId, input.status === 'attended' ? 'booking.checked_in' : 'booking.updated', booking.id)
   return { booking: updated, changed: true }
 }
 

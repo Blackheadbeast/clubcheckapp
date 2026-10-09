@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { assertOwned, handler, notFound } from '@/lib/api'
 import { zonedToUtc } from '@/lib/dates'
 import { scheduleSchema } from '@/lib/schemas'
-import { resyncSchedule } from '@/lib/services/classes'
+import { assertCoachFreeForSchedule, resyncSchedule } from '@/lib/services/classes'
 import { getGymSettings } from '@/lib/services/core'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +26,7 @@ export const PATCH = handler({ permission: 'classes.manage', write: true, body: 
         ...(endDate !== undefined && { endDate: endDate ? zonedToUtc(endDate, '23:59', settings.timezone) : null }),
       },
     })
+    await assertCoachFreeForSchedule(db, schedule)
     return { schedule, ...(await resyncSchedule(db, schedule, settings)) }
   }, { timeout: 30_000 })
   await audit('schedule.update', 'Updated a recurring class schedule', { entityType: 'classSchedule', entityId: before.id, before, after: result.schedule })

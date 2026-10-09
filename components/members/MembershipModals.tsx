@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { api, ClientError } from '@/lib/client'
+import { api, ClientError, useApi } from '@/lib/client'
 import { PAYMENT_METHOD_LABELS, planPriceLabel, useLookups } from '@/lib/hooks'
 import { useSession } from '@/components/Session'
 import { Button, Checkbox, Field, FormError, Input, Modal, Select, useToast } from '@/components/ui'
@@ -47,7 +47,10 @@ export function SellMembershipModal({ memberId, memberName, open, onClose, onDon
   const pct = Math.min(100, Math.max(0, parseInt(discount || '0', 10) || 0))
   const inTrial = !!plan && plan.type === 'recurring' && plan.trialDays > 0 && !skipTrial
   const dueToday = plan ? (inTrial ? 0 : Math.round((plan.priceCents * (100 - pct)) / 100)) + (plan.type === 'recurring' ? plan.enrollmentFeeCents : 0) : 0
-  const canCollect = dueToday > 0 && paymentMethod !== 'card'
+  const onFile = paymentMethod === 'card' || paymentMethod === 'ach'
+  const saved = useApi<{ methods: { id: string; type: string }[]; canCharge: boolean }>(open ? `/api/members/${memberId}/payment-methods` : null)
+  const canChargeSaved = !!saved.data?.canCharge && saved.data.methods.some((m) => (paymentMethod === 'ach' ? m.type === 'us_bank_account' : true))
+  const canCollect = dueToday > 0 && (!onFile || canChargeSaved)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,7 +58,7 @@ export function SellMembershipModal({ memberId, memberName, open, onClose, onDon
     setBusy(true)
     setError(null)
     try {
-      const result = await api<{ invoice: { number: string; status: string; totalCents: number } | null }>(`/api/members/${memberId}/memberships`, {
+      const result = await api<{ invoice: { number: string; status: string; totalCents: number } | null; charge: { status: string; message: string | null } | null }>(`/api/members/${memberId}/memberships`, {
         body: {
           planId, paymentMethod, locationId,
           ...(startDate && { startDate }),
@@ -65,7 +68,8 @@ export function SellMembershipModal({ memberId, memberName, open, onClose, onDon
           skipTrial,
         },
       })
-      toast.success(result.invoice ? `${plan.name} sold · ${result.invoice.number} ${result.invoice.status === 'paid' ? 'paid' : 'is open'}` : `${plan.name} started`)
+      if (result.charge?.status === 'failed') toast.error(`${plan.name} sold, but the charge failed: ${result.charge.message || 'declined'}. ${result.invoice?.number} is open.`)
+      else toast.success(result.invoice ? `${plan.name} sold · ${result.invoice.number} ${result.invoice.status === 'paid' ? 'paid' : result.charge?.status === 'processing' ? 'bank payment started' : 'is open'}` : `${plan.name} started`)
       onDone()
       onClose()
     } catch (err) {
@@ -138,9 +142,9 @@ export function SellMembershipModal({ memberId, memberName, open, onClose, onDon
                 {plan.contractMonths > 0 && <p className="mt-1 text-xs text-fg-subtle">{plan.contractMonths}-month contract.</p>}
               </div>
               {dueToday > 0 && (
-                paymentMethod === 'card'
-                  ? <p className="text-xs text-fg-subtle">ClubCheck doesn't process cards yet, so the invoice will be left open. Take the card on your terminal and record the payment on the invoice.</p>
-                  : <Checkbox checked={collectNow} onChange={(e) => setCollectNow(e.target.checked)} label={`Payment of ${money(dueToday)} received now`} />
+                onFile && !canChargeSaved
+                  ? <p className="text-xs text-fg-subtle">There is no saved {paymentMethod === 'ach' ? 'bank account' : 'card'} to charge yet, so the invoice will be left open. Add one under Billing on the member's profile and it will be charged automatically.</p>
+                  : <Checkbox checked={collectNow} onChange={(e) => setCollectNow(e.target.checked)} label={onFile ? `Charge ${money(dueToday)} to the saved ${paymentMethod === 'ach' ? 'bank account' : 'card'} now` : `Payment of ${money(dueToday)} received now`} />
               )}
             </>
           )}

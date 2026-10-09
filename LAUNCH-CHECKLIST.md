@@ -79,7 +79,9 @@ Two things found in the local files that are worth fixing:
 
 ## 3. Scheduled jobs
 
-`vercel.json` schedules two, daily:
+`vercel.json` schedules one, daily (`/api/cron/platform`). The billing-reminders job was taken out of
+`vercel.json` on 2026-10-09 before the first deploy of this code, so it does not start emailing members;
+add it back there to turn it on. The table below shows both:
 
 | Path | Schedule (UTC) | What it does |
 |---|---|---|

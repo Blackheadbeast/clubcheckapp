@@ -508,7 +508,10 @@ describe('rescheduling', () => {
     // Someone else's appointment cannot be moved.
     await expect(rescheduleAppointment({ ownerId, appointmentId: theirs.appointment.id, startsAt: at(day(12), '15:00'), by: 'member', memberId: m1.id })).rejects.toMatchObject({ status: 404 })
 
-    const soonStart = new Date(Math.ceil((Date.now() + 3 * HOUR) / (30 * 60_000)) * 30 * 60_000)
+    // About three hours from now. Late in the evening that would run past midnight, which no day's
+    // hours cover, so then it is the first slot of the next day instead (still well inside the window).
+    let soonStart = new Date(Math.ceil((Date.now() + 3 * HOUR) / (30 * 60_000)) * 30 * 60_000)
+    if (zonedParts(soonStart, TZ).hour >= 22) soonStart = at(addDaysToDate(zonedParts(soonStart, TZ).date, 1), '00:00')
     const late = await bookAppointment({ ownerId, typeId: type.id, memberId: m1.id, staffId: staff.id, startsAt: soonStart, source: 'member' })
     await expect(rescheduleAppointment({ ownerId, appointmentId: late.appointment.id, startsAt: at(day(12), '15:00'), by: 'member', memberId: m1.id })).rejects.toMatchObject({ code: 'reschedule_window' })
     // Staff can still move it.
